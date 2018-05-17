@@ -14,29 +14,16 @@ from stats_defn import *
 from hm_constants import *
 from hm_utils import *
 
-# CODE STARTS HERE
-
-# Generate a RFC2822 format date
-# This works with both Excel and Timeline
-localtime = time.asctime( time.localtime(time.time()))
-polltime = time.time()
-polltimet = time.localtime(polltime)
-
-#### Add logging
-#logging.basicConfig(filename='example.log',level=logging.DEBUG)
-#FORMAT = '%(asctime)-15s %(message)s'
-#logging.basicConfig(level=logging.INFO, format=FORMAT)
-initialize_logger('logs', logging.INFO)
+#start logging
+initialize_logger('logs', logging.WARN)
 
 hmn1 = hmNetwork()
 hmn1.connect()
 hmn1.setStatList(StatList)
-hmn1.printdiagnostic = False
 
 # CYCLE THROUGH ALL CONTROLLERS
 for current_controller in hmn1.controllers:
-  print
-  print "Getting all data control %2d in %s *****************************" % (current_controller.address, current_controller.long_name)
+  print "\r\nGetting all data control %2d in %s *****************************" % (current_controller.address, current_controller.long_name)
 
   try:
     current_controller.hmReadAll()
