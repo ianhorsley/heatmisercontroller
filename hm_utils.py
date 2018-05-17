@@ -140,7 +140,7 @@ class hmNetwork:
   def _hmRecieveMsg(self, source, length = MAX_FRAME_RESP_LENGTH) :
       # Listen for a reply
 
-      logging.debug("Gen listening for %d from %d"%(length, source))
+      logging.debug("C%d listening for %d"%(source, length))
       
       try:
         byteread = self.serport.read(length)
@@ -240,7 +240,7 @@ class hmNetwork:
     if protocol != HMV3_ID:
       raise hmProtocolError("Protocol unknown")
     if datalength < 2 :
-      logging.warning("%s : Controller %s : No CRC: %s " % (self.lastsendtime, controller, data))
+      logging.warning("C%s : No CRC: %s " % (controller, data))
       raise hmResponseError("No CRC")
 
     checksum = data[len(data)-2:]
@@ -249,7 +249,7 @@ class hmNetwork:
     crc = crc16() # Initialises the CRC
     expectedchecksum = crc.run(rxmsg)
     if expectedchecksum != checksum:
-      logging.warning("%s : Controller %s : Incorrect CRC: %s %s " % (self.lastsendtime, controller, data, expectedchecksum))
+      logging.warning("C%s : Incorrect CRC: %s %s " % (controller, data, expectedchecksum))
       self._hmClearInputBuffer()
       raise hmResponseError("CRC is incorrect")      
   

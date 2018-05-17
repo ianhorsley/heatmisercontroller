@@ -3,30 +3,16 @@
 # Ian Horsley 2018
 
 #
-# Sets all controllers to on
+# Sets random set of configuration on stats
 #
 import serial
-from struct import pack
-import time
-import sys
-import os
 import logging
 
 from stats_defn import *
 from hm_constants import *
 from hm_utils import *
 
-
-# CODE STARTS HERE
-
-problem = 0
-
-#sys.stderr = open('errorlog.txt', 'a') # Redirect stderr
-
-#FORMAT = '%(asctime)-15s %(message)s'
-#logging.basicConfig(level=logging.INFO, format=FORMAT)
-
-initialize_logger('logs', logging.DEBUG, True)
+initialize_logger('logs', logging.INFO, True)
 
 hmn1 = hmNetwork()
 hmn1.connect()
@@ -126,6 +112,3 @@ hmn1.hmSetFields('Cons',HMV3_ID,'wend_heat',[9,0,12,21,30,10,24,0,5,24,0,5])
 #hmn1.hmSetField("Cons",'frosttemp',9)
 
 hmn1.disconnect()
-
-#if (problem > 0):
-	#mail(you, "Heatmiser TimeSet Error ", "A Problem has occurred", "errorlog.txt")
