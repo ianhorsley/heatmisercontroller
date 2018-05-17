@@ -127,9 +127,6 @@ uniadd = {'DCBlen':[0,2,1,[]],
 'heatingstate': [41,1,1,[0,1]], #0 none, 1 heating currently
 'hotwaterstate': [42,1,1,[0,3],'W'], # read [0=off,1=on], write [0=as prog,1=override on,2=overide off]
 'currenttime': [43,4,1,[[1,7],[0,23],[0,59],[0,59]],'W'], #day (Mon - Sun), hour, min, sec.
-#'currenthour': [44,1,1,[0,23]],
-#'currentmin': [45,1,1,[0,59]],
-#'currentsec': [46,1,1,[0,59]],
 #5/2 progamming #if hour = 24 entry not used
 'wday_heat':[47,12,1,[[0,24],[0,59],[5,35]],"W"], #hour, min, temp  (should minutes be only 0 and 30?)
 'wend_heat':[59,12,1,[[0,24],[0,59],[5,35]],"W"],
@@ -150,7 +147,6 @@ uniadd = {'DCBlen':[0,2,1,[]],
 'fri_water':[251,16,1,[[0,24],[0,59]],"W"],
 'sat_water':[267,16,1,[[0,24],[0,59]],"W"],
 'sun_water':[283,16,1,[[0,24],[0,59]],"W"],
-
 }
 
 CURRENT_TIME_DAY = 0
@@ -177,8 +173,6 @@ WRITE_KEYLOCK_ON = 1
 
 WRITE_RUNMODE_HEATING = 0
 WRITE_RUNMODE_FROST = 1
-#VALUES_HEATINGSTATE_NONE = 0
-#VALUES_HEATINGSTATE_HEATING = 1
 WRITE_HOTWATERSTATE_PROG = 0
 WRITE_HOTWATERSTATE_OVER_ON = 1
 WRITE_HOTWATERSTATE_OVER_OFF = 2
