@@ -10,9 +10,7 @@
 import serial
 from struct import pack
 import time
-import sys
 import os
-import shutil
 from datetime import datetime
 import logging
 
@@ -91,12 +89,9 @@ class hmNetwork:
 
     try:
         self.serport.open()
-    except serial.SerialException, e:
+    except serial.SerialException as e:
         logging.error("Could not open serial port %s: %s" % (self.serport.portstr, e))
-        #sys.stderr.write(s)
-        #problem += 1
-        #mail(you, "Heatmiser TimeSet Error ", "Could not open serial port", "errorlog.txt")
-        sys.exit(1)
+        raise e
 
     logging.info("Gen %s port configuration is %s" % (self.serport.name, self.serport.isOpen()))
     logging.info("Gen %s baud, %s bit, %s parity, with %s stopbits, timeout %s seconds" % (self.serport.baudrate, self.serport.bytesize, self.serport.parity, self.serport.stopbits, self.serport.timeout))
@@ -932,7 +927,6 @@ class hmController:
     self.timeerr = nowseconds - remoteseconds
     if (abs(self.timeerr) > TIME_ERR_LIMIT):
         logging.warn("%s : Controller %2d : Time Error : Greater than %d local is %s, sensor is %s" % (datetime.now().isoformat(), self.address, TIME_ERR_LIMIT, nowseconds, remoteseconds))
-        #sys.stderr.write(s)
 
   TEMP_STATE_OFF = 0  #thermostat display is off and frost protection disabled
   TEMP_STATE_OFF_FROST = 1 #thermostat display is off and frost protection enabled
