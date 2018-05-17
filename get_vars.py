@@ -39,11 +39,10 @@ for current_controller in hmn1.controllers:
     current_controller.display_water_schedule()
 
 time.sleep(5) # sleep before next cycle
-#END OF CYCLE THROUGH CONTROLLERS
 
 while True:
   print
-  # CYCLE THROUGH ALL CONTROLLERS
+  # CYCLE THROUGH ALL CONTROLLERS repeatedly
   for current_controller in hmn1.controllers:
     
     try:
@@ -58,13 +57,7 @@ while True:
         print "%s Water %d" % (disptext, current_controller.hotwaterstate)
       else:
         print disptext
-  
-  #END OF CYCLE THROUGH CONTROLLERS  
 
   time.sleep(5) # sleep before next cycle
 
-
 hmn1.disconnect()
-
-#if (problem > 0):
-	#mail(you, "Heatmiser TimeSet Error ", "A Problem has occurred", "errorlog.txt")
