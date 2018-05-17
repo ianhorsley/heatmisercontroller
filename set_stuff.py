@@ -5,7 +5,6 @@
 #
 # Sets random set of configuration on stats
 #
-import serial
 import logging
 
 from stats_defn import *

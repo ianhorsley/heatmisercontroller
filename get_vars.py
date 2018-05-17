@@ -5,8 +5,6 @@
 #
 # Gets data for all stats repeatedly and displays
 #
-import serial
-from struct import pack
 import time
 import logging
 
