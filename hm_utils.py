@@ -924,11 +924,21 @@ class hmController:
   TEMP_STATE_HELD = 4 #temperature held for a number of hours
   TEMP_STATE_OVERRIDDEN = 5 #temperature overridden until next program time
   TEMP_STATE_PROGRAM = 6 #following program
-        
+  
   def getTempState(self):
     ###some of the data still gets too old. Review the data ages
     if not self._check_data_present() or not self._check_data_current():
-      return False
+      if self.autoreadall:
+        self.hmReadAll()
+        self.procpayload()
+      else:
+        raise hmProtocolError("Need to read all before getting temp state")
+        
+    if not self._check_vars_current():
+      if self.autoreadall:
+        self.hmReadVariables()
+      else:
+        raise hmProtocolError("Vars to old to get temp state")
     
     if self.onoff == WRITE_ONOFF_OFF and self.frostprot == READ_FROST_PROT_OFF:
       return self.TEMP_STATE_OFF
@@ -953,7 +963,6 @@ class hmController:
         return self.TEMP_STATE_OVERRIDDEN
       else:
         return self.TEMP_STATE_PROGRAM
-
   
   def localtimearray(self):
     nowday = time.localtime(time.time()).tm_wday + 1
@@ -1094,9 +1103,6 @@ class hmController:
   
 #### External functions for printing data
   def printTarget(self):
-  
-    if not self._check_data_present() or not self._check_data_current():
-      return False
       
     current_state = self.getTempState()
     
@@ -1154,9 +1160,9 @@ class hmController:
   
   def _check_data_current(self):
     #check general data is current
-    current = time.time() - self.lastreadalltime < 600
+    current = time.time() - self.lastreadalltime < 60 * 60 * 8
     if not current:
-      print "data too old to process"
+      logging.warning("C%i full data too old"%(self.address))
     return current
 
   def _check_time_current(self):
@@ -1167,13 +1173,15 @@ class hmController:
     return current
     
   def _check_vars_current(self):
+    #check variables, such as target temp, hold, onoff, current
     current = time.time() - self.lastreadvarstime < 60
     if not current:
-      print "data too old to process"
+      logging.warning("C%i variable data too old"%(self.address))
     return current
     
   def _check_temps_current(self):
-    current = time.time() - self.lastreadtempstime < 60
+    #check temp and demand current
+    current = time.time() - self.lastreadtempstime < 10
     if not current:
       print "data too old to process"
     return current
