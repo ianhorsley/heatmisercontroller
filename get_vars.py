@@ -3,13 +3,11 @@
 # Ian Horsley 2018
 
 #
-# Sets all controllers to on
+# Gets data for all stats repeatedly and displays
 #
 import serial
 from struct import pack
 import time
-import sys
-import os
 import logging
 
 from stats_defn import *
