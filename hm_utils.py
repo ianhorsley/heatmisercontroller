@@ -18,7 +18,6 @@ from stats_defn import *
 from hm_constants import *
 from comms_settings import *
 
-
 class hmSendError(RuntimeError):
     pass
 class hmResponseError(RuntimeError):
@@ -105,7 +104,7 @@ class hmNetwork:
       
   def _hmSendMsg(self, message) :
 
-      #check time since last recieve to make sure bus has settled.
+      #check time since last received to make sure bus has settled.
       waittime = COM_BUS_RESET_TIME - (time.time() - self.lastreceivetime)
       if waittime > 0:
         logging.debug("Gen waiting before sending %.2f"% ( waittime ))
@@ -150,12 +149,10 @@ class hmNetwork:
         data = []
 
         if (len(byteread)) == 0:
-          logging.warning("%s : Controller %s : No response" % (self.lastsendtime, source))
+          logging.warning("C%s : No response" % (self.lastsendtime, source))
           raise hmResponseError("Zero Length Response (Duplicate)")
 
-        # TODO All this should only happen if correct length reply
         #Now try converting it back to array
-
         data = data + (map(ord,byteread))
         logging.debug("Gen received %s",', '.join(str(x) for x in data))
 
@@ -166,8 +163,7 @@ class hmNetwork:
   def setStatList(self, list):
     self.statlist = list
     self.statnum = len(self.statlist)
-    #self.statfulldcbframelength = [False] * SLAVE_ADDR_MAX
-    
+
     self.controllers = []
     for stat in list:
       if hasattr(self,stat[SL_SHORT_NAME]):
@@ -198,8 +194,6 @@ class hmNetwork:
 
 ### low level framing functions
       
-  # TODO is this next comment a dead comment?
-  # Always read whole DCB
   # TODO check master address is in legal range
   def _hmFormReadFrame(self, destination, protocol, source, start, length) :
     return self._hmFormFrame(destination, protocol, source, FUNC_READ, start, length, [])
@@ -396,8 +390,7 @@ class hmNetwork:
         raise hmProtocolError("hmSetField: field isn't writeable")
       
       network_address = self.getStatAddress(controller) #broken
-      
-      #protocol = HMV3_ID # TODO should look this up in statlist
+
       if network_address == BROADCAST_ADDR or protocol == HMV3_ID:
         if fieldinfo[UNIADD_LEN] == 1:
           payload = [state]
@@ -452,35 +445,34 @@ class hmNetwork:
         if item < range[0] or item > range[1]:
           hmProtocolError("hmSetFields: payload out of range")
           
-### Functions for setting specfic states on controllers
+### Functions for setting specific states on controllers
     
-  def hmKeyLock_On(destination, serport) :
-    hmKeyLock(destination, KEY_LOCK_LOCK, serport)
+  # def hmKeyLock_On(destination, serport) :
+    # hmKeyLock(destination, KEY_LOCK_LOCK, serport)
 
-  def hmKeyLock_Off(destination, serport) :
-    hmKeyLock(destination, KEY_LOCK_UNLOCK, serport)
+  # def hmKeyLock_Off(destination, serport) :
+    # hmKeyLock(destination, KEY_LOCK_UNLOCK, serport)
 
-  def hmKeyLock(destination, state, serport) :
-      """bla bla"""
-      protocol = HMV3_ID # TODO should look this up in statlist
-      if protocol == HMV3_ID:
-          payload = [state]
-          # TODO should not be necessary to pass in protocol as we can look that up in statlist
-          msg = hmFormMsgCRC(destination, protocol, MY_MASTER_ADDR, FUNC_WRITE, KEY_LOCK_ADDR, payload)
-      else:
-          "Un-supported protocol found %s" % protocol
-          assert 0, "Un-supported protocol found %s" % protocol
-          # TODO return error/exception
+  # def hmKeyLock(destination, state, serport) :
+      # """bla bla"""
+      # protocol = HMV3_ID # TODO should look this up in statlist
+      # if protocol == HMV3_ID:
+          # payload = [state]
+          # # TODO should not be necessary to pass in protocol as we can look that up in statlist
+          # msg = hmFormMsgCRC(destination, protocol, MY_MASTER_ADDR, FUNC_WRITE, KEY_LOCK_ADDR, payload)
+      # else:
+          # "Un-supported protocol found %s" % protocol
+          # assert 0, "Un-supported protocol found %s" % protocol
+          # # TODO return error/exception
 
-      print msg
-      string = ''.join(map(chr,msg))
+      # print msg
+      # string = ''.join(map(chr,msg))
 
-      datal = hmSendMsg(serport, string)
+      # datal = hmSendMsg(serport, string)
 
-      if (hmVerifyMsgCRCOK(MY_MASTER_ADDR, protocol, destination, FUNC_WRITE, DONT_CARE_LENGTH, datal) == False):
-          print "OH DEAR BAD RESPONSE"
-      return 1
-    
+      # if (hmVerifyMsgCRCOK(MY_MASTER_ADDR, protocol, destination, FUNC_WRITE, DONT_CARE_LENGTH, datal) == False):
+          # print "OH DEAR BAD RESPONSE"
+      # return 1
 
   def hmSetHolEnd(destination, enddatetime, serport) :
       """bla bla"""
@@ -696,8 +688,6 @@ class hmController:
     self.lastreadvarstime = time.time()
     self.lastreadtempstime = time.time()
     return rawdata1 + rawdata2
-    #else:
-    # return []
     
   def hmReadTempsandDemand(self):
     if not self._check_data_present():
