@@ -8,7 +8,6 @@
 # Assume Python 2.7.x
 #
 import serial
-from struct import pack
 import time
 import os
 from datetime import datetime
