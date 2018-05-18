@@ -849,49 +849,6 @@ class hmController:
     currenttime_add = uniadd['currenttime'][UNIADD_ADD]
     if currenttime_add >= firstfieldadd and currenttime_add <= lastfieldadd:
       self._checkcontrollertime(time.localtime(self.lastreadalltime))
-    
-  # def procfullpayload(self):
-    # if not self._check_data_present():
-      # if self.autoreadall:
-        # self.hmReadAll()
-      # else:
-        # raise hmProtocolError("Need to read all before reading processing payload")
-    
-    # if self._checkpayload(self.rawdata):
-    
-      # model = self.rawdata[UNIQUE_ADD_MODEL]
-    
-      # for attrname, values in uniadd.iteritems():
-        # uniqueaddress = values[UNIADD_ADD]
-        # length = values[UNIADD_LEN]
-        # factor = values[UNIADD_DIV]
-        # range = values[UNIADD_RANGE]
-        # #todo, add 7 day prog to getDCBaddress selection
-        # dcbadd = self._getDCBaddress(uniqueaddress)
-        # #todo, add range validation
-        # if dcbadd == DCB_INVALID:
-          # setattr(self, attrname, False)
-        # else:
-          # if length == 1:
-            # setattr(self, attrname, self.rawdata[dcbadd]/factor)
-          # elif length == 2:
-            # val_high = self.rawdata[dcbadd]
-            # val_low  = self.rawdata[dcbadd+1]
-            # setattr(self, attrname, 1.0*(val_high*256 + val_low)/factor) #force float, although always returns integer temps.
-          # elif length == 4 or length == 12 or length == 16:
-            # setattr(self, attrname, self.rawdata[dcbadd:dcbadd+length])
-          # else:
-            # print "field length error"
-
-      # if self.model != PRT_HW_MODEL:
-        # dcbfieldnum = self._getDCBaddress(uniadd['version'][UNIADD_ADD])
-        # self.version = self.rawdata[dcbfieldnum] & 0x7f
-        # self.floorlimiting = self.rawdata[dcbfieldnum] >> 7
-        # self.hotwaterstate = False
-      
-      # self.full = self.rawdata
-      # self._checkcontrollertime(time.localtime(self.lastreadalltime))
-      # return True
 
   def _checkcontrollertime(self,checktime):       
     # Now do same sanity checking
