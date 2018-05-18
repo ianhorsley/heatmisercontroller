@@ -992,7 +992,6 @@ class hmController:
     else:
       return None
 
-    
   def _getLastEntryFromASchedule(self,schedule):
     #gets last valid schedule entry (not 24)
     scheduletarget = None
@@ -1020,11 +1019,9 @@ class hmController:
     return day
   
   def _getPreviousHeatSchedule(self,timearray):
-
     return self._getHeatSchedule(self._getPreviousDay(timearray))
   
   def _getNextHeatSchedule(self,timearray):
-
     return self._getHeatSchedule(self._getNextDay(timearray))
     
   def _getHeatSchedule(self, day):
