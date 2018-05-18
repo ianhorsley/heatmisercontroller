@@ -89,7 +89,7 @@ class hmNetwork:
         self.serport.open()
     except serial.SerialException as e:
         logging.error("Could not open serial port %s: %s" % (self.serport.portstr, e))
-        raise e
+        raise
 
     logging.info("Gen %s port configuration is %s" % (self.serport.name, self.serport.isOpen()))
     logging.info("Gen %s baud, %s bit, %s parity, with %s stopbits, timeout %s seconds" % (self.serport.baudrate, self.serport.bytesize, self.serport.parity, self.serport.stopbits, self.serport.timeout))
@@ -117,7 +117,7 @@ class hmNetwork:
         written = self.serport.write(string)  # Write a string
       except serial.SerialTimeoutException as e:
         logging.warning("Write timeout error: %s, sending %s" % (e, ', '.join(str(x) for x in message)))
-        raise e
+        raise
       else:
         self.lastsendtime = time.strftime("%d %b %Y %H:%M:%S +0000", time.localtime(time.time())) #timezone is wrong
         logging.debug("Gen sent %s",', '.join(str(x) for x in message))
@@ -143,7 +143,7 @@ class hmNetwork:
       except TypeError as e:
         #Disconnect of USB->UART occured
         self.port.close()
-        raise e#hmSerialError("Serial port closed" + str(e))
+        raise#hmSerialError("Serial port closed" + str(e))
       else:
         self.lastreceivetime = time.time()
         data = []
@@ -337,7 +337,7 @@ class hmNetwork:
         self._hmSendMsg(msg)
       except Exception as e:
         logging.warn("C%i writing to address, no message sent"%(network_address))
-        raise e
+        raise
       else:
         logging.debug("C%i written to address %i length %i payload %s"%(network_address,dcb_address, length, ', '.join(str(x) for x in payload)))
         if network_address == BROADCAST_ADDR:
@@ -357,17 +357,17 @@ class hmNetwork:
       
       try:
         self._hmSendMsg(msg)
-      except Exception as e:
+      except:
         logging.warn("C%i address, read message not sent"%(network_address))
-        raise e
+        raise
       else:
         time1 = time.time()
 
         try:
           response = self._hmRecieveMsg(network_address,MIN_FRAME_READ_RESP_LENGTH + expectedLength)
-        except Exception as e:
+        except:
           logging.warn("C%i read failed from address %i length %i"%(network_address,dcb_start_address, expectedLength))
-          raise e
+          raise
         else:
           logging.debug("C%i read in %.2f s from address %i  length %i payload %s"%(network_address,time.time()-time1,dcb_start_address, expectedLength, ', '.join(str(x) for x in response)))
         
@@ -400,9 +400,9 @@ class hmNetwork:
           payload = [pay_lo, pay_hi]
         try:
           self.hmWriteToController(network_address, protocol, fieldinfo[UNIADD_ADD], fieldinfo[UNIADD_LEN], payload)
-        except Exception as e:
+        except:
           logging.info("C%i failed to set field %s to %i"%(network_address, fieldname.ljust(FIELD_NAME_LENGTH), state))
-          raise e
+          raise
         else:
           logging.info("C%i set field %s to %i"%(network_address, fieldname.ljust(FIELD_NAME_LENGTH), state))
       else:
@@ -429,9 +429,9 @@ class hmNetwork:
       if network_address == BROADCAST_ADDR or protocol == HMV3_ID:
         try :
           self.hmWriteToController(network_address, protocol, fieldinfo[UNIADD_ADD], len(payload), payload)
-        except Exception as e:
+        except:
           logging.debug("C%i failed to set field %s to %s"%(network_address, uniqueaddress.ljust(FIELD_NAME_LENGTH), ', '.join(str(x) for x in payload)))
-          raise e
+          raise
         else:
           logging.info("C%i Set field %s to %s"%(network_address, uniqueaddress.ljust(FIELD_NAME_LENGTH), ', '.join(str(x) for x in payload)))
       else:
