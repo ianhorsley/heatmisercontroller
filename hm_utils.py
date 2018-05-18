@@ -926,7 +926,6 @@ class hmController:
   TEMP_STATE_PROGRAM = 6 #following program
   
   def getTempState(self):
-    ###some of the data still gets too old. Review the data ages
     if not self._check_data_present() or not self._check_data_current():
       if self.autoreadall:
         self.hmReadAll()

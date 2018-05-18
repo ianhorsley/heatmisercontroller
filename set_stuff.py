@@ -58,7 +58,7 @@ hmn1.Kit.setHeatingSchedule('mon_heat',wkday_zearly)
 hmn1.Kit.setHeatingSchedule('tues_heat',wkday_zlate)
 hmn1.Kit.setHeatingSchedule('wed_heat',wkend_zoff)
 hmn1.Kit.setHeatingSchedule('thurs_heat',wkend_zoff)
-hmn1.Kit.setHeatingSchedule('fri_heat',wkday_ztraining)
+hmn1.Kit.setHeatingSchedule('fri_heat',wkend_zoff)
 hmn1.Kit.setHeatingSchedule('sat_heat',wkday_zlate)
 hmn1.Kit.setHeatingSchedule('sun_heat',wkday_zearly)
 
