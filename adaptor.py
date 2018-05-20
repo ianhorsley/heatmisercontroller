@@ -303,6 +303,7 @@ class Heatmiser_Adaptor:
   
   @retryer(max_retries = 2)
   def hmReadFromController(self, network_address, protocol, dcb_start_address, expectedLength, readall = False):
+    ###mis labelled dcb addres, should be unique
       if readall:
         msg = self._hmFormReadFrame(network_address, protocol, MY_MASTER_ADDR, DCB_START, RW_LENGTH_ALL)
         logging.debug("C %i read request to address %i length %i"%(network_address,DCB_START, RW_LENGTH_ALL))

@@ -165,6 +165,7 @@ class hmController(object):
     firstfieldinfo = uniadd[firstfieldname]
     lastfieldinfo = uniadd[lastfieldname]
 
+    ###remove next line?
     startnormaldcb = self._getDCBaddress(firstfieldinfo[UNIADD_ADD])
     
     readlength = lastfieldinfo[UNIADD_ADD] - firstfieldinfo[UNIADD_ADD] + lastfieldinfo[UNIADD_LEN]
