@@ -9,7 +9,7 @@ import logging
 
 from stats_defn import *
 from hm_constants import *
-from hm_utils import *
+from hm_network import *
 
 initialize_logger('logs', logging.INFO, True)
 

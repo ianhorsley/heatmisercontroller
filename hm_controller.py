@@ -7,6 +7,10 @@
 
 # Assume Python 2.7.x
 #
+import logging
+import time
+
+from hm_constants import *
 
 class hmController:
 
