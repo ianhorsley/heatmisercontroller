@@ -18,8 +18,6 @@ from stats_defn import *
 from hm_constants import *
 from comms_settings import *
 
-class hmSendError(RuntimeError):
-    pass
 class hmResponseError(RuntimeError):
     pass
 class hmSerialError(RuntimeError):
@@ -28,11 +26,6 @@ class hmProtocolError(RuntimeError):
     #error for things not fixable by retrying
     #or if not fixed by retrying
     pass
-
-request_exceptions = (
-    hmSendError,
-    hmResponseError
-)
     
 def retryer(max_retries=3):
   def wraps(func):
@@ -41,7 +34,7 @@ def retryer(max_retries=3):
           for i in range(max_retries):
               try:    
                   result = func(*args, **kwargs)
-              except request_exceptions as e:
+              except hmResponseError as e:
                   logging.warn("Gen retrying due to %s"%str(e))
                   lasterror = e
                   continue
@@ -57,9 +50,7 @@ class hmNetwork:
   def __init__(self):
   
     setattr(self,"All",hmController(self,BROADCAST_ADDR,DEFAULT_PROTOCOL,"All","Broadcast to All",False,DEFAULT_PROG_MODE))
-    
     self.current = self.All
-    self.printdiagnostic = False
     
     self.serport = serial.Serial()
     self.serport.port = COM_PORT
@@ -96,7 +87,6 @@ class hmNetwork:
       logging.info("Gen serial port is now %s" % self.serport.isOpen())
     else:
       logging.warn("Gen serial port was already %s" % self.serport.isOpen())
-      
       
   def _hmSendMsg(self, message) :
 
