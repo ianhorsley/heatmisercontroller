@@ -145,6 +145,7 @@ class Heatmiser_Adaptor:
       #  self.port.close()
       #  raise#hmSerialError("Serial port closed" + str(e))
       else:
+        ###move recieve time to finally clause?
         self.lastreceivetime = time.time()
         data = []
 
