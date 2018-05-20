@@ -77,7 +77,7 @@ class hmNetwork:
         logging.error("Could not open serial port %s: %s" % (self.serport.portstr, e))
         raise
 
-      logging.info("Gen %s port opened")
+      logging.info("Gen %s port opened"% (self.serport.portstr))
       logging.debug("Gen %s baud, %s bit, %s parity, with %s stopbits, timeout %s seconds" % (self.serport.baudrate, self.serport.bytesize, self.serport.parity, self.serport.stopbits, self.serport.timeout))
     else:
       logging.warn("Gen serial port was already open")
@@ -133,7 +133,7 @@ class hmNetwork:
         byteread = self.serport.read(length)
       except serial.SerialException as e:
         #There is no new data from serial port (or port missing) (Doesn't include no response from stat)
-        logging.warning("C%s : Serial port error: %s" % ( source, str(e)))
+        logging.warning("C%d : Serial port error: %s" % ( source, str(e)))
         self.serport.close()
         raise
       #except TypeError as e:
@@ -145,7 +145,7 @@ class hmNetwork:
         data = []
 
         if (len(byteread)) == 0:
-          logging.warning("C%s : No response" % (self.lastsendtime, source))
+          logging.warning("C%d : No response" % (source))
           raise hmResponseError("Zero Length Response (Duplicate?)")
 
         #Now try converting it back to array
@@ -190,10 +190,10 @@ class hmNetwork:
 
 ### low level framing functions
       
-  # TODO check master address is in legal range
   def _hmFormReadFrame(self, destination, protocol, source, start, length) :
     return self._hmFormFrame(destination, protocol, source, FUNC_READ, start, length, [])
   
+  # TODO check master address is in legal range
   def _hmFormFrame(self, destination, protocol, source, function, start, length, payload) :
     """Forms a message payload, including CRC"""
     if protocol != HMV3_ID:
