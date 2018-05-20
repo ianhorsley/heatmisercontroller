@@ -78,6 +78,8 @@ class Heatmiser_Adaptor:
       logging.warn("Gen serial port was already open")
     
   def _disconnect(self):
+    #check if serial port is open and if so close
+    #shouldn't need to call because handled by destructor
     if self.serport.isOpen():
       self.serport.close() # close port
       logging.info("Gen serial port closed")
@@ -113,11 +115,17 @@ class Heatmiser_Adaptor:
 
   def _hmClearInputBuffer(self):
     #clears input buffer
-    #use after CRC check wrong encase more data was sent than expected.
+    #use after CRC check wrong; encase more data was sent than expected.
   
-    time.sleep(1) #wait a second to ensure slave finished sending
-    self.serport.reset_input_buffer() #reset input buffer and dump any contents
-    logging.warning("%s : Input buffer cleared" % (self.lastsendtime))
+    time.sleep(COM_TIMEOUT) #wait for read timeout to ensure slave finished sending
+    try:
+      if self.serport.isOpen():
+        self.serport.reset_input_buffer() #reset input buffer and dump any contents
+      logging.warning("Input buffer cleared")
+    except serial.SerialException as e:
+      self.serport.close()
+      logging.warning("Failed to clear input buffer")
+      raise
           
   def _hmRecieveMsg(self, source, length = MAX_FRAME_RESP_LENGTH) :
       # Listen for a reply
@@ -180,13 +188,13 @@ class Heatmiser_Adaptor:
     msg = msg + crc.run(msg)
     return msg
 
-  def _mhCheckFrameCRC(self, protocol, controller, data):
+  def _mhCheckFrameCRC(self, protocol, data):
+    """Takes frame with CRC and checks it is valid"""
     datalength = len(data)
     
     if protocol != HMV3_ID:
       raise ValueError("Protocol unknown")
     if datalength < 2 :
-      logging.warning("C%s : No CRC: %s " % (controller, data))
       raise hmResponseError("No CRC")
 
     checksum = data[len(data)-2:]
@@ -195,7 +203,6 @@ class Heatmiser_Adaptor:
     crc = crc16() # Initialises the CRC
     expectedchecksum = crc.run(rxmsg)
     if expectedchecksum != checksum:
-      logging.warning("C%s : Incorrect CRC: %s %s " % (controller, data, expectedchecksum))
       self._hmClearInputBuffer()
       raise hmResponseError("CRC is incorrect")      
   
@@ -205,8 +212,7 @@ class Heatmiser_Adaptor:
       raise ValueError("Protocol unknown")
 
     if (len(data) < MIN_FRAME_RESP_LENGTH):
-      logging.warning("Gen Response too short length: %s %s" % (len(data), frame_len))
-      raise hmResponseError("Response length too short")
+      raise hmResponseError("Response length too short: %s %s"% (len(data), MIN_FRAME_RESP_LENGTH))
 
     frame_len_l = data[FR_LEN_LOW]
     frame_len_h = data[FR_LEN_HIGH]
@@ -214,18 +220,14 @@ class Heatmiser_Adaptor:
     func_code = data[FR_FUNC_CODE]
     
     if (len(data) != frame_len):
-      logging.warning("Gen Frame length mismatch against header: %s %s" % (len(data), frame_len))
-      raise hmResponseError("Response length doesn't match header")
+      raise hmResponseError("Frame length does not match header: %s %s" % (len(data), frame_len))
 
     if (expectedLength != RW_LENGTH_ALL and func_code == FUNC_READ and frame_len != MIN_FRAME_READ_RESP_LENGTH + expectedLength ):
       # Read response length is wrong
-      logging.warning("Gen response length %s not EXPECTED value %s + %s given request" % (frame_len, MIN_FRAME_READ_RESP_LENGTH, expectedLength ))
-      raise hmResponseError("Response length unexpected")
-
+      raise hmResponseError("Response length %s not EXPECTED value %s + %s given read request" % (frame_len, MIN_FRAME_READ_RESP_LENGTH, expectedLength ))
     if (func_code == FUNC_WRITE and frame_len != FRAME_WRITE_RESP_LENGTH):
       # Reply to Write is always 7 long
-      logging.warning("%s : Controller %s : Incorrect length: %s" % (self.lastsendtime, loop, frame_len))
-      raise hmResponseError("Response length incorrect for write reponse")
+      raise hmResponseError("Response length %s not EXPECTED value %s given write request" % (frame_len, FRAME_WRITE_RESP_LENGTH ))
         
   def _mhCheckFrameAddresses(self, protocol, source, data):
   
@@ -234,23 +236,15 @@ class Heatmiser_Adaptor:
       
     dest_addr = data[FR_DEST_ADDR]        
     source_addr = data[FR_SOURCE_ADDR]
-    func_code = data[FR_FUNC_CODE]
 
-    if (dest_addr != 129 and dest_addr != 160):
-      logging.warning("C%s : Illegal Dest Addr: %s" % (source, dest_addr))
-      raise hmResponseError("dest_addr is ILLEGAL")
-
+    if (dest_addr < MASTER_ADDR_MIN or dest_addr > MASTER_ADDR_MAX):
+      raise hmResponseError("Destination address out of valid range %i" % dest_addr)
     if (dest_addr != MY_MASTER_ADDR):
-      logging.warning("C%s : Incorrect Dest Addr: %s" % (source, dest_addr))
-      raise hmResponseError("dest_addr is INCORRECT")
-
-    if (source_addr < 1 or source_addr > 32):
-      logging.warning("C%s : Illegal Src Addr: %s" % (source, source_addr))
-      raise hmResponseError("source_addr is ILLEGAL")
-
+      raise hmResponseError("Destination address incorrect %i" % dest_addr)
+    if (source_addr < SLAVE_ADDR_MIN or source_addr > SLAVE_ADDR_MAX):
+      raise hmResponseError("Source address out of valid range %i" % source_addr)
     if (source_addr != source):
-      logging.warning("C%s : Incorrect Src Addr: %s" % (source, source_addr))
-      raise hmResponseError("source addr is INCORRECT")
+      raise hmResponseError("Source address does not match %i" % source_addr)
         
   def _mhCheckFrameFunc(self, protocol, expectedFunction, data):
   
@@ -260,12 +254,9 @@ class Heatmiser_Adaptor:
     func_code = data[FR_FUNC_CODE]
 
     if (func_code != FUNC_WRITE and func_code != FUNC_READ):
-      logging.warning("%s : Controller %s : Unknown Func Code: %s" % (self.lastsendtime, loop, func_code))
-      raise hmResponseError("Func Code is UNKNWON")
-
+      raise hmResponseError("Unknown function  code: %i" % (func_code))
     if (func_code != expectedFunction):
-      logging.warning("%s : Controller %s : Unexpected Func Code: %s" % (self.lastsendtime, loop, func_code))
-      raise hmResponseError("Func Code is UNEXPECTED")
+      raise hmResponseError("Function  code was not as expected: %i" % (func_code))
 
 ### protocol functions
         
@@ -274,17 +265,22 @@ class Heatmiser_Adaptor:
     return self._hmVerifyResponse(protocol, source, FUNC_WRITE, DONT_CARE_LENGTH, data)
    
   def _hmVerifyResponse(self, protocol, source, expectedFunction, expectedLength, data) :
-    """Verifies message appears legal"""
-    # check CRC
-    self._mhCheckFrameCRC(protocol, source, data)
-    # check length
-    self._mhCheckFrameLength(protocol, data, expectedLength)
-    # check addresses
-    self._mhCheckFrameAddresses(protocol, source, data)
-    # check function
-    self._mhCheckFrameFunc(protocol, expectedFunction, data)
-    
+    """Verifies frame appears legal"""
+    try:
+      # check CRC
+      self._mhCheckFrameCRC(protocol, data)
+      # check length
+      self._mhCheckFrameLength(protocol, data, expectedLength)
+      # check addresses
+      self._mhCheckFrameAddresses(protocol, source, data)
+      # check function
+      self._mhCheckFrameFunc(protocol, expectedFunction, data)
+    except hmResponseError as e:
+      logging.warning("C%s Invalid Response: %s: %s" % (source, str(e), data))
+      raise
+      
     ## missing check that it is valid for this type of controller. Use DCBUnique function not false.
+    ## although if needed should be in devices
   
   @retryer(max_retries = 3)
   def hmWriteToController(self, network_address, protocol, dcb_address, length, payload):

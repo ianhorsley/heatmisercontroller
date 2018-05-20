@@ -9,6 +9,7 @@
 #
 import logging
 import time
+import serial
 
 from hm_constants import *
 

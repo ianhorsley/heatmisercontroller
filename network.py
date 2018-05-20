@@ -24,6 +24,7 @@ class Heatmiser_Network:
     self.adaptor = Heatmiser_Adaptor()
     self.adaptor.connect()
     
+    #create a broadcast device
     setattr(self,"All",hmBroadcastController(self.adaptor,"All","Broadcast to All"))
     self.current = self.All
     
