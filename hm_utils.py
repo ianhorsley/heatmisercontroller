@@ -61,8 +61,10 @@ class hmNetwork:
     self.serport.timeout = COM_TIMEOUT
     self.serport.write_timeout = COM_TIMEOUT
     
-    self.lastsendtime = self.lastreceivetime = None
+    self.lastsendtime = None
     self.creationtime = time.time()
+    
+    self.lastreceivetime = time.time() - COM_BUS_RESET_TIME # so that system will get on with sending straight away
     
     self.write_max_retries = 3
     self.read_max_retries = 3
@@ -70,25 +72,28 @@ class hmNetwork:
 ### low level serial commands
 
   def connect(self):
-    self.lastreceivetime = time.time() - COM_BUS_RESET_TIME # so that system will get on with sending straight away
-
-    try:
+    if not self.serport.isOpen():
+      try:
         self.serport.open()
-    except serial.SerialException as e:
+      except serial.SerialException as e:
         logging.error("Could not open serial port %s: %s" % (self.serport.portstr, e))
         raise
 
-    logging.info("Gen %s port configuration is %s" % (self.serport.name, self.serport.isOpen()))
-    logging.info("Gen %s baud, %s bit, %s parity, with %s stopbits, timeout %s seconds" % (self.serport.baudrate, self.serport.bytesize, self.serport.parity, self.serport.stopbits, self.serport.timeout))
+      logging.info("Gen %s port opened")
+      logging.debug("Gen %s baud, %s bit, %s parity, with %s stopbits, timeout %s seconds" % (self.serport.baudrate, self.serport.bytesize, self.serport.parity, self.serport.stopbits, self.serport.timeout))
+    else:
+      logging.warn("Gen serial port was already open")
     
   def disconnect(self):
-    if self.serport.isOpen() == True:
+    if self.serport.isOpen():
       self.serport.close() # close port
-      logging.info("Gen serial port is now %s" % self.serport.isOpen())
+      logging.info("Gen serial port closed")
     else:
-      logging.warn("Gen serial port was already %s" % self.serport.isOpen())
+      logging.warn("Gen serial port was already closed"")
       
   def _hmSendMsg(self, message) :
+      if not self.serport.isOpen():
+        self.connect()
 
       #check time since last received to make sure bus has settled.
       waittime = COM_BUS_RESET_TIME - (time.time() - self.lastreceivetime)
@@ -102,8 +107,12 @@ class hmNetwork:
       try:
         written = self.serport.write(string)  # Write a string
       except serial.SerialTimeoutException as e:
+        serport.close() #need to close so that isOpen works correctly.
         logging.warning("Write timeout error: %s, sending %s" % (e, ', '.join(str(x) for x in message)))
         raise
+      except serial.SerialException as e:
+        serport.close() #need to close so that isOpen works correctly.
+        logging.warning("Write error: %s, sending %s" % (e,  ', '.join(str(x) for x in message)))
       else:
         self.lastsendtime = time.strftime("%d %b %Y %H:%M:%S +0000", time.localtime(time.time())) #timezone is wrong
         logging.debug("Gen sent %s",', '.join(str(x) for x in message))
@@ -118,26 +127,28 @@ class hmNetwork:
           
   def _hmRecieveMsg(self, source, length = MAX_FRAME_RESP_LENGTH) :
       # Listen for a reply
-
+      if not self.serport.isOpen():
+        self.connect()
       logging.debug("C%d listening for %d"%(source, length))
       
       try:
         byteread = self.serport.read(length)
-      ##this code was wrong as only raised if no serial port, rather than if no data.
-      #except serial.SerialException as e:
-        #There is no new data from serial port (or port missing)
-      #  raise hmResponseError("No new data " + str(e) )
-      except TypeError as e:
-        #Disconnect of USB->UART occured
+      except serial.SerialException as e:
+        #There is no new data from serial port (or port missing) (Doesn't include no response from stat)
+        logging.warning("C%s : Serial port error: %s" % ( source, str(e)))
         self.port.close()
-        raise#hmSerialError("Serial port closed" + str(e))
+        raise
+      #except TypeError as e:
+      #  #Disconnect of USB->UART occured
+      #  self.port.close()
+      #  raise#hmSerialError("Serial port closed" + str(e))
       else:
         self.lastreceivetime = time.time()
         data = []
 
         if (len(byteread)) == 0:
           logging.warning("C%s : No response" % (self.lastsendtime, source))
-          raise hmResponseError("Zero Length Response (Duplicate)")
+          raise hmResponseError("Zero Length Response (Duplicate?)")
 
         #Now try converting it back to array
         data = data + (map(ord,byteread))
