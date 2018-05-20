@@ -75,10 +75,6 @@ class hmNetwork:
     
     self.write_max_retries = 3
     self.read_max_retries = 3
-
-  def _printdiag(self,text):
-    if self.printdiagnostic == True:
-      print text
     
 ### low level serial commands
 
@@ -843,7 +839,7 @@ class hmController:
     nowmins = time.localtime(time.time()).tm_min
     nowsecs = time.localtime(time.time()).tm_sec
     nowseconds = (((nowhours * 60) + nowmins) * 60) + nowsecs
-    self.network._printdiag("Time %d %d" % (remoteseconds, nowseconds))
+    logging.debug("Time %d %d" % (remoteseconds, nowseconds))
     self.timeerr = nowseconds - remoteseconds
     if (abs(self.timeerr) > TIME_ERR_LIMIT):
         logging.warn("%s : Controller %2d : Time Error : Greater than %d local is %s, sensor is %s" % (datetime.now().isoformat(), self.address, TIME_ERR_LIMIT, nowseconds, remoteseconds))
