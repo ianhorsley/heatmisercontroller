@@ -12,7 +12,7 @@ import time
 
 from hm_constants import *
 
-class hmController:
+class hmController(object):
 
   def __init__(self, network, address, protocol, short_name, long_name, model, mode):
     self.network = network
@@ -714,3 +714,11 @@ class hmController:
 #other
 #set floor limit
 #set holiday
+
+
+class hmBroadcastController(hmController):
+  #create a controller that only broadcasts
+  def __init__(self, network, short_name, long_name):
+    super(hmBroadcastController, self).__init__(network, BROADCAST_ADDR, DEFAULT_PROTOCOL, short_name, long_name, False, DEFAULT_PROG_MODE)
+  
+  ##add methods to block or remove get functions

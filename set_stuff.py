@@ -30,7 +30,7 @@ hmn1.Kit.setField('hotwaterstate',WRITE_HOTWATERSTATE_PROG)
 #hmn1.hmSetField(BROADCAST_ADDR,'runmode',WRITE_RUNMODE_HEATING)
 hmn1.All.setOn()
 #hmn1.hmUpdateTime(2)
-#hmn1.controllerByName('Cons').setOff()
+hmn1.controllerByName('B1').setOff()
 #hmn1.hmSetField(BROADCAST_ADDR,HMV3_ID,'onoff',WRITE_ONOFF_ON)  
 #hmn1.hmSetField('Cons',HMV3_ID,'onoff',WRITE_ONOFF_OFF)
 
@@ -75,13 +75,13 @@ upwkend_zlate =   [7,0,upAwake,9,30,frost,21,30,upAwake,22,30,upSleep]
 upwkend =         [7,0,upAwake,9,30,frost,21,00,upAwake,22,00,upSleep]
 dayfrost = [7,0,frost]
 
-hmn1.B1.setHeatingSchedule('mon_heat',upwkday_zearly)
-hmn1.B1.setHeatingSchedule('tues_heat',upwkday)
-hmn1.B1.setHeatingSchedule('wed_heat',upwkday)
-hmn1.B1.setHeatingSchedule('thurs_heat',upwkday_zlate)
-hmn1.B1.setHeatingSchedule('fri_heat',upwkday_zearly)
-hmn1.B1.setHeatingSchedule('sat_heat',upwkend_zlate)
-hmn1.B1.setHeatingSchedule('sun_heat',upwkday_zlate)
+hmn1.B1.setHeatingSchedule('mon_heat',dayfrost)
+hmn1.B1.setHeatingSchedule('tues_heat',dayfrost)
+hmn1.B1.setHeatingSchedule('wed_heat',dayfrost)
+hmn1.B1.setHeatingSchedule('thurs_heat',dayfrost)
+hmn1.B1.setHeatingSchedule('fri_heat',dayfrost)
+hmn1.B1.setHeatingSchedule('sat_heat',dayfrost)
+hmn1.B1.setHeatingSchedule('sun_heat',dayfrost)
 
 hmn1.B2.setHeatingSchedule('mon_heat',dayfrost)
 hmn1.B2.setHeatingSchedule('tues_heat',dayfrost)

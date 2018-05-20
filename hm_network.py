@@ -45,7 +45,9 @@ class hmNetwork:
 
   def __init__(self):
   
-    setattr(self,"All",hmController(self,BROADCAST_ADDR,DEFAULT_PROTOCOL,"All","Broadcast to All",False,DEFAULT_PROG_MODE))
+    #setattr(self,"All",hmController(self,BROADCAST_ADDR,DEFAULT_PROTOCOL,"All","Broadcast to All",False,DEFAULT_PROG_MODE))
+    setattr(self,"All",hmBroadcastController(self,"All","Broadcast to All"))
+    
     self.current = self.All
     
     self.serport = serial.Serial()
