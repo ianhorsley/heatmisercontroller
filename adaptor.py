@@ -285,7 +285,7 @@ class Heatmiser_Adaptor:
   
   @retryer(max_retries = 3)
   def hmWriteToController(self, network_address, protocol, dcb_address, length, payload):
-
+      ###shouldn't be labelled dcb_address. It is a unique address.
       msg = self._hmFormFrame(network_address, protocol, MY_MASTER_ADDR, FUNC_WRITE, dcb_address, length, payload)
       
       try:
