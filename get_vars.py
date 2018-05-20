@@ -8,15 +8,15 @@
 import time
 import logging
 
+from logging_setup import initialize_logger
 from stats_defn import *
 from hm_constants import *
-from hm_network import *
+from network import *
 
 #start logging
 initialize_logger('logs', logging.WARN)
 
-hmn1 = hmNetwork()
-hmn1.connect()
+hmn1 = Heatmiser_Network()
 hmn1.setStatList(StatList)
 
 # CYCLE THROUGH ALL CONTROLLERS
@@ -57,5 +57,3 @@ while True:
         print disptext
 
   time.sleep(5) # sleep before next cycle
-
-hmn1.disconnect()

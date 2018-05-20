@@ -3,18 +3,18 @@
 # Ian Horsley 2018
 
 #
-# Sets random set of configuration on stats
+# Sets a bunch of different configurations on stats
 #
 import logging
 
+from logging_setup import initialize_logger
 from stats_defn import *
 from hm_constants import *
-from hm_network import *
+from network import *
 
 initialize_logger('logs', logging.INFO, True)
 
-hmn1 = hmNetwork()
-hmn1.connect()
+hmn1 = Heatmiser_Network()
 hmn1.setStatList(StatList)
 
 #hmn1.hmSetTemp("Kit",25)
@@ -94,12 +94,12 @@ hmn1.B2.setHeatingSchedule('sun_heat',dayfrost)
 #hmn1.hmSetFields('Kit','wday_heat',[7,0,19,9,30,10,17,0,19,21,30,10])
 #hmn1.hmSetFields('B1',HMV3_ID,'wday_heat',[7,0,18,8,30,10,20,30,18,22,0,16])
 #hmn1.hmSetFields('B2',HMV3_ID,'wday_heat',[7,0,19,8,30,10,20,30,19,22,0,16])
-hmn1.hmSetFields('Cons',HMV3_ID,'wday_heat',[9,0,12,21,30,10,24,0,5,24,0,5])
+hmn1.controllerByName('Cons').setFields('wday_heat',[9,0,12,21,30,10,24,0,5,24,0,5])
 
 #hmn1.hmSetFields('Kit','wend_heat',[7,0,19,21,30,10,24,0,5,24,0,5])
 #hmn1.hmSetFields('B1',HMV3_ID,'wend_heat',[7,0,18,9,30,10,20,30,18,22,0,16])
 #hmn1.hmSetFields('B2',HMV3_ID,'wend_heat',[7,0,19,9,30,10,20,30,19,22,0,16])
-hmn1.hmSetFields('Cons',HMV3_ID,'wend_heat',[9,0,12,21,30,10,24,0,5,24,0,5])
+hmn1.controllerByName('Cons').setFields('wend_heat',[9,0,12,21,30,10,24,0,5,24,0,5])
 
 #hmn1.hmSetFields("Kit",'wday_water',[7,0,8,0,16,0,17,0,24,0,24,0,24,0,24,0])
 #hmn1.hmSetFields("Kit",'wday_water',[24,0,24,0,24,0,24,0,24,0,24,0,24,0,24,0])
@@ -110,4 +110,3 @@ hmn1.hmSetFields('Cons',HMV3_ID,'wend_heat',[9,0,12,21,30,10,24,0,5,24,0,5])
 #hmn1.hmSetField("B2",'frosttemp',9)
 #hmn1.hmSetField("Cons",'frosttemp',9)
 
-hmn1.disconnect()

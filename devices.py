@@ -665,6 +665,9 @@ class hmController(object):
   def setField(self,field,value):
     return self.network.hmSetField(self.address,self.protocol,field,value)
 
+  def setFields(self,field,value):
+    return self.network.hmSetFields(self.address,self.protocol,field,value)
+
 #overriding      
       
   def setTemp(self, temp) :

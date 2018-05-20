@@ -4,11 +4,8 @@
 
 from hm_constants import *
 
-# Master Address
-MY_MASTER_ADDR = 0x81
-
 # A zone is a controlled area from a single thermostat
-# A zone my consist of one or more heating circuits
+# A zone may consist of one or more heating circuits
 # Each heating circuit covers a floor area
 
 CONTROL_MODE_AUTO = 0 #temps follow user inputs
