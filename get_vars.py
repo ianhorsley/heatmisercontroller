@@ -45,7 +45,7 @@ while True:
     
     try:
       current_controller.hmReadTempsandDemand()
-    except (request_exceptions, hmProtocolError) as e:
+    except (hmResponseError, hmProtocolError) as e:
       print "C%d in %s Failed to Read due to %s" % (current_controller.address,  current_controller.name.ljust(4),str(e))
     else: 
       targettext = current_controller.printTarget()

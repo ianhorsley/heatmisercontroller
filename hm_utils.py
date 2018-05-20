@@ -89,7 +89,7 @@ class hmNetwork:
       self.serport.close() # close port
       logging.info("Gen serial port closed")
     else:
-      logging.warn("Gen serial port was already closed"")
+      logging.warn("Gen serial port was already closed")
       
   def _hmSendMsg(self, message) :
       if not self.serport.isOpen():
@@ -107,11 +107,11 @@ class hmNetwork:
       try:
         written = self.serport.write(string)  # Write a string
       except serial.SerialTimeoutException as e:
-        serport.close() #need to close so that isOpen works correctly.
+        self.serport.close() #need to close so that isOpen works correctly.
         logging.warning("Write timeout error: %s, sending %s" % (e, ', '.join(str(x) for x in message)))
         raise
       except serial.SerialException as e:
-        serport.close() #need to close so that isOpen works correctly.
+        self.serport.close() #need to close so that isOpen works correctly.
         logging.warning("Write error: %s, sending %s" % (e,  ', '.join(str(x) for x in message)))
       else:
         self.lastsendtime = time.strftime("%d %b %Y %H:%M:%S +0000", time.localtime(time.time())) #timezone is wrong
@@ -136,7 +136,7 @@ class hmNetwork:
       except serial.SerialException as e:
         #There is no new data from serial port (or port missing) (Doesn't include no response from stat)
         logging.warning("C%s : Serial port error: %s" % ( source, str(e)))
-        self.port.close()
+        self.serport.close()
         raise
       #except TypeError as e:
       #  #Disconnect of USB->UART occured
