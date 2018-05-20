@@ -45,7 +45,6 @@ class hmNetwork:
 
   def __init__(self):
   
-    #setattr(self,"All",hmController(self,BROADCAST_ADDR,DEFAULT_PROTOCOL,"All","Broadcast to All",False,DEFAULT_PROG_MODE))
     setattr(self,"All",hmBroadcastController(self,"All","Broadcast to All"))
     
     self.current = self.All
@@ -111,6 +110,7 @@ class hmNetwork:
       except serial.SerialException as e:
         self.serport.close() #need to close so that isOpen works correctly.
         logging.warning("Write error: %s, sending %s" % (e,  ', '.join(str(x) for x in message)))
+        raise
       else:
         self.lastsendtime = time.strftime("%d %b %Y %H:%M:%S +0000", time.localtime(time.time())) #timezone is wrong
         logging.debug("Gen sent %s",', '.join(str(x) for x in message))
@@ -146,7 +146,7 @@ class hmNetwork:
 
         if (len(byteread)) == 0:
           logging.warning("C%d : No response" % (source))
-          raise hmResponseError("Zero Length Response (Duplicate?)")
+          raise hmResponseError("No Response")
 
         #Now try converting it back to array
         data = data + (map(ord,byteread))
