@@ -188,7 +188,7 @@ class Heatmiser_Adaptor:
     msg = msg + crc.run(msg)
     return msg
 
-  def _mhCheckFrameCRC(self, protocol, data):
+  def _hmCheckFrameCRC(self, protocol, data):
     """Takes frame with CRC and checks it is valid"""
     datalength = len(data)
     
@@ -206,7 +206,7 @@ class Heatmiser_Adaptor:
       self._hmClearInputBuffer()
       raise hmResponseError("CRC is incorrect")      
   
-  def _mhCheckFrameLength(self, protocol, data, expectedLength):
+  def _hmCheckFrameLength(self, protocol, data, expectedLength):
   
     if protocol != HMV3_ID:
       raise ValueError("Protocol unknown")
@@ -229,7 +229,7 @@ class Heatmiser_Adaptor:
       # Reply to Write is always 7 long
       raise hmResponseError("Response length %s not EXPECTED value %s given write request" % (frame_len, FRAME_WRITE_RESP_LENGTH ))
         
-  def _mhCheckFrameAddresses(self, protocol, source, data):
+  def _hmCheckFrameAddresses(self, protocol, source, data):
   
     if protocol != HMV3_ID:
       raise ValueError("Protocol unknown")
@@ -246,7 +246,7 @@ class Heatmiser_Adaptor:
     if (source_addr != source):
       raise hmResponseError("Source address does not match %i" % source_addr)
         
-  def _mhCheckFrameFunc(self, protocol, expectedFunction, data):
+  def _hmCheckFrameFunc(self, protocol, expectedFunction, data):
   
     if protocol != HMV3_ID:
       raise ValueError("Protocol unknown")
@@ -268,13 +268,13 @@ class Heatmiser_Adaptor:
     """Verifies frame appears legal"""
     try:
       # check CRC
-      self._mhCheckFrameCRC(protocol, data)
+      self._hmCheckFrameCRC(protocol, data)
       # check length
-      self._mhCheckFrameLength(protocol, data, expectedLength)
+      self._hmCheckFrameLength(protocol, data, expectedLength)
       # check addresses
-      self._mhCheckFrameAddresses(protocol, source, data)
+      self._hmCheckFrameAddresses(protocol, source, data)
       # check function
-      self._mhCheckFrameFunc(protocol, expectedFunction, data)
+      self._hmCheckFrameFunc(protocol, expectedFunction, data)
     except hmResponseError as e:
       logging.warning("C%s Invalid Response: %s: %s" % (source, str(e), data))
       raise
@@ -328,7 +328,6 @@ class Heatmiser_Adaptor:
           self._hmVerifyResponse(protocol, network_address, FUNC_READ, expectedLength , response)
           return response[FR_CONTENTS:-CRC_LENGTH]
 
-        
   def hmReadAllFromController(self, network_address, protocol, expectedLength):
       return self.hmReadFromController(network_address, protocol, DCB_START, expectedLength, True)
 
@@ -343,8 +342,6 @@ class Heatmiser_Adaptor:
       elif len(fieldinfo) < UNIADD_WRITE + 1 or fieldinfo[UNIADD_WRITE] != 'W':
         raise ValueError("hmSetField: field isn't writeable")
       
-      #network_address = self.getStatAddress(controller) #broken
-
       if network_address == BROADCAST_ADDR or protocol == HMV3_ID:
         if fieldinfo[UNIADD_LEN] == 1:
           payload = [state]
@@ -378,8 +375,6 @@ class Heatmiser_Adaptor:
       ###could add payload padding
       #payloadgrouped=chunks(payload,len(fieldinfo[UNIADD_RANGE]))
       
-      #network_address = self.getStatAddress(controller)
-      
       if network_address == BROADCAST_ADDR or protocol == HMV3_ID:
         try :
           self.hmWriteToController(network_address, protocol, fieldinfo[UNIADD_ADD], len(payload), payload)
@@ -400,7 +395,7 @@ class Heatmiser_Adaptor:
           ValueError("hmSetFields: payload out of range")
 
   ## Shouldn't be here move to controllers
-  def hmUpdateTime(self, controller) :
+  def hmUpdateTime(self, network_address) :
       """bla bla"""
       #protocol = HMV3_ID # TODO should look this up in statlist
       #if protocol == HMV3_ID:
@@ -416,14 +411,11 @@ class Heatmiser_Adaptor:
           secs = 60 # Need to do this as pyhton seconds can be  [0,61]
       print "%d %d:%d:%d" % (day, hour, mins, secs)
       payload = [day, hour, mins, secs]
-          #msg = hmFormMsgCRC(destination, protocol, MY_MASTER_ADDR, FUNC_WRITE, CUR_TIME_ADDR, payload)
-          #return self.hmWriteToController(controller, CUR_TIME_ADDR, 4, payload)
-      #else:
-      #    "Un-supported protocol found %s" % protocol
-      #    assert 0, "Un-supported protocol found %s" % protocol
-      #    return 0
-      return self.hmSetFields(controller,'currenttime',payload)
-      
+          
+      return self.hmSetFields(network_address,'currenttime',payload)
+
+### Helper Functions
+
 # Believe this is known as CCITT (0xFFFF)
 # This is the CRC function converted directly from the Heatmiser C code
 # provided in their API
