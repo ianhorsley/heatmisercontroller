@@ -20,9 +20,7 @@ from comms_settings import *
 
 class hmResponseError(RuntimeError):
     pass
-class hmSerialError(RuntimeError):
-    pass
-class hmProtocolError(RuntimeError):
+class ValueError(RuntimeError):
     #error for things not fixable by retrying
     #or if not fixed by retrying
     pass
@@ -41,7 +39,7 @@ def retryer(max_retries=3):
               else:
                   return result
           else:
-              raise hmProtocolError("Failed after %i retries on %s"%(max_retries,str(lasterror))) 
+              raise ValueError("Failed after %i retries on %s"%(max_retries,str(lasterror))) 
       return inner
   return wraps
     
@@ -199,7 +197,7 @@ class hmNetwork:
   def _hmFormFrame(self, destination, protocol, source, function, start, length, payload) :
     """Forms a message payload, including CRC"""
     if protocol != HMV3_ID:
-      raise hmProtocolError("Protocol unknown")
+      raise ValueError("Protocol unknown")
     start_low = (start & BYTEMASK)
     start_high = (start >> 8) & BYTEMASK
     length_low = (length & BYTEMASK)
@@ -208,9 +206,9 @@ class hmNetwork:
     frame_length = MIN_FRAME_SEND_LENGTH
     if function == FUNC_WRITE:
       if length != payload_length:
-        raise hmProtocolError("Payload doesn't match length %s" % length)
+        raise ValueError("Payload doesn't match length %s" % length)
       if length > MAX_PAYLOAD_SEND_LENGTH:
-        raise hmProtocolError("Payload to long %s" % length)
+        raise ValueError("Payload to long %s" % length)
       frame_length = MIN_FRAME_SEND_LENGTH + payload_length
     msg = [destination, frame_length, source, function, start_low, start_high, length_low, length_high]
     if function == FUNC_WRITE:
@@ -224,7 +222,7 @@ class hmNetwork:
     datalength = len(data)
     
     if protocol != HMV3_ID:
-      raise hmProtocolError("Protocol unknown")
+      raise ValueError("Protocol unknown")
     if datalength < 2 :
       logging.warning("C%s : No CRC: %s " % (controller, data))
       raise hmResponseError("No CRC")
@@ -242,7 +240,7 @@ class hmNetwork:
   def _mhCheckFrameLength(self, protocol, data, expectedLength):
   
     if protocol != HMV3_ID:
-      raise hmProtocolError("Protocol unknown")
+      raise ValueError("Protocol unknown")
 
     if (len(data) < MIN_FRAME_RESP_LENGTH):
       logging.warning("Gen Response too short length: %s %s" % (len(data), frame_len))
@@ -270,7 +268,7 @@ class hmNetwork:
   def _mhCheckFrameAddresses(self, protocol, source, data):
   
     if protocol != HMV3_ID:
-      raise hmProtocolError("Protocol unknown")
+      raise ValueError("Protocol unknown")
       
     dest_addr = data[FR_DEST_ADDR]        
     source_addr = data[FR_SOURCE_ADDR]
@@ -295,7 +293,7 @@ class hmNetwork:
   def _mhCheckFrameFunc(self, protocol, expectedFunction, data):
   
     if protocol != HMV3_ID:
-      raise hmProtocolError("Protocol unknown")
+      raise ValueError("Protocol unknown")
 
     func_code = data[FR_FUNC_CODE]
 
@@ -381,11 +379,11 @@ class hmNetwork:
       fieldinfo = uniadd[fieldname]
       
       if not isinstance(state, (int, long)) or state < fieldinfo[UNIADD_RANGE][0] or state > fieldinfo[UNIADD_RANGE][1]:
-        raise hmProtocolError("hmSetField: invalid requested value")
+        raise ValueError("hmSetField: invalid requested value")
       elif fieldinfo[UNIADD_LEN] != 1 and fieldinfo[UNIADD_LEN] != 2 :
-        raise hmProtocolError("hmSetField: field isn't single or dual")
+        raise ValueError("hmSetField: field isn't single or dual")
       elif len(fieldinfo) < UNIADD_WRITE + 1 or fieldinfo[UNIADD_WRITE] != 'W':
-        raise hmProtocolError("hmSetField: field isn't writeable")
+        raise ValueError("hmSetField: field isn't writeable")
       
       network_address = self.getStatAddress(controller) #broken
 
@@ -404,7 +402,7 @@ class hmNetwork:
         else:
           logging.info("C%i set field %s to %i"%(network_address, fieldname.ljust(FIELD_NAME_LENGTH), state))
       else:
-        raise hmProtocolError("Un-supported protocol found %s" % protocol)
+        raise ValueError("Un-supported protocol found %s" % protocol)
 
           
   def hmSetFields(self, controller,protocol,uniqueaddress,payload) :
@@ -412,11 +410,11 @@ class hmNetwork:
       fieldinfo = uniadd[uniqueaddress]
       
       if len(payload) != fieldinfo[UNIADD_LEN]:
-        raise hmProtocolError("hmSetFields: invalid payload length")
+        raise ValueError("hmSetFields: invalid payload length")
       elif fieldinfo[UNIADD_LEN] <= 2:
-        raise hmProtocolError("hmSetFields: field isn't array")
+        raise ValueError("hmSetFields: field isn't array")
       elif fieldinfo[UNIADD_WRITE] != 'W':
-        raise hmProtocolError("hmSetFields: field isn't writeable")
+        raise ValueError("hmSetFields: field isn't writeable")
       self._checkPayloadValues(payload, fieldinfo[UNIADD_RANGE])
       
       ###could add payload padding
@@ -433,7 +431,7 @@ class hmNetwork:
         else:
           logging.info("C%i Set field %s to %s"%(network_address, uniqueaddress.ljust(FIELD_NAME_LENGTH), ', '.join(str(x) for x in payload)))
       else:
-        raise hmProtocolError("Un-supported protocol found %s" % protocol)
+        raise ValueError("Un-supported protocol found %s" % protocol)
 
   def _checkPayloadValues(self, payload, ranges):
     #checks the payload matches the ranges if ranges are defined
@@ -441,7 +439,7 @@ class hmNetwork:
       for i, item in enumerate(payload):
         range = ranges[i % len(ranges)]
         if item < range[0] or item > range[1]:
-          hmProtocolError("hmSetFields: payload out of range")
+          ValueError("hmSetFields: payload out of range")
           
 ### Functions for setting specific states on controllers
     
@@ -669,7 +667,7 @@ class hmController:
       
         return self.getRawData('setroomtemp', 'holidayhours') + self.getRawData('tempholdmins', lastfield)
       else:
-        raise hmProtocolError("Need to read all before reading subset")
+        raise ValueError("Need to read all before reading subset")
 
     rawdata1 = self.hmReadFields('setroomtemp', 'holidayhours')
     #self.procpayload(rawdata1,'setroomtemp', 'holidayhours')
@@ -698,7 +696,7 @@ class hmController:
           lastfield = 'heatingstate'
         return self.getRawData('remoteairtemp', lastfield)
       else:
-        raise hmProtocolError("Need to read all before reading subset")
+        raise ValueError("Need to read all before reading subset")
   
     if self.model == PRT_HW_MODEL:
       lastfield = 'hotwaterstate'
@@ -763,7 +761,7 @@ class hmController:
       if self.autoreadall:
         self.hmReadAll()
       else:
-        raise hmProtocolError("Need to read all before reading processing payload")
+        raise ValueError("Need to read all before reading processing payload")
 
     logging.debug("C%i Processing Payload"%(self.address) )
     
@@ -859,13 +857,13 @@ class hmController:
         self.hmReadAll()
         self.procpayload()
       else:
-        raise hmProtocolError("Need to read all before getting temp state")
+        raise ValueError("Need to read all before getting temp state")
         
     if not self._check_vars_current():
       if self.autoreadall:
         self.hmReadVariables()
       else:
-        raise hmProtocolError("Vars to old to get temp state")
+        raise ValueError("Vars to old to get temp state")
     
     if self.onoff == WRITE_ONOFF_OFF and self.frostprot == READ_FROST_PROT_OFF:
       return self.TEMP_STATE_OFF
