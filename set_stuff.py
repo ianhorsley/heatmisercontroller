@@ -60,7 +60,7 @@ hmn1.Kit.setHeatingSchedule('wed_heat',wkend_zoff)
 hmn1.Kit.setHeatingSchedule('thurs_heat',wkend_zoff)
 hmn1.Kit.setHeatingSchedule('fri_heat',wkend_zoff)
 hmn1.Kit.setHeatingSchedule('sat_heat',wkday_zlate)
-hmn1.Kit.setHeatingSchedule('sun_heat',wkday_zearly)
+hmn1.Kit.setHeatingSchedule('sun_heat',wkend_zoff)
 
 eveningwater = [17,30,18,0]
 hmn1.Kit.setWaterSchedule('all',eveningwater)

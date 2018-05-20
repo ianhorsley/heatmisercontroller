@@ -137,9 +137,10 @@ class hmNetwork:
       
       try:
         byteread = self.serport.read(length)
-      except serial.SerialException as e:
-        #There is no new data from serial port
-        raise hmResponseError("No new data " + str(e) )
+      ##this code was wrong as only raised if no serial port, rather than if no data.
+      #except serial.SerialException as e:
+        #There is no new data from serial port (or port missing)
+      #  raise hmResponseError("No new data " + str(e) )
       except TypeError as e:
         #Disconnect of USB->UART occured
         self.port.close()
@@ -708,9 +709,11 @@ class hmController:
       lastfield = 'heatingstate'
 
     rawdata = self.hmReadFields('remoteairtemp', lastfield)
-    self.procpayload(rawdata,'remoteairtemp', lastfield)
+    #self.procpayload(rawdata,'remoteairtemp', lastfield)
 
-    self.lastreadtempstime = time.time()
+    if rawdata != None:
+      self.lastreadtempstime = time.time()
+
     return rawdata
     
   def hmReadTime(self):
@@ -726,46 +729,17 @@ class hmController:
     
     readlength = lastfieldinfo[UNIADD_ADD] - firstfieldinfo[UNIADD_ADD] + lastfieldinfo[UNIADD_LEN]
 
-    rawdata = self.network.hmReadFromController(self.address, self.protocol, firstfieldinfo[UNIADD_ADD], readlength)
-    logging.info("C%i Read fields %s to %s, %s"%(self.address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH), ', '.join(str(x) for x in rawdata)))
+    try:
+      rawdata = self.network.hmReadFromController(self.address, self.protocol, firstfieldinfo[UNIADD_ADD], readlength)
+    except serial.SerialException as e:
+      logging.warn("C%i Read failed of fields %s to %s, Serial Port error %s"%(self.address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH), str(e)))
+      return None
+    else:
+      logging.info("C%i Read fields %s to %s, %s"%(self.address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH), ', '.join(str(x) for x in rawdata)))
     
-    self.procpayload(rawdata,firstfieldname, lastfieldname)
-    
-    # if len(rawdata) > 0:
-      # 
-      # #print rawdata
-      # for attrname, values in uniadd.iteritems():
-          # uniqueaddress = values[UNIADD_ADD]
-          # if uniqueaddress >= firstfieldinfo[UNIADD_ADD] and uniqueaddress <= lastfieldinfo[UNIADD_ADD]:
-            # length = values[UNIADD_LEN]
-            # factor = values[UNIADD_DIV]
-            # range = values[UNIADD_RANGE]
-            # #todo, add 7 day prog to getDCBaddress selection
-            # normaldcbaddress = self._getDCBaddress(uniqueaddress)
-                      
-            # #todo, add range validation
-            # if normaldcbaddress == DCB_INVALID:
-              # setattr(self, attrname, False)
-            # else:
-              # dcbadd = normaldcbaddress - startnormaldcb
-              # #print dcbadd, rawdata[dcbadd: dcbadd+length]
-              # #update rawdata with recently read values
-              # self.rawdata[normaldcbaddress: normaldcbaddress + length] = rawdata[dcbadd: dcbadd + length]
-              # if length == 1:
-                # setattr(self, attrname, rawdata[dcbadd]/factor)
-              # elif length == 2:
-                # val_high = rawdata[dcbadd]
-                # val_low  = rawdata[dcbadd+1]
-                # setattr(self, attrname, 1.0*(val_high*256 + val_low)/factor) #force float, although always returns integer temps.
-              # elif length == 4 or length == 12 or length == 16:
-                # setattr(self, attrname, rawdata[dcbadd:dcbadd+length])
-              # else:
-                # print "field length error"
-            # #print attrname, getattr(self, attrname)
-    # else:
-      # logging.warn("C%i Read fields %s to %s FAILED"%(self.address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH)))
+      self.procpayload(rawdata,firstfieldname, lastfieldname)
 
-    return rawdata
+      return rawdata
     
   def hmReadField(self,fieldname):
     fieldinfo = uniadd[fieldname]
