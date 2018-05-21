@@ -13,7 +13,13 @@ import logging
 
 from hm_constants import *
 from comms_settings import *
-from exceptions import *
+
+
+#from .exceptions import (hmResponseError)
+### WARNING THIS SHOULD BE IN EXPCETIOSN FILE
+
+class hmResponseError(RuntimeError):
+    pass
 
 # Master Address
 MY_MASTER_ADDR = 0x81
