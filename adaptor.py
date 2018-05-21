@@ -163,7 +163,7 @@ class Heatmiser_Adaptor:
 
         #Now try converting it back to array
         data = map(ord,firstbyteread) + map(ord,byteread)
-        logging.debug("Gen received %s",', '.join(str(x) for x in data))
+        #logging.debug("Gen received %s",', '.join(str(x) for x in data))
 
         return data
       finally:
