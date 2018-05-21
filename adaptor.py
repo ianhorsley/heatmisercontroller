@@ -140,13 +140,8 @@ class Heatmiser_Adaptor:
         logging.warning("C%d : Serial port error: %s" % ( source, str(e)))
         self.serport.close()
         raise
-      #except TypeError as e:
-      #  #Disconnect of USB->UART occured
-      #  self.port.close()
-      #  raise#hmSerialError("Serial port closed" + str(e))
       else:
-        ###move recieve time to finally clause?
-        self.lastreceivetime = time.time()
+     
         data = []
 
         if (len(byteread)) == 0:
@@ -158,6 +153,9 @@ class Heatmiser_Adaptor:
         logging.debug("Gen received %s",', '.join(str(x) for x in data))
 
         return data
+      finally:
+        self.lastreceivetime = time.time()
+        
 
 ### low level framing functions
       
