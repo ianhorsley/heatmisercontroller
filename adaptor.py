@@ -13,12 +13,12 @@ import logging
 
 from hm_constants import *
 from comms_settings import *
+from exceptions import *
 
 # Master Address
 MY_MASTER_ADDR = 0x81
 
-class hmResponseError(RuntimeError):
-    pass
+
     
 def retryer(max_retries=3):
   def wraps(func):
