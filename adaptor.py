@@ -25,16 +25,17 @@ def retryer(max_retries=3):
 
       def inner(*args, **kwargs):
           for i in range(max_retries):
+              if i is not 0:
+                logging.warn("Gen retrying due to %s"%str(lasterror))
               try:    
                   result = func(*args, **kwargs)
               except hmResponseError as e:
-                  logging.warn("Gen retrying due to %s"%str(e))
                   lasterror = e
                   continue
               else:
                   return result
           else:
-              raise ValueError("Failed after %i retries on %s"%(max_retries,str(lasterror))) 
+              raise hmResponseError("Failed after %i retries on %s"%(max_retries,str(lasterror))) 
       return inner
   return wraps
     
@@ -149,7 +150,6 @@ class Heatmiser_Adaptor:
         timereadfirstbyte = time.time()-timereadstart
         logging.debug("Gen waited %.2fs for first byte"%timereadfirstbyte)
         if len(firstbyteread) == 0:
-          logging.warning("No response")
           raise hmResponseError("No Response")
         
         self.serport.timeout = max(COM_MIN_TIMEOUT, self.COM_TIMEOUT - timereadfirstbyte) #wait for full time out for rest of response, but not less than COM_MIN_TIMEOUT)
@@ -333,8 +333,8 @@ class Heatmiser_Adaptor:
 
         try:
           response = self._hmReceiveMsg(MIN_FRAME_READ_RESP_LENGTH + expectedLength)
-        except:
-          logging.warn("C%i read failed from address %i length %i"%(network_address,dcb_start_address, expectedLength))
+        except Exception as e:
+          logging.warn("C%i read failed from address %i length %i due to %s"%(network_address,dcb_start_address, expectedLength, str(e)))
           raise
         else:
           logging.debug("C%i read in %.2f s from address %i length %i payload %s"%(network_address,time.time()-time1,dcb_start_address, expectedLength, ', '.join(str(x) for x in response)))

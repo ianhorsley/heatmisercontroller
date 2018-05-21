@@ -10,7 +10,7 @@ COM_SIZE = serial.EIGHTBITS
 COM_PARITY = serial.PARITY_NONE
 COM_STOP = serial.STOPBITS_ONE
 COM_TIMEOUT = 1 #time to wait for full response
-COM_START_TIMEOUT = 0.3 #time to wait for start of response
+COM_START_TIMEOUT = 0.1 #time to wait for start of response
 COM_MIN_TIMEOUT = 0.1 # min remaining time after first byte read
 
 COM_SEND_MIN_TIME = 1  #minimum time between sending commands to a device (broadcast only??)
