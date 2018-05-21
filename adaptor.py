@@ -51,6 +51,9 @@ class Heatmiser_Adaptor:
     self.serport.timeout = COM_TIMEOUT
     self.serport.write_timeout = COM_TIMEOUT
     
+    self.COM_TIMEOUT = COM_TIMEOUT
+    self.COM_START_TIMEOUT = COM_START_TIMEOUT
+    
     self.lastsendtime = None
     self.creationtime = time.time()
     
@@ -133,24 +136,38 @@ class Heatmiser_Adaptor:
         self.connect()
       logging.debug("C%d listening for %d"%(source, length))
       
+      timereadstart = time.time()
+      self.serport.timeout = self.COM_START_TIMEOUT #wait for start of response
       try:
-        byteread = self.serport.read(length)
+        firstbyteread = self.serport.read(1)
       except serial.SerialException as e:
         #There is no new data from serial port (or port missing) (Doesn't include no response from stat)
         logging.warning("C%d : Serial port error: %s" % ( source, str(e)))
         self.serport.close()
         raise
       else:
+        timereadfirstbyte = round(time.time()-timereadstart,2)
+        logging.debug("C%d waited s for first byte"%timereadfirstbyte)
         if len(byteread) == 0:
           logging.warning("C%d : No response" % (source))
           raise hmResponseError("No Response")
+        
+        self.serport.timeout = self.COM_START_TIMEOUT - timereadfirstbyte #wait for full time out for rest of response
+        try:
+          byteread = self.serport.read(length - 1)
+        except serial.SerialException as e:
+          #There is no new data from serial port (or port missing) (Doesn't include no response from stat)
+          logging.warning("C%d : Serial port error: %s" % ( source, str(e)))
+          self.serport.close()
+          raise
 
         #Now try converting it back to array
-        data = map(ord,byteread)
+        data = map(ord,firstbyteread) + map(ord,byteread)
         logging.debug("Gen received %s",', '.join(str(x) for x in data))
 
         return data
       finally:
+        self.serport.timeout = self.COM_TIMEOUT #make sure timeout is reverted
         self.lastreceivetime = time.time()
         
 
