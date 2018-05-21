@@ -141,15 +141,12 @@ class Heatmiser_Adaptor:
         self.serport.close()
         raise
       else:
-     
-        data = []
-
-        if (len(byteread)) == 0:
+        if len(byteread) == 0:
           logging.warning("C%d : No response" % (source))
           raise hmResponseError("No Response")
 
         #Now try converting it back to array
-        data = data + (map(ord,byteread))
+        data = map(ord,byteread)
         logging.debug("Gen received %s",', '.join(str(x) for x in data))
 
         return data
