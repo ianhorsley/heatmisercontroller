@@ -14,7 +14,7 @@ from hm_constants import *
 from network import *
 
 #start logging
-initialize_logger('logs', logging.WARN)
+initialize_logger('logs', logging.DEBUG)
 
 hmn1 = HeatmiserNetwork()
 hmn1.setStatList(StatList)

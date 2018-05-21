@@ -130,11 +130,11 @@ class Heatmiser_Adaptor:
       logging.warning("Failed to clear input buffer")
       raise
           
-  def _hmRecieveMsg(self, source, length = MAX_FRAME_RESP_LENGTH) :
+  def _hmReceiveMsg(self, length = MAX_FRAME_RESP_LENGTH) :
       # Listen for a reply
       if not self.serport.isOpen():
         self.connect()
-      logging.debug("C%d listening for %d"%(source, length))
+      logging.debug("Gen listening for %d"%length)
       
       timereadstart = time.time()
       self.serport.timeout = self.COM_START_TIMEOUT #wait for start of response
@@ -142,22 +142,22 @@ class Heatmiser_Adaptor:
         firstbyteread = self.serport.read(1)
       except serial.SerialException as e:
         #There is no new data from serial port (or port missing) (Doesn't include no response from stat)
-        logging.warning("C%d : Serial port error: %s" % ( source, str(e)))
+        logging.warning("Gen serial port error: %s" % str(e))
         self.serport.close()
         raise
       else:
-        timereadfirstbyte = round(time.time()-timereadstart,2)
-        logging.debug("C%d waited s for first byte"%timereadfirstbyte)
-        if len(byteread) == 0:
-          logging.warning("C%d : No response" % (source))
+        timereadfirstbyte = time.time()-timereadstart
+        logging.debug("Gen waited %.2fs for first byte"%timereadfirstbyte)
+        if len(firstbyteread) == 0:
+          logging.warning("No response")
           raise hmResponseError("No Response")
         
-        self.serport.timeout = self.COM_START_TIMEOUT - timereadfirstbyte #wait for full time out for rest of response
+        self.serport.timeout = max(COM_MIN_TIMEOUT, self.COM_TIMEOUT - timereadfirstbyte) #wait for full time out for rest of response, but not less than COM_MIN_TIMEOUT)
         try:
           byteread = self.serport.read(length - 1)
         except serial.SerialException as e:
           #There is no new data from serial port (or port missing) (Doesn't include no response from stat)
-          logging.warning("C%d : Serial port error: %s" % ( source, str(e)))
+          logging.warning("Gen serial port error: %s" % str(e))
           self.serport.close()
           raise
 
@@ -168,7 +168,7 @@ class Heatmiser_Adaptor:
         return data
       finally:
         self.serport.timeout = self.COM_TIMEOUT #make sure timeout is reverted
-        self.lastreceivetime = time.time()
+        self.lastreceivetime = time.time() #record last read time. Used to manage bus settling.
         
 
 ### low level framing functions
@@ -310,7 +310,7 @@ class Heatmiser_Adaptor:
         if network_address == BROADCAST_ADDR:
           self.lastreceivetime = time.time() + COM_SEND_MIN_TIME - COM_BUS_RESET_TIME # if broadcasting force it to wait longer until next send
         else:
-          response = self._hmRecieveMsg(network_address,FRAME_WRITE_RESP_LENGTH)
+          response = self._hmReceiveMsg(FRAME_WRITE_RESP_LENGTH)
           self._hmVerifyWriteAck(protocol, network_address, response)
   
   @retryer(max_retries = 2)
@@ -332,12 +332,12 @@ class Heatmiser_Adaptor:
         time1 = time.time()
 
         try:
-          response = self._hmRecieveMsg(network_address,MIN_FRAME_READ_RESP_LENGTH + expectedLength)
+          response = self._hmReceiveMsg(MIN_FRAME_READ_RESP_LENGTH + expectedLength)
         except:
           logging.warn("C%i read failed from address %i length %i"%(network_address,dcb_start_address, expectedLength))
           raise
         else:
-          logging.debug("C%i read in %.2f s from address %i  length %i payload %s"%(network_address,time.time()-time1,dcb_start_address, expectedLength, ', '.join(str(x) for x in response)))
+          logging.debug("C%i read in %.2f s from address %i length %i payload %s"%(network_address,time.time()-time1,dcb_start_address, expectedLength, ', '.join(str(x) for x in response)))
         
           self._hmVerifyResponse(protocol, network_address, FUNC_READ, expectedLength , response)
           return response[FR_CONTENTS:-CRC_LENGTH]
