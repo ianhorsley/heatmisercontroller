@@ -14,7 +14,7 @@ from network import *
 
 initialize_logger('logs', logging.INFO, True)
 
-hmn1 = Heatmiser_Network()
+hmn1 = HeatmiserNetwork()
 hmn1.setStatList(StatList)
 
 #hmn1.hmSetTemp("Kit",25)

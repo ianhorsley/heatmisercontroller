@@ -17,7 +17,7 @@ from devices import *
 from stats_defn import *
 from adaptor import *
 
-class Heatmiser_Network:
+class HeatmiserNetwork:
 ### stat list setup
 
   def __init__(self):

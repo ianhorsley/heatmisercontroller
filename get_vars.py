@@ -16,7 +16,7 @@ from network import *
 #start logging
 initialize_logger('logs', logging.WARN)
 
-hmn1 = Heatmiser_Network()
+hmn1 = HeatmiserNetwork()
 hmn1.setStatList(StatList)
 
 # CYCLE THROUGH ALL CONTROLLERS
