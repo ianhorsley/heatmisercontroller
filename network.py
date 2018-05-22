@@ -9,7 +9,6 @@
 #
 import serial
 import time
-from datetime import datetime
 import logging
 
 # Import our own stuff
