@@ -51,8 +51,8 @@ def _hmCheckFrameCRC(protocol, data):
   if expectedchecksum != checksum:
     raise hmResponseErrorCRC("CRC is incorrect")      
 
-def _hmCheckFrameLength(protocol, data, expectedLength):
-
+def _hmCheckResponseFrameLength(protocol, data, expectedLength):
+  """Takes frame and checks length, must be a receive frame"""
   if protocol != HMV3_ID:
     raise ValueError("Protocol unknown")
 
@@ -74,7 +74,7 @@ def _hmCheckFrameLength(protocol, data, expectedLength):
     # Reply to Write is always 7 long
     raise hmResponseError("Response length %s not EXPECTED value %s given write request" % (frame_len, FRAME_WRITE_RESP_LENGTH ))
       
-def _hmCheckFrameAddresses(protocol, source, destination, data):
+def _hmCheckResponseFrameAddresses(protocol, source, destination, data):
 
   if protocol != HMV3_ID:
     raise ValueError("Protocol unknown")
@@ -91,7 +91,7 @@ def _hmCheckFrameAddresses(protocol, source, destination, data):
   if (source_addr != source):
     raise hmResponseError("Source address does not match %i" % source_addr)
       
-def _hmCheckFrameFunc(protocol, expectedFunction, data):
+def _hmCheckResponseFrameFunc(protocol, expectedFunction, data):
 
   if protocol != HMV3_ID:
     raise ValueError("Protocol unknown")
@@ -108,16 +108,16 @@ def _hmVerifyWriteAck(protocol, source, destination, data) :
   return _hmVerifyResponse(protocol, source, destination, FUNC_WRITE, DONT_CARE_LENGTH, data)
  
 def _hmVerifyResponse(protocol, source, destination, expectedFunction, expectedLength, data) :
-  """Verifies frame appears legal"""
+  """Verifies response frame appears legal"""
   try:
     # check CRC
     _hmCheckFrameCRC(protocol, data)
     # check length
-    _hmCheckFrameLength(protocol, data, expectedLength)
+    _hmCheckResponseFrameLength(protocol, data, expectedLength)
     # check addresses
-    _hmCheckFrameAddresses(protocol, source, destination, data)
+    _hmCheckResponseFrameAddresses(protocol, source, destination, data)
     # check function
-    _hmCheckFrameFunc(protocol, expectedFunction, data)
+    _hmCheckResponseFrameFunc(protocol, expectedFunction, data)
   except hmResponseError as e:
     logging.warning("C%s Invalid Response: %s: %s" % (source, str(e), data))
     raise
