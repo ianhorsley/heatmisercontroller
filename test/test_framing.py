@@ -1,8 +1,10 @@
+## Complete set of tests for framing functions
+
 import unittest
 import logging
 import serial
 
-from heatmisercontroller.framing import _hmCheckFrameCRC, _hmCheckResponseFrameLength, _hmCheckResponseFrameAddresses, _hmCheckResponseFrameFunc, _hmVerifyResponse
+from heatmisercontroller.framing import _hmCheckFrameCRC, _hmCheckResponseFrameLength, _hmCheckResponseFrameAddresses, _hmCheckResponseFrameFunc, _hmVerifyResponse, _hmFormFrame
 #from heatmisercontroller.framing import crc16
 from heatmisercontroller.exceptions import hmResponseError, hmResponseErrorCRC
 from heatmisercontroller.hm_constants import HMV3_ID
@@ -10,9 +12,8 @@ from heatmisercontroller.hm_constants import HMV3_ID
 class test_framing(unittest.TestCase):
   def setUp(self):
     logging.basicConfig(level=logging.ERROR)
-    #self.func = Heatmiser_Adaptor()
-    #self.func.COM_TIMEOUT = 0 #speed up testing when reset input buffer called
-    self.goodmessage = [5, 10, 129, 0, 34, 0, 8, 0, 193, 72] #sent message
+    self.goodwritemessage = [5, 11, 129, 1, 34, 0, 1, 0, 255, 222, 138] #sent message
+    self.goodreadmessage = [5, 10, 129, 0, 34, 0, 8, 0, 193, 72] #sent message
     self.goodresponsemessage = [129, 12, 0, 5, 0, 10, 0, 01, 00, 255, 145, 201]
     self.goodackmessage = [129, 7, 0, 5, 1, 116, 39]
     self.badackmessage = [129, 8, 0, 5, 1, 116, 39] # length doesn't match header and crc wrong
@@ -28,7 +29,7 @@ class test_framing(unittest.TestCase):
       _hmCheckFrameCRC(HMV3_ID,self.badackmessage)
       
   def test_framecheckcrc_good(self):
-    _hmCheckFrameCRC(HMV3_ID,self.goodmessage)
+    _hmCheckFrameCRC(HMV3_ID,self.goodreadmessage)
     _hmCheckFrameCRC(HMV3_ID,[255,255]) #only crc
     _hmCheckFrameCRC(HMV3_ID,self.goodresponsemessage)
     _hmCheckFrameCRC(HMV3_ID,self.goodackmessage)
@@ -91,3 +92,21 @@ class test_framing(unittest.TestCase):
   def test_framecheck_bad(self):
     with self.assertRaises(hmResponseError):
       _hmVerifyResponse(HMV3_ID, 5, 129, 0, 1, self.badackmessage)
+      
+  #form
+  def test_form_good_write(self):
+  #self.goodwritemessage = [5, 11, 129, 1, 34, 0, 1, 0, 255, 193, 72] #sent message
+    ret = _hmFormFrame(5, HMV3_ID, 129, 1, 34, 1, [255])
+    self.assertEqual(ret, self.goodwritemessage)
+    
+  def test_form_good_read(self):
+    ret = _hmFormFrame(5, HMV3_ID, 129, 0, 34, 8, [])
+    self.assertEqual(ret, self.goodreadmessage)    
+
+  def test_form_bad_length(self):
+    with self.assertRaises(ValueError):
+      ret = _hmFormFrame(5, HMV3_ID, 129, 1, 34, 10, [255])
+      
+  def test_form_bad_prot(self):
+    with self.assertRaises(ValueError):
+      ret = _hmFormFrame(5, HMV3_ID+99, 129, 1, 34, 1, [255])
