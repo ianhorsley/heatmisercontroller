@@ -2,10 +2,10 @@ import unittest
 import logging
 import serial
 
-from adaptor import Heatmiser_Adaptor
-from adaptor import hmResponseError
-from adaptor import crc16
-from hm_constants import HMV3_ID
+from heatmisercontroller.adaptor import Heatmiser_Adaptor
+from heatmisercontroller.adaptor import hmResponseError
+from heatmisercontroller.adaptor import crc16
+from heatmisercontroller.hm_constants import HMV3_ID
 
 class test_framing(unittest.TestCase):
   def setUp(self):

@@ -8,10 +8,10 @@
 import time
 import logging
 
-from logging_setup import initialize_logger
-from stats_defn import *
-from hm_constants import *
-from network import *
+from heatmisercontroller.logging_setup import initialize_logger
+from heatmisercontroller.stats_defn import *
+from heatmisercontroller.hm_constants import *
+from heatmisercontroller.network import *
 
 #start logging
 initialize_logger('logs', logging.WARN)
