@@ -127,7 +127,7 @@ class Heatmiser_Adaptor:
     #clears input buffer
     #use after CRC check wrong; encase more data was sent than expected.
   
-    time.sleep(COM_TIMEOUT) #wait for read timeout to ensure slave finished sending
+    time.sleep(self.COM_TIMEOUT) #wait for read timeout to ensure slave finished sending
     try:
       if self.serport.isOpen():
         self.serport.reset_input_buffer() #reset input buffer and dump any contents
@@ -143,6 +143,7 @@ class Heatmiser_Adaptor:
         self.connect()
       logging.debug("Gen listening for %d"%length)
       
+      # Listen for the first byte
       timereadstart = time.time()
       self.serport.timeout = self.COM_START_TIMEOUT #wait for start of response
       try:
@@ -158,6 +159,7 @@ class Heatmiser_Adaptor:
         if len(firstbyteread) == 0:
           raise hmResponseError("No Response")
         
+        # Listen for the rest of the response
         self.serport.timeout = max(COM_MIN_TIMEOUT, self.COM_TIMEOUT - timereadfirstbyte) #wait for full time out for rest of response, but not less than COM_MIN_TIMEOUT)
         try:
           byteread = self.serport.read(length - 1)
@@ -167,9 +169,8 @@ class Heatmiser_Adaptor:
           self.serport.close()
           raise
 
-        #Now try converting it back to array
+        #Convert back to array
         data = map(ord,firstbyteread) + map(ord,byteread)
-        #logging.debug("Gen received %s",', '.join(str(x) for x in data))
 
         return data
       finally:

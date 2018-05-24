@@ -1,0 +1,4 @@
+
+
+class hmResponseError(RuntimeError):
+    pass
