@@ -7,6 +7,9 @@
 
 # Assume Python 2.7.x
 #
+
+#consider adding timestamps to all parameters for their age.
+
 import logging
 import time
 import serial

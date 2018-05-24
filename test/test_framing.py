@@ -1,5 +1,7 @@
 ## Complete set of tests for framing functions
 
+## Imported crc16 function not tested
+
 import unittest
 import logging
 import serial
