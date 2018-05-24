@@ -3,33 +3,6 @@ import logging
 import serial
 
 from heatmisercontroller.adaptor import Heatmiser_Adaptor
-from heatmisercontroller.adaptor import hmResponseError
-from heatmisercontroller.adaptor import crc16
-from heatmisercontroller.hm_constants import HMV3_ID
-
-class test_framing(unittest.TestCase):
-  def setUp(self):
-    logging.basicConfig(level=logging.ERROR)
-    self.func = Heatmiser_Adaptor()
-    self.func.COM_TIMEOUT = 0 #speed up testing when reset input buffer called
-    self.goodmessage = [5, 10, 129, 0, 34, 0, 8, 0, 193, 72]
-    
-  def test_framecheck_short(self):
-#    self.assertTrue(True)
-    with self.assertRaises(hmResponseError):
-      self.func._hmCheckFrameCRC(HMV3_ID,[0])
-      
-  def test_framecheck_no_CRC(self):
-    with self.assertRaises(hmResponseError):
-      self.func._hmCheckFrameCRC(HMV3_ID,[0,0,0])
-      
-  def test_framecheck_good(self):
-    self.func._hmCheckFrameCRC(HMV3_ID,self.goodmessage)
-    
-  def test_framecheck_only_crc(self):
-    #crc = crc16() # Initialises the CRC
-    #expectedchecksum = crc.run([])
-    self.func._hmCheckFrameCRC(HMV3_ID,[255,255])
 
 class SerialTestClass(object):
     """A mock serial port test class"""
