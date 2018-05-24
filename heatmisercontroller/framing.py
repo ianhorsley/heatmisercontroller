@@ -123,10 +123,7 @@ def _hmVerifyResponse(protocol, source, destination, expectedFunction, expectedL
     raise
     
   ## missing check that it is valid for this type of controller. Use DCBUnique function not false.
-  ## although if needed should be in devices
-  
-  
-### Helper Functions
+  ## although if needed should be in devices and not in framing
 
 # Believe this is known as CCITT (0xFFFF)
 # This is the CRC function converted directly from the Heatmiser C code
