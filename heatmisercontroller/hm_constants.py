@@ -90,7 +90,7 @@ UNIQUE_ADD_MODEL = 4
 
 FIELD_NAME_LENGTH = 13
 MAX_UNIQUE_ADDRESS = 298
-#name, []address,length,divisor, valid range, writeable]
+#name, unique_address,length,divisor, valid range, writeable]
 UNIADD_ADD = 0
 UNIADD_LEN = 1
 UNIADD_DIV = 2

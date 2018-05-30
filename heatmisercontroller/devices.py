@@ -18,6 +18,7 @@ import serial
 from datetime import datetime
 
 from hm_constants import *
+from .exceptions import hmResponseError
 
 class hmController(object):
 
@@ -35,49 +36,40 @@ class hmController(object):
     elif model == False:
       self.DCBmap = STRAIGHTmap
     else:
-      print "UNKNOWN MODEL"
+      raise ValueError("UNKNOWN MODEL")
       
     if self.DCBmap[0][1] != DCB_INVALID:
       self.DCBlength = self.DCBmap[0][0] - self.DCBmap[0][1] + 1
     elif self.DCBmap[1][1] != DCB_INVALID:
       self.DCBlength = self.DCBmap[1][0] - self.DCBmap[1][1] + 1
     else:
-      print "DCB map length not found"
+      raise ValueError("DCB map length not found")
+    
+    self.rawdata = [None] * self.DCBlength
     
     self.name = short_name
     self.long_name = long_name
     
-    self.floorlimiting = 0
-    self.lastreadalltime = 0
-    self.lastreadvarstime = 0 #time since last read things like temps and demand
-    self.lastreadtempstime = 0
-    self.lastreadtimetime = 0
+    self.lastreadtime = 0 #records last time of a successful read
     
-    self.autoreadall = True
+    #intialise data structures
+    self.data = dict.fromkeys(uniadd.keys(),None)
+    self.datareadtime = dict.fromkeys(uniadd.keys(),None)
+    
+    ###SHOULD BE TRUE
+    self.autoreadall = False
    
   def _checkpayload(self,data):  
-    if len(data) == 0:
-      print "OH DEAR NO DATA"
-      return False
-    else :
-      payload_len_l = data[PL_LEN_LOW]
-      payload_len_h = data[PL_LEN_HIGH]
-      payload_len = (payload_len_h << 8) | payload_len_l
-      model_code = data[PL_MODEL]
-      prog_mode = data[PL_PROG_MODE]
-        
-      if payload_len != len(data):
-        print "OH DEAR PAYLOAD LENGTH WRONG"
-        return False
-      elif model_code != self.expected_model:
-        print "OH DEAR SENSOR TYPE WRONG"
-        return False
-      elif prog_mode != self.expected_prog_mode:
-        print "OH DEAR PROG MODE WRONG"
-        return False
-        
-    return True
-  
+    if len(data) <= 2:
+      raise hmResponseError("Payload empty or malformed")
+
+    payload_len_l = data[PL_LEN_LOW]
+    payload_len_h = data[PL_LEN_HIGH]
+    payload_len = (payload_len_h << 8) | payload_len_l
+      
+    if payload_len != len(data):
+      raise hmResponseError("Payload length %i doesn't match header %i"%(len(data),payload_len))
+
   def _getDCBaddress(self, uniqueaddress):
     #get the DCB address for a controller from the unique address
 
@@ -96,22 +88,12 @@ class hmController(object):
       return self.rawdata
     else:
       return self.rawdata[self._getDCBaddress(uniadd[startfieldname][UNIADD_ADD]):self._getDCBaddress(uniadd[endfieldname][UNIADD_ADD])]
-  
-  def hmReadAll(self):
-    self.rawdata = self.network.hmReadAllFromController(self.address, self.protocol, self.DCBlength)
-    logging.info("C%i Read all, %s"%(self.address, ', '.join(str(x) for x in self.rawdata)))
-    self.lastreadalltime = time.time()
-    self.lastreadvarstime = self.lastreadalltime
-    self.lastreadtempstime = self.lastreadalltime
-    self.lastreadtimetime = self.lastreadalltime
-    self.procpayload()
-    return self.rawdata
     
   def hmReadVariables(self):
     if not self._check_data_present():
       if self.autoreadall:
         self.hmReadAll()
-        self.procpayload()
+        self._procpayload()
       
         if self.model == PRT_HW_MODEL:
           lastfield = 'hotwaterstate'
@@ -123,7 +105,7 @@ class hmController(object):
         raise ValueError("Need to read all before reading subset")
 
     rawdata1 = self.hmReadFields('setroomtemp', 'holidayhours')
-    #self.procpayload(rawdata1,'setroomtemp', 'holidayhours')
+    #self._procpayload(rawdata1,'setroomtemp', 'holidayhours')
   
     if self.model == PRT_HW_MODEL:
       lastfield = 'hotwaterstate'
@@ -131,7 +113,7 @@ class hmController(object):
       lastfield = 'heatingstate'
 
     rawdata2 = self.hmReadFields('tempholdmins', lastfield)
-    #self.procpayload(rawdata2,'tempholdmins', lastfield)
+    #self._procpayload(rawdata2,'tempholdmins', lastfield)
     
     #if len(rawdata1) > 0 and len(rawdata2) > 0:
     self.lastreadvarstime = time.time()
@@ -142,7 +124,7 @@ class hmController(object):
     if not self._check_data_present():
       if self.autoreadall:
         self.hmReadAll()
-        self.procpayload()
+        self._procpayload()
         if self.model == PRT_HW_MODEL:
           lastfield = 'hotwaterstate'
         else:
@@ -157,7 +139,7 @@ class hmController(object):
       lastfield = 'heatingstate'
 
     rawdata = self.hmReadFields('remoteairtemp', lastfield)
-    #self.procpayload(rawdata,'remoteairtemp', lastfield)
+    #self._procpayload(rawdata,'remoteairtemp', lastfield)
 
     if rawdata != None:
       self.lastreadtempstime = time.time()
@@ -169,109 +151,111 @@ class hmController(object):
     self.lastreadtimetime = time.time()
     return rawdata
 
-  def hmReadFields(self,firstfieldname,lastfieldname):
+  def hmReadAll(self):
+    try:
+      self.rawdata = self.network.hmReadAllFromController(self.address, self.protocol, self.DCBlength)
+    except serial.SerialException as e:
+      logging.warn("C%i Read all failed, Serial Port error %s"%(self.address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH), str(e)))
+      raise
+    else:
+      logging.info("C%i Read all, %s"%(self.address, ', '.join(str(x) for x in self.rawdata)))
+      self.lastreadtime = time.time()
+      self._procpayload(self.rawdata)
+      return self.rawdata
+    
+  def hmReadFields(self, firstfieldname, lastfieldname = None):
+    if lastfieldname == None:
+      lastfieldname = firstfieldname
+  
     firstfieldinfo = uniadd[firstfieldname]
     lastfieldinfo = uniadd[lastfieldname]
 
-    ###remove next line?
-    startnormaldcb = self._getDCBaddress(firstfieldinfo[UNIADD_ADD])
-    
     readlength = lastfieldinfo[UNIADD_ADD] - firstfieldinfo[UNIADD_ADD] + lastfieldinfo[UNIADD_LEN]
 
     try:
       rawdata = self.network.hmReadFromController(self.address, self.protocol, firstfieldinfo[UNIADD_ADD], readlength)
     except serial.SerialException as e:
       logging.warn("C%i Read failed of fields %s to %s, Serial Port error %s"%(self.address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH), str(e)))
-      return None
+      raise
     else:
       logging.info("C%i Read fields %s to %s, %s"%(self.address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH), ', '.join(str(x) for x in rawdata)))
-    
-      self.procpayload(rawdata,firstfieldname, lastfieldname)
-
+      self.lastreadtime = time.time()
+      self._procpayload(rawdata,firstfieldname, lastfieldname)
       return rawdata
-    
-  def hmReadField(self,fieldname):
-    fieldinfo = uniadd[fieldname]
 
-    rawdata = self.network.hmReadFromController(self.address, self.protocol, fieldinfo[UNIADD_ADD], fieldinfo[UNIADD_LEN])
-    
-    if fieldinfo[UNIADD_LEN] == 1:
-      value = rawdata[0]/fieldinfo[UNIADD_DIV]
-    elif fieldinfo[UNIADD_LEN] == 2:
-      val_high = rawdata[0]
-      val_low  = rawdata[1]
-      value = 1.0*(val_high*256 + val_low)/fieldinfo[UNIADD_DIV] #force float, although always returns integer temps.
-    else:
-      print "field not processed"
-      value = False
-      
-    setattr(self, fieldname, value)
-    logging.info("C%i Read field %s is %s"%(self.address, fieldname.ljust(FIELD_NAME_LENGTH), ', '.join(str(x) for x in rawdata)))
-
-    return value
-
-  def procpayload(self, rawdata = None, firstfieldadd = 0, lastfieldadd = MAX_UNIQUE_ADDRESS):
-    if not self._check_data_present():
-      if self.autoreadall:
-        self.hmReadAll()
-      else:
-        raise ValueError("Need to read all before reading processing payload")
-
-    logging.debug("C%i Processing Payload"%(self.address) )
-    
-    if rawdata == None:
-      rawdata = self.rawdata
-    
-    if isinstance(firstfieldadd, basestring):
-      firstfieldadd = uniadd[firstfieldadd][UNIADD_ADD]  
-    fullfirstdcbadd = self._getDCBaddress(firstfieldadd)
-    if isinstance(lastfieldadd, basestring):
-      lastfieldadd = uniadd[lastfieldadd][UNIADD_ADD]
-
-    if firstfieldadd == 0 and lastfieldadd == MAX_UNIQUE_ADDRESS:
-      if not self._checkpayload(rawdata): ###add errors to this module
-        raise hmResponseError("Payload Faulty")
-    ###add payload length check if not full length data
-    
-    #take model from full rawdata
-    model = self.rawdata[UNIQUE_ADD_MODEL]
+  def procpartpayload(self, rawdata, firstfieldname, lastfieldname):
+    #converts field names to unique addresses to allow process of shortened raw data
+    raise RuntimeError ###need to add to checkpayload
+    firstfieldadd = uniadd[firstfieldname][UNIADD_ADD] 
+    lastfieldadd = uniadd[lastfieldname][UNIADD_ADD]
+    self._procpayload(rawdata, firstfieldadd, lastfieldadd)
   
+  def _procfield(self,data,fieldname,fieldinfo):
+    length = fieldinfo[UNIADD_LEN]
+    factor = fieldinfo[UNIADD_DIV]
+    range = fieldinfo[UNIADD_RANGE]
+  
+    if length == 1:
+      value = data[0]/factor
+    elif length == 2:
+      val_high = data[0]
+      val_low  = data[1]
+      value = 1.0*(val_high*256 + val_low)/factor #force float, although always returns integer temps.
+    elif length == 4 or length == 12 or length == 16:
+      value = data
+    else:
+      raise ValueError("_procpayload can't process field length")
+  
+    if len(range) == 2 and isinstance(range[0], (int, long)) and isinstance(range[1], (int, long)):
+      if value < range[0] or value > range[1]:
+        raise hmResponseError("Field value %i outside expected range"%value)
+        
+    if fieldname == 'model' and value != self.expected_model:
+      raise hmResponseError('Model is unexpected')
+    
+    if fieldname == 'programmode' and value != self.expected_prog_mode:
+      raise hmResponseError('Programme mode is unexpected')
+    
+    if fieldname == 'version' and self.expected_model != PRT_HW_MODEL:
+      value = data[0] & 0x7f
+      self.floorlimiting = data[0] >> 7
+      self.data['floorlimiting'] = self.floorlimiting
+    
+    self.data[fieldname] = value
+    setattr(self, fieldname, value)
+    self.datareadtime[fieldname] = self.lastreadtime
+    
+    if fieldname == 'currenttime':
+      self._checkcontrollertime(time.localtime(self.lastreadtime))
+    
+    ###todo, add range validation for other lengths
+  
+  def _procpayload(self, rawdata, firstfieldadd = 0, lastfieldadd = MAX_UNIQUE_ADDRESS):
+    logging.debug("C%i Processing Payload"%(self.address) )
+
+    fullfirstdcbadd = self._getDCBaddress(firstfieldadd)
+
+    self._checkpayload(rawdata)
+    
     for attrname, values in uniadd.iteritems():
       uniqueaddress = values[UNIADD_ADD]
       if uniqueaddress >= firstfieldadd and uniqueaddress <= lastfieldadd:
         length = values[UNIADD_LEN]
-        factor = values[UNIADD_DIV]
-        range = values[UNIADD_RANGE]
+
         ###todo, add 7 day prog to getDCBaddress selection
         dcbadd = self._getDCBaddress(uniqueaddress)
-        #todo, add range validation
+
         if dcbadd == DCB_INVALID:
-          setattr(self, attrname, False)
+          setattr(self, attrname, None)
         else:
           dcbadd -= fullfirstdcbadd #adjust for the start of the request
-          if length == 1:
-            setattr(self, attrname, rawdata[dcbadd]/factor)
-          elif length == 2:
-            val_high = rawdata[dcbadd]
-            val_low  = rawdata[dcbadd+1]
-            setattr(self, attrname, 1.0*(val_high*256 + val_low)/factor) #force float, although always returns integer temps.
-          elif length == 4 or length == 12 or length == 16:
-            setattr(self, attrname, rawdata[dcbadd:dcbadd+length])
-          else:
-            print "field length error"
-            
-    version_add = uniadd['version'][UNIADD_ADD]
-    if self.model != PRT_HW_MODEL and version_add >= firstfieldadd and version_add <= lastfieldadd:
-      dcbfieldnum = self._getDCBaddress(version_add)
-      self.version = rawdata[dcbfieldnum] & 0x7f
-      self.floorlimiting = rawdata[dcbfieldnum] >> 7
-      self.hotwaterstate = False
-    
+          
+          try:
+            self._procfield(rawdata[dcbadd:dcbadd+length], attrname, values)
+          except hmResponseError as e:
+            logging.warn("C%i Field %s process failed due to %s"%(self.address, attrname, str(e)))
+
     self.rawdata[fullfirstdcbadd:fullfirstdcbadd+len(rawdata)] = rawdata
-    
-    currenttime_add = uniadd['currenttime'][UNIADD_ADD]
-    if currenttime_add >= firstfieldadd and currenttime_add <= lastfieldadd:
-      self._checkcontrollertime(time.localtime(self.lastreadtimetime))
 
   def _checkcontrollertime(self,checktime):       
     # Now do same sanity checking
@@ -281,9 +265,9 @@ class hmController(object):
     # currentday is numbered 1-7 for M-S
     # localday (python) is numbered 0-6 for Sun-Sat
     
-    if self.lastreadtimetime == 0:
+    if not self._check_data_present('currenttime'):
       logging.warn("Time not read before check")
-      #return
+      return
     
     localday = time.strftime("%w", checktime)
     
@@ -312,14 +296,14 @@ class hmController(object):
   TEMP_STATE_PROGRAM = 6 #following program
   
   def getTempState(self):
-    if not self._check_data_present() or not self._check_data_current():
+    if not self._check_data_present('onoff','frostprot','holidayhours','runmode','tempholdmins','setroomtemp'):
       if self.autoreadall:
         self.hmReadAll()
-        self.procpayload()
+        self._procpayload()
       else:
         raise ValueError("Need to read all before getting temp state")
         
-    if not self._check_vars_current():
+    if not self._check_data_age(60, 'onoff','frostprot','holidayhours','runmode','tempholdmins','setroomtemp'):
       if self.autoreadall:
         self.hmReadVariables()
       else:
@@ -337,7 +321,7 @@ class hmController(object):
       return self.TEMP_STATE_HELD
     else:
     
-      if not self._check_time_current():
+      if not self._check_data_age(60 * 60 * 2, 'currenttime'):
         currenttime = self.hmReadTime()
         self._checkcontrollertime(time.localtime(self.lastreadtimetime))
       
@@ -539,40 +523,27 @@ class hmController(object):
     """Yield successive n-sized chunks from l."""
     for i in range(len(l)-n, -1, -n):
         yield l[i:i + n]
-  
-  def _check_data_current(self):
-    #check general data is current
-    current = time.time() - self.lastreadalltime < 60 * 60 * 8
-    if not current:
-      logging.warning("C%i full data too old"%(self.address))
-    return current
 
-  def _check_time_current(self):
-    #check time is current. If has been checked in the last 2 hours assume current 
-    current = time.time() - self.lastreadtimetime < 60 * 60 * 2
-    if not current:
-      print "data too old to process"
-    return current
+  def _check_data_age(self, maxage, *fieldnames):
+    #field data age is not more than maxage (in seconds)
+    if len(fieldnames) == 0:
+      raise ValueError("Must list at least one field")
     
-  def _check_vars_current(self):
-    #check variables, such as target temp, hold, onoff, current
-    current = time.time() - self.lastreadvarstime < 60
-    if not current:
-      logging.warning("C%i variable data too old"%(self.address))
-    return current
+    for fieldname in fieldnames:
+      if time.time() - self.datareadtime[fieldname] > maxage:
+        logging.warning("C%i data item %s too old"%(self.address, fieldname))
+        return False
+    return True
     
-  def _check_temps_current(self):
-    #check temp and demand current
-    current = time.time() - self.lastreadtempstime < 10
-    if not current:
-      print "data too old to process"
-    return current
-    
-  def _check_data_present(self):
-    current = self.lastreadalltime != 0
-    if not current:
-      logging.warning("C%i full data not avaliable"%(self.address))
-    return current
+  def _check_data_present(self, *fieldnames):
+    if len(fieldnames) == 0:
+      raise ValueError("Must list at least one field")
+
+    for fieldname in fieldnames:
+      if self.datareadtime[fieldname] == None:
+        logging.warning("C%i data item %s not avaliable"%(self.address, fieldname))
+        return False
+    return True
     
   def _print_heat_schedule(self,data):
     if len(data) != 12:
@@ -635,7 +606,7 @@ class hmController(object):
 #### External functions for getting data
 
   def getAirSensorType(self):
-    if not self._check_data_present():
+    if not self._check_data_present('sensorsavaliable'):
       return False
 
     if self.sensorsavaliable == READ_SENSORS_AVALIABLE_INT_ONLY or self.sensorsavaliable == READ_SENSORS_AVALIABLE_INT_FLOOR:
@@ -646,12 +617,16 @@ class hmController(object):
       return 0
       
   def getAirTemp(self):
-    if not self._check_temps_current():
+    if not self._check_data_present('sensorsavaliable'):
       return False
     
     if self.sensorsavaliable == READ_SENSORS_AVALIABLE_INT_ONLY or self.sensorsavaliable == READ_SENSORS_AVALIABLE_INT_FLOOR:
+      if not self._check_data_age(10, 'airtemp'):
+        return False
       return self.airtemp
     elif self.sensorsavaliable == READ_SENSORS_AVALIABLE_EXT_ONLY or self.sensorsavaliable == READ_SENSORS_AVALIABLE_EXT_FLOOR:
+      if not self._check_data_age(10, 'remoteairtemp'):
+        return False
       return self.remoteairtemp
     else:
       return False

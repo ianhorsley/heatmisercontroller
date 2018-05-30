@@ -22,7 +22,7 @@ hmn1.setStatList(StatList)
 # CYCLE THROUGH ALL CONTROLLERS
 for current_controller in hmn1.controllers:
   print "\r\nGetting all data control %2d in %s *****************************" % (current_controller.address, current_controller.long_name)
-
+  
   try:
     current_controller.hmReadAll()
   except hmResponseError as e:
