@@ -124,7 +124,7 @@ class hmController(object):
     # no maxage in request (maxage = 0)
     # maxage is valid and data too old
     # or not be read before (maxage = None)
-    if maxage == 0 or (maxage != None  and self._check_data_age(maxage, fieldname)) or self._check_data_present(fieldname):
+    if maxage == 0 or (maxage is not None and self._check_data_age(maxage, fieldname)) or not self._check_data_present(fieldname):
       if self.autoreadall:
         self.hmReadFields(fieldname)
       else:
