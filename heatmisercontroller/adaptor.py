@@ -219,7 +219,7 @@ class Heatmiser_Adaptor:
           logging.warn("C%i read failed from address %i length %i due to %s"%(network_address,dcb_start_address, expectedLength, str(e)))
           raise
         else:
-          logging.debug("C%i read in %.2f s from address %i length %i payload %s"%(network_address,time.time()-time1,dcb_start_address, expectedLength, ', '.join(str(x) for x in response)))
+          logging.debug("C%i read in %.2f s from address %i length %i response %s"%(network_address,time.time()-time1,dcb_start_address, expectedLength, ', '.join(str(x) for x in response)))
         
           try:
             framing._hmVerifyResponse(protocol, network_address, MY_MASTER_ADDR, FUNC_READ, expectedLength , response)

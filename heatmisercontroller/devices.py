@@ -59,17 +59,6 @@ class hmController(object):
     ###SHOULD BE TRUE
     self.autoreadall = False
    
-  def _checkpayload(self,data):  
-    if len(data) <= 2:
-      raise hmResponseError("Payload empty or malformed")
-
-    payload_len_l = data[PL_LEN_LOW]
-    payload_len_h = data[PL_LEN_HIGH]
-    payload_len = (payload_len_h << 8) | payload_len_l
-      
-    if payload_len != len(data):
-      raise hmResponseError("Payload length %i doesn't match header %i"%(len(data),payload_len))
-
   def _getDCBaddress(self, uniqueaddress):
     #get the DCB address for a controller from the unique address
 
@@ -180,15 +169,8 @@ class hmController(object):
     else:
       logging.info("C%i Read fields %s to %s, %s"%(self.address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH), ', '.join(str(x) for x in rawdata)))
       self.lastreadtime = time.time()
-      self._procpayload(rawdata,firstfieldname, lastfieldname)
+      self._procpartpayload(rawdata, firstfieldname, lastfieldname)
       return rawdata
-
-  def procpartpayload(self, rawdata, firstfieldname, lastfieldname):
-    #converts field names to unique addresses to allow process of shortened raw data
-    raise RuntimeError ###need to add to checkpayload
-    firstfieldadd = uniadd[firstfieldname][UNIADD_ADD] 
-    lastfieldadd = uniadd[lastfieldname][UNIADD_ADD]
-    self._procpayload(rawdata, firstfieldadd, lastfieldadd)
   
   def _procfield(self,data,fieldname,fieldinfo):
     length = fieldinfo[UNIADD_LEN]
@@ -209,7 +191,10 @@ class hmController(object):
     if len(range) == 2 and isinstance(range[0], (int, long)) and isinstance(range[1], (int, long)):
       if value < range[0] or value > range[1]:
         raise hmResponseError("Field value %i outside expected range"%value)
-        
+    
+    if fieldname == 'DCBlen' and value != self.DCBlength:
+      raise hmResponseError('DCBlengh is unexpected')
+    
     if fieldname == 'model' and value != self.expected_model:
       raise hmResponseError('Model is unexpected')
     
@@ -229,13 +214,18 @@ class hmController(object):
       self._checkcontrollertime(time.localtime(self.lastreadtime))
     
     ###todo, add range validation for other lengths
-  
+
+  def _procpartpayload(self, rawdata, firstfieldname, lastfieldname):
+    #converts field names to unique addresses to allow process of shortened raw data
+    firstfieldadd = uniadd[firstfieldname][UNIADD_ADD] 
+    lastfieldadd = uniadd[lastfieldname][UNIADD_ADD]
+    self._procpayload(rawdata, firstfieldadd, lastfieldadd)
+
+    
   def _procpayload(self, rawdata, firstfieldadd = 0, lastfieldadd = MAX_UNIQUE_ADDRESS):
     logging.debug("C%i Processing Payload"%(self.address) )
 
     fullfirstdcbadd = self._getDCBaddress(firstfieldadd)
-
-    self._checkpayload(rawdata)
     
     for attrname, values in uniadd.iteritems():
       uniqueaddress = values[UNIADD_ADD]
@@ -665,7 +655,7 @@ class hmController(object):
     #sets the temperature demand overriding the program. Believe it returns at next prog change.
   
     #check hold temp not applied
-    if self.hmReadField('tempholdmins') == 0:
+    if self.hmReadFields('tempholdmins') == 0:
       return self.network.hmSetField(self.address,self.protocol,'setroomtemp',temp)
     else:
       logging.warn("%i address, temp hold applied so won't set temp"%(self.address))
