@@ -23,14 +23,14 @@ hmn1.setStatList(StatList)
 
 #hmn1.hmSetTemp("Cons",25)
 #hmn1.hmReleaseTemp("Cons")
-#hmn1.hmSetHolHours("Cons", 720)
+hmn1.All.setField('holidayhours',96)
 #hmn1.hmCancelHol("Cons")
 
 hmn1.Kit.setField('hotwaterstate',WRITE_HOTWATERSTATE_PROG)
 #hmn1.hmSetField(BROADCAST_ADDR,'runmode',WRITE_RUNMODE_HEATING)
 hmn1.All.setOn()
 #hmn1.hmUpdateTime(2)
-hmn1.controllerByName('B1').setOff()
+#hmn1.controllerByName('B1').setOff()
 #hmn1.hmSetField(BROADCAST_ADDR,HMV3_ID,'onoff',WRITE_ONOFF_ON)  
 #hmn1.hmSetField('Cons',HMV3_ID,'onoff',WRITE_ONOFF_OFF)
 
@@ -46,7 +46,8 @@ hmn1.Cons.releaseTemp()
 
 downInactive = 20
 downActive = 19
-frost = 10
+frost = 12
+dayfrost = [7,0,frost]
 
 wkday_zearly =    [5,00,downActive,8,30,frost,15,00,downInactive,21,00,frost]
 wkday_zlate =     [7,00,downInactive,12,00,frost,17,00,downInactive,21,30,frost]
@@ -54,15 +55,16 @@ wkday_ztraining = [7,00,downActive,8,30,frost,16,30,downInactive,21,00,frost]
 wkend_zearly =    [5,00,downInactive,21,30,frost]
 wkend_zlate =     [7,00,downInactive,21,30,frost]
 wkend_zoff =      [7,00,downInactive,21,30,frost]
-hmn1.Kit.setHeatingSchedule('mon_heat',wkday_zearly)
-hmn1.Kit.setHeatingSchedule('tues_heat',wkday_zlate)
-hmn1.Kit.setHeatingSchedule('wed_heat',wkend_zoff)
-hmn1.Kit.setHeatingSchedule('thurs_heat',wkend_zoff)
-hmn1.Kit.setHeatingSchedule('fri_heat',wkend_zoff)
+hmn1.Kit.setHeatingSchedule('mon_heat',wkend_zoff)
+hmn1.Kit.setHeatingSchedule('tues_heat',wkend_zoff)
+hmn1.Kit.setHeatingSchedule('wed_heat',wkday_ztraining)
+hmn1.Kit.setHeatingSchedule('thurs_heat',wkday_zlate)
+hmn1.Kit.setHeatingSchedule('fri_heat',wkend_zearly)
 hmn1.Kit.setHeatingSchedule('sat_heat',wkday_zlate)
-hmn1.Kit.setHeatingSchedule('sun_heat',wkend_zoff)
+hmn1.Kit.setHeatingSchedule('sun_heat',dayfrost)
 
 eveningwater = [17,30,18,0]
+nowater = []
 hmn1.Kit.setWaterSchedule('all',eveningwater)
 
 upSleep = 16

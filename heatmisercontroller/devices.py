@@ -9,6 +9,8 @@
 #
 
 #consider adding timestamps to all parameters for their age.
+#relook at the setfield and setfields. Should they be in adaptor. Payload length checking should happen on all results.
+#some sort of get variable function, with max age, for single parameters. if to old would autoget. Still need to auto trigger full read in some cases.
 
 import logging
 import time
@@ -278,8 +280,9 @@ class hmController(object):
     # localday (pyhton) is numbered 0-6 for Sun-Sat
     localday = time.strftime("%w", checktime)
     
-    if (int(localday) != int((self.currenttime[CURRENT_TIME_DAY]%7))):
-        s= "%s : Controller %2d : Incorrect day : local is %s, sensor is %s" % (datetime.now().isoformat(), self.address, localday, currentday)
+    remoteday = self.currenttime[CURRENT_TIME_DAY]%7
+    if (int(localday) != int(remoteday)):
+        logging.warn("%s : Controller %2d : Incorrect day : local is %s, sensor is %s" % (datetime.now().isoformat(), self.address, localday, remoteday))
 
         # TODO ++ here
     remoteseconds = (((self.currenttime[CURRENT_TIME_HOUR] * 60) + self.currenttime[CURRENT_TIME_MIN]) * 60) + self.currenttime[CURRENT_TIME_SEC]
