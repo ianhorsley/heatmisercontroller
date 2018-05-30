@@ -267,11 +267,10 @@ class hmController(object):
     if not self._check_data_present('onoff','frostprot','holidayhours','runmode','tempholdmins','setroomtemp'):
       if self.autoreadall:
         self.hmReadAll()
-        self._procpayload()
       else:
         raise ValueError("Need to read all before getting temp state")
         
-    if not self._check_data_age(60, 'onoff','frostprot','holidayhours','runmode','tempholdmins','setroomtemp'):
+    if not self._check_data_age(60, 'onoff','holidayhours','runmode','tempholdmins','setroomtemp'):
       if self.autoreadall:
         self.hmReadVariables()
       else:
