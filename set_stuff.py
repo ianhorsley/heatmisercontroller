@@ -23,8 +23,8 @@ hmn1.setStatList(StatList)
 
 #hmn1.hmSetTemp("Cons",25)
 #hmn1.hmReleaseTemp("Cons")
-hmn1.All.setField('holidayhours',96)
-#hmn1.hmCancelHol("Cons")
+#hmn1.All.setField('holidayhours',96)
+hmn1.All.releaseHoliday()
 
 hmn1.Kit.setField('hotwaterstate',WRITE_HOTWATERSTATE_PROG)
 #hmn1.hmSetField(BROADCAST_ADDR,'runmode',WRITE_RUNMODE_HEATING)

@@ -151,7 +151,12 @@ class hmController(object):
       self.lastreadtime = time.time()
       self._procpayload(self.rawdata)
       return self.rawdata
-    
+
+  def readField(self, fieldname, maxage = 0):
+    if self._check_data_age(maxage, fieldname):
+      self.hmReadFields(fieldname)
+    return self.data[fieldname]
+  
   def hmReadFields(self, firstfieldname, lastfieldname = None):
     if lastfieldname == None:
       lastfieldname = firstfieldname
@@ -220,7 +225,6 @@ class hmController(object):
     firstfieldadd = uniadd[firstfieldname][UNIADD_ADD] 
     lastfieldadd = uniadd[lastfieldname][UNIADD_ADD]
     self._procpayload(rawdata, firstfieldadd, lastfieldadd)
-
     
   def _procpayload(self, rawdata, firstfieldadd = 0, lastfieldadd = MAX_UNIQUE_ADDRESS):
     logging.debug("C%i Processing Payload"%(self.address) )
@@ -520,7 +524,7 @@ class hmController(object):
       raise ValueError("Must list at least one field")
     
     for fieldname in fieldnames:
-      if time.time() - self.datareadtime[fieldname] > maxage:
+      if not self._check_data_present(fieldname) or  time.time() - self.datareadtime[fieldname] > maxage:
         logging.warning("C%i data item %s too old"%(self.address, fieldname))
         return False
     return True
@@ -655,14 +659,13 @@ class hmController(object):
     #sets the temperature demand overriding the program. Believe it returns at next prog change.
   
     #check hold temp not applied
-    if self.hmReadFields('tempholdmins') == 0:
+    if self.readField('tempholdmins') == 0:
       return self.network.hmSetField(self.address,self.protocol,'setroomtemp',temp)
     else:
       logging.warn("%i address, temp hold applied so won't set temp"%(self.address))
 
   def releaseTemp(self) :
     #release SetTemp back to the program, but only if temp isn't held
-    
     if self.hmReadField('tempholdmins') == 0:
       return self.network.hmSetField(self.address,self.protocol,'tempholdmins',0)
     else:
@@ -677,6 +680,14 @@ class hmController(object):
   def releaseHoldTemp(self) :
     #release SetTemp or HoldTemp back to the program
     return self.network.hmSetField(self.address,self.protocol,'tempholdmins',0)
+    
+  def setHoliday(self, hours) :
+    #sets holiday up for a defined number of hours
+    return self.network.hmSetField(self.address,self.protocol,'holidayhours',hours)
+  
+  def releaseHoliday(self) :
+    #cancels holiday mode
+    return self.network.hmSetField(self.address,self.protocol,'holidayhours',0)
 
 #onoffs
 
