@@ -153,7 +153,7 @@ class hmController(object):
       return self.rawdata
 
   def readField(self, fieldname, maxage = 0):
-    if self._check_data_age(maxage, fieldname):
+    if maxage == 0 or self._check_data_age(maxage, fieldname):
       self.hmReadFields(fieldname)
     return self.data[fieldname]
   
@@ -524,7 +524,9 @@ class hmController(object):
       raise ValueError("Must list at least one field")
     
     for fieldname in fieldnames:
-      if not self._check_data_present(fieldname) or  time.time() - self.datareadtime[fieldname] > maxage:
+      if not self._check_data_present(fieldname):
+        return False
+      if time.time() - self.datareadtime[fieldname] > maxage:
         logging.warning("C%i data item %s too old"%(self.address, fieldname))
         return False
     return True
@@ -666,7 +668,7 @@ class hmController(object):
 
   def releaseTemp(self) :
     #release SetTemp back to the program, but only if temp isn't held
-    if self.hmReadField('tempholdmins') == 0:
+    if self.readField('tempholdmins') == 0:
       return self.network.hmSetField(self.address,self.protocol,'tempholdmins',0)
     else:
       logging.warn("%i address, temp hold applied so won't remove set temp"%(self.address))     
