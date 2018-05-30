@@ -102,15 +102,9 @@ class hmController(object):
     return rawdata1 + rawdata2
     
   def hmReadTempsandDemand(self):
-    if not self._check_data_present():
+    if not self._check_data_present('model'):
       if self.autoreadall:
-        self.hmReadAll()
-        self._procpayload()
-        if self.model == PRT_HW_MODEL:
-          lastfield = 'hotwaterstate'
-        else:
-          lastfield = 'heatingstate'
-        return self.getRawData('remoteairtemp', lastfield)
+        self.hmReadFields('model')
       else:
         raise ValueError("Need to read all before reading subset")
   
