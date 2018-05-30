@@ -79,17 +79,9 @@ class hmController(object):
       return self.rawdata[self._getDCBaddress(uniadd[startfieldname][UNIADD_ADD]):self._getDCBaddress(uniadd[endfieldname][UNIADD_ADD])]
     
   def hmReadVariables(self):
-    if not self._check_data_present():
+    if not self._check_data_present('model'):
       if self.autoreadall:
-        self.hmReadAll()
-        self._procpayload()
-      
-        if self.model == PRT_HW_MODEL:
-          lastfield = 'hotwaterstate'
-        else:
-          lastfield = 'heatingstate'
-      
-        return self.getRawData('setroomtemp', 'holidayhours') + self.getRawData('tempholdmins', lastfield)
+        self.hmReadFields('model')
       else:
         raise ValueError("Need to read all before reading subset")
 
