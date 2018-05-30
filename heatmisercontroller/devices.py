@@ -50,6 +50,8 @@ class hmController(object):
     self.floorlimiting = 0
     self.lastreadalltime = 0
     self.lastreadvarstime = 0 #time since last read things like temps and demand
+    self.lastreadtempstime = 0
+    self.lastreadtimetime = 0
     
     self.autoreadall = True
    
@@ -269,7 +271,7 @@ class hmController(object):
     
     currenttime_add = uniadd['currenttime'][UNIADD_ADD]
     if currenttime_add >= firstfieldadd and currenttime_add <= lastfieldadd:
-      self._checkcontrollertime(time.localtime(self.lastreadalltime))
+      self._checkcontrollertime(time.localtime(self.lastreadtimetime))
 
   def _checkcontrollertime(self,checktime):       
     # Now do same sanity checking
@@ -277,7 +279,12 @@ class hmController(object):
     # If we only do this at say 1 am then there is no issues/complication of day wrap rounds
     # TODO only do once a day
     # currentday is numbered 1-7 for M-S
-    # localday (pyhton) is numbered 0-6 for Sun-Sat
+    # localday (python) is numbered 0-6 for Sun-Sat
+    
+    if self.lastreadtimetime == 0:
+      logging.warn("Time not read before check")
+      #return
+    
     localday = time.strftime("%w", checktime)
     
     remoteday = self.currenttime[CURRENT_TIME_DAY]%7
