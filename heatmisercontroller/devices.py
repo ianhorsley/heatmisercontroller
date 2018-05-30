@@ -57,7 +57,7 @@ class hmController(object):
     self.datareadtime = dict.fromkeys(uniadd.keys(),None)
     
     ###SHOULD BE TRUE
-    self.autoreadall = False
+    self.autoreadall = True
    
   def _getDCBaddress(self, uniqueaddress):
     #get the DCB address for a controller from the unique address
@@ -79,45 +79,25 @@ class hmController(object):
       return self.rawdata[self._getDCBaddress(uniadd[startfieldname][UNIADD_ADD]):self._getDCBaddress(uniadd[endfieldname][UNIADD_ADD])]
     
   def hmReadVariables(self):
-    if not self._check_data_present('model'):
-      if self.autoreadall:
-        self.hmReadFields('model')
-      else:
-        raise ValueError("Need to read all before reading subset")
-
     rawdata1 = self.hmReadFields('setroomtemp', 'holidayhours')
-    #self._procpayload(rawdata1,'setroomtemp', 'holidayhours')
   
-    if self.model == PRT_HW_MODEL:
+    if self.readField('model', None) == PRT_HW_MODEL:
       lastfield = 'hotwaterstate'
     else:
       lastfield = 'heatingstate'
 
     rawdata2 = self.hmReadFields('tempholdmins', lastfield)
-    #self._procpayload(rawdata2,'tempholdmins', lastfield)
     
-    #if len(rawdata1) > 0 and len(rawdata2) > 0:
-    self.lastreadvarstime = time.time()
-    self.lastreadtempstime = time.time()
     return rawdata1 + rawdata2
     
   def hmReadTempsandDemand(self):
-    if not self._check_data_present('model'):
-      if self.autoreadall:
-        self.hmReadFields('model')
-      else:
-        raise ValueError("Need to read all before reading subset")
   
-    if self.model == PRT_HW_MODEL:
+    if self.readField('model', None) == PRT_HW_MODEL:
       lastfield = 'hotwaterstate'
     else:
       lastfield = 'heatingstate'
 
     rawdata = self.hmReadFields('remoteairtemp', lastfield)
-    #self._procpayload(rawdata,'remoteairtemp', lastfield)
-
-    if rawdata != None:
-      self.lastreadtempstime = time.time()
 
     return rawdata
     
@@ -139,8 +119,16 @@ class hmController(object):
       return self.rawdata
 
   def readField(self, fieldname, maxage = 0):
-    if maxage == 0 or self._check_data_age(maxage, fieldname):
-      self.hmReadFields(fieldname)
+    #return field value
+    #read field from network if
+    # no maxage in request (maxage = 0)
+    # maxage is valid and data too old
+    # or not be read before (maxage = None)
+    if maxage == 0 or (maxage != None  and self._check_data_age(maxage, fieldname)) or self._check_data_present(fieldname):
+      if self.autoreadall:
+        self.hmReadFields(fieldname)
+      else:
+        raise ValueError("Need to read %s first"%fieldname)
     return self.data[fieldname]
   
   def hmReadFields(self, firstfieldname, lastfieldname = None):
