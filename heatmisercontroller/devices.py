@@ -235,6 +235,7 @@ class hmController(object):
     # localday (python) is numbered 0-6 for Sun-Sat
     print checktime
     localtime = time.localtime(checktime)
+    print localtime
     if not self._check_data_present('currenttime'):
       logging.warn("Time not read before check")
       return
