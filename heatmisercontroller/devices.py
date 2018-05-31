@@ -191,7 +191,7 @@ class hmController(object):
     self.datareadtime[fieldname] = self.lastreadtime
     
     if fieldname == 'currenttime':
-      self._checkcontrollertime(time.localtime(self.lastreadtime))
+      self._checkcontrollertime(self.lastreadtime)
     
     ###todo, add range validation for other lengths
 
@@ -233,12 +233,13 @@ class hmController(object):
     # TODO only do once a day
     # currentday is numbered 1-7 for M-S
     # localday (python) is numbered 0-6 for Sun-Sat
-    
+    print checktime
+    localtime = time.localtime(checktime)
     if not self._check_data_present('currenttime'):
       logging.warn("Time not read before check")
       return
     
-    localday = time.strftime("%w", checktime)
+    localday = time.strftime("%w", localtime)
     
     remoteday = self.currenttime[CURRENT_TIME_DAY]%7
     if (int(localday) != int(remoteday)):
@@ -247,9 +248,9 @@ class hmController(object):
         # TODO ++ here
     remoteseconds = (((self.currenttime[CURRENT_TIME_HOUR] * 60) + self.currenttime[CURRENT_TIME_MIN]) * 60) + self.currenttime[CURRENT_TIME_SEC]
 
-    nowhours = time.localtime(time.time()).tm_hour
-    nowmins = time.localtime(time.time()).tm_min
-    nowsecs = time.localtime(time.time()).tm_sec
+    nowhours = localtime.tm_hour
+    nowmins = localtime.tm_min
+    nowsecs = localtime.tm_sec
     nowseconds = (((nowhours * 60) + nowmins) * 60) + nowsecs
     logging.debug("Time %d %d" % (remoteseconds, nowseconds))
     self.timeerr = nowseconds - remoteseconds
@@ -291,7 +292,7 @@ class hmController(object):
     
       if not self._check_data_age(60 * 60 * 2, 'currenttime'):
         currenttime = self.hmReadTime()
-        self._checkcontrollertime(time.localtime(self.lastreadtimetime))
+        self._checkcontrollertime(self.lastreadtimetime)
       
       locatimenow = self.localtimearray()
       scheduletarget = self.getCurrentScheduleEntry(locatimenow)
