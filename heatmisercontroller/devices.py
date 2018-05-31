@@ -18,7 +18,7 @@ import serial
 from datetime import datetime
 
 from hm_constants import *
-from .exceptions import hmResponseError
+from .exceptions import hmResponseError, hmControllerTimeError
 
 class hmController(object):
 
@@ -233,20 +233,17 @@ class hmController(object):
     # TODO only do once a day
     # currentday is numbered 1-7 for M-S
     # localday (python) is numbered 0-6 for Sun-Sat
-    print checktime
+
     localtime = time.localtime(checktime)
-    print localtime
     if not self._check_data_present('currenttime'):
-      logging.warn("Time not read before check")
-      return
+      raise hmResponseError("Time not read before check")
     
     localday = time.strftime("%w", localtime)
     
     remoteday = self.currenttime[CURRENT_TIME_DAY]%7
     if (int(localday) != int(remoteday)):
-        logging.warn("%s : Controller %2d : Incorrect day : local is %s, sensor is %s" % (datetime.now().isoformat(), self.address, localday, remoteday))
+        raise hmControllerTimeError("C%2d Incorrect day : local is %s, sensor is %s" % (self.address, localday, remoteday))
 
-        # TODO ++ here
     remoteseconds = (((self.currenttime[CURRENT_TIME_HOUR] * 60) + self.currenttime[CURRENT_TIME_MIN]) * 60) + self.currenttime[CURRENT_TIME_SEC]
 
     nowhours = localtime.tm_hour
@@ -256,7 +253,7 @@ class hmController(object):
     logging.debug("Time %d %d" % (remoteseconds, nowseconds))
     self.timeerr = nowseconds - remoteseconds
     if (abs(self.timeerr) > TIME_ERR_LIMIT):
-        logging.warn("%s : Controller %2d : Time Error : Greater than %d local is %s, sensor is %s" % (datetime.now().isoformat(), self.address, TIME_ERR_LIMIT, nowseconds, remoteseconds))
+        raise hmControllerTimeError("C%2d Time Error : Greater than %d local is %s, sensor is %s" % (self.address, TIME_ERR_LIMIT, nowseconds, remoteseconds))
 
   TEMP_STATE_OFF = 0  #thermostat display is off and frost protection disabled
   TEMP_STATE_OFF_FROST = 1 #thermostat display is off and frost protection enabled
