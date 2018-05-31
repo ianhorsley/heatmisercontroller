@@ -131,6 +131,7 @@ class hmController(object):
         raise ValueError("Need to read %s first"%fieldname)
     return self.data[fieldname]
   
+  #consider moving to adaptor.py
   def hmReadFields(self, firstfieldname, lastfieldname = None):
     if lastfieldname == None:
       lastfieldname = firstfieldname
