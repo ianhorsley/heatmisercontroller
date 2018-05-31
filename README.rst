@@ -9,7 +9,7 @@ Originally written to get direct access to heatmiser devices. It was created for
 Documentation used
 ==================
 
-* `Heatmiser V3 System Protocol v3.9 <https://03752005010899291044.googlegroups.com/attach/ebb003ed11fac15d/heatmiser_v3_protocol_3.9.pdf?part=4&vt=ANaJVrEW7jLM0_37rZHRX5t5sz3dp5H6H4BXwKJnBvAspebynUEQpVUMP1n1NVKbCXu6TQccwjBs5ilCR5D1ynocYjlLcTsRmo1PHWdBH1wXlvuLys7kNlo>`_ (PDF)
+* `Heatmiser V3 System Protocol v3.9`
 
 Supported Hardware
 ==================
