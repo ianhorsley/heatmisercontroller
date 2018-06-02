@@ -183,7 +183,7 @@ PROG_MODE_DAY = 1
 DEFAULT_PROG_MODE = PROG_MODE_DAY #allows broadcast to program both modes.
 
 #PRT-E DCB map
-DCB_INVALID = -1
+DCB_INVALID = None
 PRTEmap = range(2)
 PRTEmap[0] = list(reversed([(25,0),(31,DCB_INVALID),(41,6),(42,DCB_INVALID),(70,7),(MAX_UNIQUE_ADDRESS,DCB_INVALID)]))
 PRTEmap[1] = list(reversed([(25,0),(31,DCB_INVALID),(41,6),(42,DCB_INVALID),(70,7),(102,DCB_INVALID),(186,39),(MAX_UNIQUE_ADDRESS,DCB_INVALID)]))

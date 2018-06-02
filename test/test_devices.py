@@ -3,7 +3,7 @@ import logging
 import time
 
 from heatmisercontroller.devices import hmController
-from heatmisercontroller.hm_constants import HMV3_ID, PRT_HW_MODEL, PROG_MODE_DAY
+from heatmisercontroller.hm_constants import HMV3_ID, PRT_E_MODEL, PRT_HW_MODEL, PROG_MODE_DAY, DCB_INVALID
 from heatmisercontroller.exceptions import hmResponseError
 
 class test_reading_data(unittest.TestCase):
@@ -41,7 +41,13 @@ class test_reading_data(unittest.TestCase):
   def test_readall(self):
     pass
 
-class test_other_functions(unittest.TestCase):   
+class test_other_functions(unittest.TestCase):
+
+  def test_getDCBaddress(self):
+    self.func = hmController(None, 1, HMV3_ID, 'test', 'test controller', PRT_E_MODEL, PROG_MODE_DAY)
+    self.assertEqual(0, self.func._getDCBaddress(0))
+    self.assertEqual(24, self.func._getDCBaddress(24))
+    self.assertEqual(DCB_INVALID, self.func._getDCBaddress(26))
  
   def test_checkcontrollertime_1(self):
     

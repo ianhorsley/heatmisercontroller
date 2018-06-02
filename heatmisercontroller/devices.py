@@ -83,7 +83,7 @@ class hmController(object):
     if offset != DCB_INVALID:
       return uniqueaddress-offset
     else:
-      return False
+      return DCB_INVALID
       
   def getRawData(self, startfieldname = None, endfieldname = None):
     if startfieldname == None or endfieldname == None:
