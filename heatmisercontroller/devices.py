@@ -52,7 +52,7 @@ class hmController(object):
     
     self.lastreadtime = 0 #records last time of a successful read
     
-    #intialise data structures
+    #initialise data structures
     self.data = dict.fromkeys(uniadd.keys(),None)
     self.datareadtime = dict.fromkeys(uniadd.keys(),None)
     
@@ -101,10 +101,8 @@ class hmController(object):
 
     return rawdata
     
-  def hmReadTime(self):
-    rawdata = self.hmReadFields('currenttime', 'currenttime')
-    self.lastreadtimetime = time.time()
-    return rawdata
+  def readTime(self, maxage = 0):
+    return self.readField('currenttime', maxage)
 
   def hmReadAll(self):
     try:
