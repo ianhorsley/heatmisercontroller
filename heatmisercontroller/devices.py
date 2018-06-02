@@ -19,6 +19,7 @@ from datetime import datetime
 
 from hm_constants import *
 from .exceptions import hmResponseError, hmControllerTimeError
+from schedule_functions import print_day_heat_schedule, print_day_water_schedule
 
 class hmController(object):
 
@@ -306,133 +307,56 @@ class hmController(object):
     
     return [nowday, nowhours, nowmins, nowsecs]
   
-  def getCurrentScheduleEntry(self,timearray):
-    ####check time and vars current
-    
-    todayschedule = self._getHeatSchedule(timearray[CURRENT_TIME_DAY])
-      
-    scheduletarget = self._getCurrentEntryFromASchedule(todayschedule,timearray)
-      
-    if scheduletarget == None:
-      yestschedule = self._getPreviousHeatSchedule(timearray)
-      scheduletarget = self._getLastEntryFromASchedule(yestschedule)
-      return [self._getPreviousDay(timearray)] + scheduletarget
-    else:
-      return [timearray[CURRENT_TIME_DAY]] + scheduletarget
-  
-  SCH_ENT_DAY = 0
-  SCH_ENT_HOUR = 1
-  SCH_ENT_MIN = 2
-  SCH_ENT_TEMP = 3
-  
-  def getNextScheduleEntry(self,timearray):
-
-    todayschedule = self._getHeatSchedule(timearray[CURRENT_TIME_DAY])
-    
-    scheduletarget = self._getNextEntryFromASchedule(todayschedule,timearray)
-      
-    if scheduletarget == None:
-      tomschedule = self._getNextHeatSchedule(timearray)
-      scheduletarget = self._getFirstEntryFromASchedule(tomschedule)
-      return [self._getNextDay(timearray)] + scheduletarget
-    else:
-      return [timearray[CURRENT_TIME_DAY]] + scheduletarget
-
-  def _getNextEntryFromASchedule(self,schedule,timearray):
-    hour_minutes = 60
-  
-    scheduletarget = None
-    dayminutes = timearray[CURRENT_TIME_HOUR] * hour_minutes + timearray[CURRENT_TIME_MIN]
-
-    for i in self._reversechunks(schedule,3):
-      if dayminutes < i[HEAT_MAP_HOUR] * hour_minutes + i[HEAT_MAP_MIN] and i[HEAT_MAP_HOUR] != HOUR_UNUSED:
-        scheduletarget = i
-    
-    return scheduletarget
-    
-  def _getCurrentEntryFromASchedule(self,schedule,timearray):
-    hour_minutes = 60
-  
-    scheduletarget = None
-    dayminutes = timearray[CURRENT_TIME_HOUR] * hour_minutes + timearray[CURRENT_TIME_MIN]
-    
-    for i in self._chunks(schedule,3):
-      if dayminutes >= i[HEAT_MAP_HOUR] * hour_minutes + i[HEAT_MAP_MIN] and i[HEAT_MAP_HOUR] != HOUR_UNUSED:
-        scheduletarget = i
-    
-    return scheduletarget
-
-  def _getFirstEntryFromASchedule(self,schedule):
-    #gets first schedule entry if valid (not 24)
-    firstentry = self._chunks(schedule,3).next()
-    if firstentry[HEAT_MAP_HOUR] != HOUR_UNUSED:
-      return firstentry
-    else:
-      return None
-
-  def _getLastEntryFromASchedule(self,schedule):
-    #gets last valid schedule entry (not 24)
-    scheduletarget = None
-    for i in self._reversechunks(schedule,3):
-          if i[HEAT_MAP_HOUR] != HOUR_UNUSED:
-            scheduletarget = i
-            break
-    
-    return scheduletarget
-  
-  def _getPreviousDay(self, timearray):
-    ##bugged
-    if timearray[CURRENT_TIME_DAY] > 1:
-      day = timearray[CURRENT_TIME_DAY] - 1
-    else:
-      day = 7
-    return day
-  
-  def _getNextDay(self,timearray):
-    ##bugged
-    if timearray[CURRENT_TIME_DAY] < 7:
-      day = timearray[CURRENT_TIME_DAY] + 1
-    else:
-      day = 7
-    return day
-  
-  def _getPreviousHeatSchedule(self,timearray):
-    return self._getHeatSchedule(self._getPreviousDay(timearray))
-  
-  def _getNextHeatSchedule(self,timearray):
-    return self._getHeatSchedule(self._getNextDay(timearray))
-    
-  def _getHeatSchedule(self, day):
-    if self.programmode == READ_PROGRAM_MODE_5_2:
-      if day == 6 or day == 7:
-        return self.wend_heat
-      elif day >= 1 and day <= 5:
-        return self.wday_heat
-      else:
-        logging.error("Gen day not recognised")
-    elif self.programmode == READ_PROGRAM_MODE_7:
-      if day == 1:
-        return self.mon_heat
-      elif day == 2:
-        return self.tues_heat
-      elif day == 3:
-        return self.wed_heat
-      elif day == 4:
-        return self.thurs_heat
-      elif day == 5:
-        return self.fri_heat
-      elif day == 6:
-        return self.sat_heat
-      elif day == 7:
-        return self.sun_heat
-      else:
-        logging.error("Gen day not recognised")
-    
-    else:
-      logging.error("Gen program mode not recognised")
-    
-  
 #### External functions for printing data
+  def display_heating_schedule(self):
+    print "Heating Schedule"
+    if self.programmode == READ_PROGRAM_MODE_5_2:
+      print "Weekdays ",
+      print_day_heat_schedule(self.wday_heat)
+      print "Weekends ",
+      print_day_heat_schedule(self.wend_heat)
+    if self.programmode == READ_PROGRAM_MODE_7:
+      print "Monday    ",
+      print_day_heat_schedule(self.mon_heat)
+      print "Tuesday   ",
+      print_day_heat_schedule(self.tues_heat)
+      print "Wednesday ",
+      print_day_heat_schedule(self.wed_heat)
+      print "Thursday  ",
+      print_day_heat_schedule(self.thurs_heat)
+      print "Friday    ",
+      print_day_heat_schedule(self.fri_heat)
+      print "Saturday  ",
+      print_day_heat_schedule(self.sat_heat)
+      print "Sunday    ",
+      print_day_heat_schedule(self.sun_heat)
+      
+  def display_water_schedule(self):
+    
+    if self.model == PRT_HW_MODEL:
+      print "Hot Water Schedule"
+      if self.programmode == READ_PROGRAM_MODE_5_2:
+        print "Weekdays"
+        print_day_water_schedule(self.wday_water)
+        print "Weekends"
+        print_day_water_schedule(self.wend_water)
+      if self.programmode == READ_PROGRAM_MODE_7:
+        print "Monday    ",
+        print_day_water_schedule(self.mon_water)
+        print "Tuesday   ",
+        print_day_water_schedule(self.tues_water)
+        print "Wednesday ",
+        print_day_water_schedule(self.wed_water)
+        print "Thursday  ",
+        print_day_water_schedule(self.thurs_water)
+        print "Friday    ",
+        print_day_water_schedule(self.fri_water)
+        print "Saturday  ",
+        print_day_water_schedule(self.sat_water)
+        print "Sunday    ",
+        print_day_water_schedule(self.sun_water)
+
+
   def printTarget(self):
       
     current_state = self.getTempState()
@@ -455,40 +379,7 @@ class hmController(object):
       locatimenow = self.localtimearray()
       nexttarget = self.getNextScheduleEntry(locatimenow)
       return "temp set to %0.1f until %02d:%02d" % (self.setroomtemp, nexttarget[1], nexttarget[2])
-
-  def display_heating_schedule(self):
-    print "Heating Schedule"
-    if self.programmode == READ_PROGRAM_MODE_5_2:
-      print "Weekdays ",
-      self._print_heat_schedule(self.wday_heat)
-      print "Weekends ",
-      self._print_heat_schedule(self.wend_heat)
-    if self.programmode == READ_PROGRAM_MODE_7:
-      print "Monday    ",
-      self._print_heat_schedule(self.mon_heat)
-      print "Tuesday   ",
-      self._print_heat_schedule(self.tues_heat)
-      print "Wednesday ",
-      self._print_heat_schedule(self.wed_heat)
-      print "Thursday  ",
-      self._print_heat_schedule(self.thurs_heat)
-      print "Friday    ",
-      self._print_heat_schedule(self.fri_heat)
-      print "Saturday  ",
-      self._print_heat_schedule(self.sat_heat)
-      print "Sunday    ",
-      self._print_heat_schedule(self.sun_heat)
     
-  def _chunks(self, l, n):
-    """Yield successive n-sized chunks from l."""
-    for i in range(0, len(l), n):
-        yield l[i:i + n]
-        
-  def _reversechunks(self, l, n):
-    """Yield successive n-sized chunks from l."""
-    for i in range(len(l)-n, -1, -n):
-        yield l[i:i + n]
-
   def _check_data_age(self, maxage, *fieldnames):
     #field data age is not more than maxage (in seconds)
     if len(fieldnames) == 0:
@@ -511,64 +402,6 @@ class hmController(object):
         logging.warning("C%i data item %s not avaliable"%(self.address, fieldname))
         return False
     return True
-    
-  def _print_heat_schedule(self,data):
-    if len(data) != 12:
-      logging.warning("Gen heat sch data not valid")
-      return False
-    
-    tempstr = ''
-    for set in self._chunks(data,3):
-      if set[HEAT_MAP_HOUR] != HOUR_UNUSED:
-        tempstr += "%02d:%02d at %02iC " % (set[HEAT_MAP_HOUR],set[HEAT_MAP_MIN],set[HEAT_MAP_TEMP])
-        
-    print tempstr
-    logging.info(tempstr)
-      
-  def display_water_schedule(self):
-    
-    if self.model == PRT_HW_MODEL:
-      print "Hot Water Schedule"
-      if self.programmode == READ_PROGRAM_MODE_5_2:
-        print "Weekdays"
-        self._print_water_schedule(self.wday_water)
-        print "Weekends"
-        self._print_water_schedule(self.wend_water)
-      if self.programmode == READ_PROGRAM_MODE_7:
-        print "Monday    ",
-        self._print_water_schedule(self.mon_water)
-        print "Tuesday   ",
-        self._print_water_schedule(self.tues_water)
-        print "Wednesday ",
-        self._print_water_schedule(self.wed_water)
-        print "Thursday  ",
-        self._print_water_schedule(self.thurs_water)
-        print "Friday    ",
-        self._print_water_schedule(self.fri_water)
-        print "Saturday  ",
-        self._print_water_schedule(self.sat_water)
-        print "Sunday    ",
-        self._print_water_schedule(self.sun_water)
-        
-  def _print_water_schedule(self,data):
-    if len(data) != 16:
-      logging.warning("Gen water sch data not valid")
-      return False
-    toggle = True
-    count = 1
-    
-    tempstr = ''
-    for set in self._chunks(data,2):
-      if set[0] != HOUR_UNUSED:
-        if toggle:
-          tempstr += "Time %i On at %02d:%02d " % (count,set[0],set[1])
-        else:
-          tempstr += "Off at %02d:%02d, " % (set[0],set[1])
-          count=count+1
-        toggle = not toggle
-        
-    print tempstr
-    logging.info(tempstr)
         
 #### External functions for getting data
 

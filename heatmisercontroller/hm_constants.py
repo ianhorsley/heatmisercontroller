@@ -177,12 +177,6 @@ WRITE_HOTWATERSTATE_PROG = 0
 WRITE_HOTWATERSTATE_OVER_ON = 1
 WRITE_HOTWATERSTATE_OVER_OFF = 2
 
-#mapping for chunks of heating schedule for a day
-HEAT_MAP_HOUR = 0
-HEAT_MAP_MIN = 1
-HEAT_MAP_TEMP = 2
-HOUR_UNUSED = 24
-
 #these maps are used to translate the unique address which is the same for all controllers to the DCB address for a specific controller
 PROG_MODE_WEEK = 0
 PROG_MODE_DAY = 1
