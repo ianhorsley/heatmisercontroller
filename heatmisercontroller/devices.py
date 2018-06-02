@@ -19,7 +19,7 @@ from datetime import datetime
 
 from hm_constants import *
 from .exceptions import hmResponseError, hmControllerTimeError
-from schedule_functions import print_day_heat_schedule, print_day_water_schedule
+from schedule_functions import schedulerdayheat, schedulerweekheat, schedulerdaywater, schedulerweekwater
 
 class hmController(object):
 
@@ -30,6 +30,18 @@ class hmController(object):
     self.expected_model = model
     self.expected_prog_mode = mode
     
+    self.water_schedule = None
+    if self.expected_prog_mode == PROG_MODE_DAY:
+      self.heat_schedule = schedulerdayheat()
+      if model == PRT_HW_MODEL:
+        self.water_schedule = schedulerdaywater()
+    elif self.expected_prog_mode == PROG_MODE_WEEK:
+      self.heat_schedule = schedulerweekheat()
+      if model == PRT_HW_MODEL:
+        self.water_schedule = schedulerweekwater()
+    else:
+      raise ValueError("Unknown program mode")
+      
     if model == PRT_E_MODEL:
       self.DCBmap = PRTEmap[mode]
     elif model == PRT_HW_MODEL:
@@ -162,7 +174,13 @@ class hmController(object):
       val_high = data[0]
       val_low  = data[1]
       value = 1.0*(val_high*256 + val_low)/factor #force float, although always returns integer temps.
-    elif length == 4 or length == 12 or length == 16:
+    elif length == 4:
+      value = data
+    elif length == 12:
+      self.heat_schedule.set_raw(fieldname,data)
+      value = data
+    elif length == 16:
+      self.water_schedule.set_raw(fieldname,data)
       value = data
     else:
       raise ValueError("_procpayload can't process field length")
@@ -214,6 +232,7 @@ class hmController(object):
         dcbadd = self._getDCBaddress(uniqueaddress)
 
         if dcbadd == DCB_INVALID:
+          print "ignoring field" + attrname
           setattr(self, attrname, None)
         else:
           dcbadd -= fullfirstdcbadd #adjust for the start of the request
@@ -309,53 +328,11 @@ class hmController(object):
   
 #### External functions for printing data
   def display_heating_schedule(self):
-    print "Heating Schedule"
-    if self.programmode == READ_PROGRAM_MODE_5_2:
-      print "Weekdays ",
-      print_day_heat_schedule(self.wday_heat)
-      print "Weekends ",
-      print_day_heat_schedule(self.wend_heat)
-    if self.programmode == READ_PROGRAM_MODE_7:
-      print "Monday    ",
-      print_day_heat_schedule(self.mon_heat)
-      print "Tuesday   ",
-      print_day_heat_schedule(self.tues_heat)
-      print "Wednesday ",
-      print_day_heat_schedule(self.wed_heat)
-      print "Thursday  ",
-      print_day_heat_schedule(self.thurs_heat)
-      print "Friday    ",
-      print_day_heat_schedule(self.fri_heat)
-      print "Saturday  ",
-      print_day_heat_schedule(self.sat_heat)
-      print "Sunday    ",
-      print_day_heat_schedule(self.sun_heat)
+    self.heat_schedule.display()
       
   def display_water_schedule(self):
-    
-    if self.model == PRT_HW_MODEL:
-      print "Hot Water Schedule"
-      if self.programmode == READ_PROGRAM_MODE_5_2:
-        print "Weekdays"
-        print_day_water_schedule(self.wday_water)
-        print "Weekends"
-        print_day_water_schedule(self.wend_water)
-      if self.programmode == READ_PROGRAM_MODE_7:
-        print "Monday    ",
-        print_day_water_schedule(self.mon_water)
-        print "Tuesday   ",
-        print_day_water_schedule(self.tues_water)
-        print "Wednesday ",
-        print_day_water_schedule(self.wed_water)
-        print "Thursday  ",
-        print_day_water_schedule(self.thurs_water)
-        print "Friday    ",
-        print_day_water_schedule(self.fri_water)
-        print "Saturday  ",
-        print_day_water_schedule(self.sat_water)
-        print "Sunday    ",
-        print_day_water_schedule(self.sun_water)
-
+    if not self.water_schedule is None:
+      self.water_schedule.display()
 
   def printTarget(self):
       
