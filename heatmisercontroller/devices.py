@@ -232,7 +232,6 @@ class hmController(object):
         dcbadd = self._getDCBaddress(uniqueaddress)
 
         if dcbadd == DCB_INVALID:
-          print "ignoring field" + attrname
           setattr(self, attrname, None)
         else:
           dcbadd -= fullfirstdcbadd #adjust for the start of the request
