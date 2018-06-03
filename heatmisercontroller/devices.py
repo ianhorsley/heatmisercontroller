@@ -19,7 +19,7 @@ from datetime import datetime
 
 from hm_constants import *
 from .exceptions import hmResponseError, hmControllerTimeError
-from schedule_functions import schedulerdayheat, schedulerweekheat, schedulerdaywater, schedulerweekwater
+from schedule_functions import schedulerdayheat, schedulerweekheat, schedulerdaywater, schedulerweekwater, SCH_ENT_TEMP
 
 class hmController(object):
 
@@ -310,9 +310,9 @@ class hmController(object):
         self._checkcontrollertime(self.lastreadtimetime)
       
       locatimenow = self.localtimearray()
-      scheduletarget = self.getCurrentScheduleEntry(locatimenow)
+      scheduletarget = self.heat_schedule.getCurrentScheduleItem(locatimenow)
 
-      if scheduletarget[self.SCH_ENT_TEMP] != self.setroomtemp:
+      if scheduletarget[SCH_ENT_TEMP] != self.setroomtemp:
         return self.TEMP_STATE_OVERRIDDEN
       else:
         return self.TEMP_STATE_PROGRAM
@@ -349,11 +349,11 @@ class hmController(object):
       return "temp held for %i mins at %i"%(self.tempholdmins, self.setroomtemp)
     elif current_state == self.TEMP_STATE_OVERRIDDEN:
       locatimenow = self.localtimearray()
-      nexttarget = self.getNextScheduleEntry(locatimenow)
+      nexttarget = self.heat_schedule.getNextScheduleItem(locatimenow)
       return "temp overridden to %0.1f until %02d:%02d" % (self.setroomtemp, nexttarget[1], nexttarget[2])
     elif current_state == self.TEMP_STATE_PROGRAM:
       locatimenow = self.localtimearray()
-      nexttarget = self.getNextScheduleEntry(locatimenow)
+      nexttarget = self.heat_schedule.getNextScheduleItem(locatimenow)
       return "temp set to %0.1f until %02d:%02d" % (self.setroomtemp, nexttarget[1], nexttarget[2])
     
   def _check_data_age(self, maxage, *fieldnames):
