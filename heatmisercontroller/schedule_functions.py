@@ -69,7 +69,7 @@ class scheduler(object):
       
     if scheduletarget == None:
       yestschedule = self._getPreviousScheduleEntry(timearray)
-      scheduletarget = self._getLastEntryFromASchedule(yestschedule)
+      scheduletarget = self._getLastItemFromAnEntry(yestschedule)
       return [self._getPreviousDay(timearray)] + scheduletarget
     else:
       return [timearray[CURRENT_TIME_DAY]] + scheduletarget
@@ -82,7 +82,7 @@ class scheduler(object):
       
     if scheduletarget == None:
       tomschedule = self._getNextScheduleEntry(timearray)
-      scheduletarget = self._getFirstEntryFromASchedule(tomschedule)
+      scheduletarget = self._getFirstItemFromAnEntry(tomschedule)
       return [self._getNextDay(timearray)] + scheduletarget
     else:
       return [timearray[CURRENT_TIME_DAY]] + scheduletarget
@@ -120,6 +120,24 @@ class scheduler(object):
   def _getNextDay(self,timearray):
     #shift from 1-7 to 0-6, add 1, modulo, shift back to 1-7
     return ((timearray[CURRENT_TIME_DAY] - 1 + 1 ) % 7 ) + 1
+    
+  def _getFirstItemFromAnEntry(self,schedule):
+    #gets first schedule entry if valid (not 24)
+    firstentry = self._chunks(schedule,self.valuesperentry).next()
+    if firstentry[MAP_HOUR] != HOUR_UNUSED:
+      return firstentry
+    else:
+      return None
+
+  def _getLastItemFromAnEntry(self,schedule):
+    #gets last valid schedule entry (not 24)
+    scheduletarget = None
+    for i in self._reversechunks(schedule,self.valuesperentry):
+          if i[MAP_HOUR] != HOUR_UNUSED:
+            scheduletarget = i
+            break
+    
+    return scheduletarget
 
 class schedulerday(scheduler):
   entrynames = ['mon','tues','wed','thurs','fri','sat','sun']
@@ -184,45 +202,3 @@ class schedulerdaywater(schedulerday, schedulerwater):
   pass
 class schedulerweekwater(schedulerweek, schedulerwater):
   pass
-
-def _getFirstEntryFromASchedule(self,schedule):
-  #gets first schedule entry if valid (not 24)
-  firstentry = self._chunks(schedule,3).next()
-  if firstentry[MAP_HOUR] != HOUR_UNUSED:
-    return firstentry
-  else:
-    return None
-
-def _getLastEntryFromASchedule(self,schedule):
-  #gets last valid schedule entry (not 24)
-  scheduletarget = None
-  for i in self._reversechunks(schedule,3):
-        if i[MAP_HOUR] != HOUR_UNUSED:
-          scheduletarget = i
-          break
-  
-  return scheduletarget
-
-def _getPreviousDay(self, timearray):
-  ##bugged
-  if timearray[CURRENT_TIME_DAY] > 1:
-    day = timearray[CURRENT_TIME_DAY] - 1
-  else:
-    day = 7
-  return day
-
-def _getNextDay(self,timearray):
-  ##bugged
-  #shift from 1-7 to 0-6
-  #add 1, modulo
-  #shift back to 1-7
-  
-  ((timearray[CURRENT_TIME_DAY] - 1) + 1 ) % 7 + 1
-  
-  
-  if timearray[CURRENT_TIME_DAY] < 7:
-    day = timearray[CURRENT_TIME_DAY] + 1
-  else:
-    day = 7
-  return day
-      
