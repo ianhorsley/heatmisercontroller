@@ -410,22 +410,21 @@ class hmController(object):
 #### External functions for setting data
 
   def setHeatingSchedule(self, day, schedule):
-    schedule += [HOUR_UNUSED,0,12] * ((uniadd[day][UNIADD_LEN] - len(schedule))/3)
-    self.network.hmSetFields(self.address,self.protocol,day,schedule)
+    padschedule = self.heat_schedule.pad_schedule(schedule)
+    self.network.hmSetFields(self.address,self.protocol,day,padschedule)
     
   def setWaterSchedule(self, day, schedule):
+    padschedule = self.water_schedule.pad_schedule(schedule)
     if day == 'all':
-      schedule += [HOUR_UNUSED,0] * ((uniadd['mon_water'][UNIADD_LEN] - len(schedule))/2)
-      self.network.hmSetFields(self.address,self.protocol,'mon_water',schedule)
-      self.network.hmSetFields(self.address,self.protocol,'tues_water',schedule)
-      self.network.hmSetFields(self.address,self.protocol,'wed_water',schedule)
-      self.network.hmSetFields(self.address,self.protocol,'thurs_water',schedule)
-      self.network.hmSetFields(self.address,self.protocol,'fri_water',schedule)
-      self.network.hmSetFields(self.address,self.protocol,'sat_water',schedule)
-      self.network.hmSetFields(self.address,self.protocol,'sun_water',schedule)
+      self.network.hmSetFields(self.address,self.protocol,'mon_water',padschedule)
+      self.network.hmSetFields(self.address,self.protocol,'tues_water',padschedule)
+      self.network.hmSetFields(self.address,self.protocol,'wed_water',padschedule)
+      self.network.hmSetFields(self.address,self.protocol,'thurs_water',padschedule)
+      self.network.hmSetFields(self.address,self.protocol,'fri_water',padschedule)
+      self.network.hmSetFields(self.address,self.protocol,'sat_water',padschedule)
+      self.network.hmSetFields(self.address,self.protocol,'sun_water',padschedule)
     else:
-      schedule += [HOUR_UNUSED,0] * ((uniadd[day][UNIADD_LEN] - len(schedule))/2)
-      self.network.hmSetFields(self.address,self.protocol,day,schedule)
+      self.network.hmSetFields(self.address,self.protocol,day,padschedule)
       
 #general field setting
 

@@ -23,6 +23,18 @@ class test_schedulerdayheat(unittest.TestCase):
     self.func = schedulerdayheat()
     self.assertEqual(3, self.func._getNextDay([2,0,0,0]) )
     self.assertEqual(1, self.func._getNextDay([7,0,0,0]) )
+    
+  def test_pad_bad_input(self):
+    self.func = schedulerdayheat()
+    self.assertRaises(IndexError, self.func.pad_schedule, [1])
+    self.assertRaises(IndexError, self.func.pad_schedule, [1, 2])
+    self.assertRaises(IndexError, self.func.pad_schedule, [1, 2, 3, 4])
+
+  def test_pad(self):
+    self.func = schedulerdayheat()
+    self.assertEqual([24, 0, 12, 24, 0, 12, 24, 0, 12, 24, 0, 12], self.func.pad_schedule([]))
+    self.assertEqual([1, 2, 3, 24, 0, 12, 24, 0, 12, 24, 0, 12], self.func.pad_schedule([1, 2, 3]))
+    
       
 if __name__ == '__main__':
     unittest.main()

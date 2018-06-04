@@ -39,6 +39,13 @@ class scheduler(object):
       raise ValueError('Schedule entry wrong length %i'%len(entry))
     self.entries[entry] = schedule
     
+  def pad_schedule(self,schedule):
+    if not len(schedule)%self.valuesperentry == 0:
+      raise IndexError("Schedule length not multiple of %d"%self.valuesperentry)
+    pad_item = [HOUR_UNUSED,0,12][0:self.valuesperentry]
+  
+    return schedule + pad_item * ((self.valuesperentry * self.entriesperday - len(schedule))/self.valuesperentry)
+    
   def display(self):
     print self.title + " Schedule"
     
