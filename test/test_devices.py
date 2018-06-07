@@ -64,7 +64,12 @@ class test_other_functions(unittest.TestCase):
     # assert retasarray == self.goodmessage
 
   #_getDCBaddress  
-      
+  
+  def test_localtimearray(self):
+    self.func = hmController(None, 1, HMV3_ID, 'test', 'test controller', PRT_E_MODEL, PROG_MODE_DAY)
+    self.assertEqual([4, 6, 48, 47], self.func.localtimearray(1528350527))
+    self.assertEqual([7, 6, 48, 47], self.func.localtimearray(1528350527-86400*4))
+    
 if __name__ == '__main__':
     unittest.main()
 

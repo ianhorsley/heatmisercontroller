@@ -309,7 +309,7 @@ class hmController(object):
         currenttime = self.hmReadTime()
         self._checkcontrollertime(self.lastreadtimetime)
       
-      locatimenow = self.localtimearray()
+      locatimenow = self._localtimearray()
       scheduletarget = self.heat_schedule.getCurrentScheduleItem(locatimenow)
 
       if scheduletarget[SCH_ENT_TEMP] != self.setroomtemp:
@@ -317,13 +317,13 @@ class hmController(object):
       else:
         return self.TEMP_STATE_PROGRAM
   
-  def localtimearray(self):
-    nowday = time.localtime(time.time()).tm_wday + 1
-    nowhours = time.localtime(time.time()).tm_hour
-    nowmins = time.localtime(time.time()).tm_min
-    nowsecs = time.localtime(time.time()).tm_sec
+  def _localtimearray(self, timenow = time.time()):
+    #creates an array in heatmiser format for local time. Day 1-7, 1=Monday
+    #input time.time() (not local)
+    localtimenow = time.localtime(timenow)
+    nowday = localtimenow.tm_wday + 1  #python tm_wday, range [0, 6], Monday is 0
     
-    return [nowday, nowhours, nowmins, nowsecs]
+    return [nowday, localtimenow.tm_hour, localtimenow.tm_min, localtimenow.tm_sec]
   
 #### External functions for printing data
   def display_heating_schedule(self):
@@ -348,11 +348,11 @@ class hmController(object):
     elif current_state == self.TEMP_STATE_HELD:
       return "temp held for %i mins at %i"%(self.tempholdmins, self.setroomtemp)
     elif current_state == self.TEMP_STATE_OVERRIDDEN:
-      locatimenow = self.localtimearray()
+      locatimenow = self._localtimearray()
       nexttarget = self.heat_schedule.getNextScheduleItem(locatimenow)
       return "temp overridden to %0.1f until %02d:%02d" % (self.setroomtemp, nexttarget[1], nexttarget[2])
     elif current_state == self.TEMP_STATE_PROGRAM:
-      locatimenow = self.localtimearray()
+      locatimenow = self._localtimearray()
       nexttarget = self.heat_schedule.getNextScheduleItem(locatimenow)
       return "temp set to %0.1f until %02d:%02d" % (self.setroomtemp, nexttarget[1], nexttarget[2])
     
@@ -426,12 +426,12 @@ class hmController(object):
     else:
       self.network.hmSetFields(self.address,self.protocol,day,padschedule)
 
-  def setTime(self, network_address) :
+  def setTime(self) :
       """bla bla"""
       #protocol = HMV3_ID # TODO should look this up in statlist
       #if protocol == HMV3_ID:
-      msgtime = time.time()
-      msgtimet = time.localtime(msgtime)
+
+      msgtimet = time.localtime()
       day  = int(time.strftime("%w", msgtimet))
       if (day == 0):
           day = 7		# Convert python day format to Heatmiser format
