@@ -55,13 +55,13 @@ wkday_ztraining = [7,00,downActive,8,30,frost,16,30,downInactive,21,00,frost]
 wkend_zearly =    [5,00,downInactive,21,30,frost]
 wkend_zlate =     [7,00,downInactive,21,30,frost]
 wkend_zoff =      [7,00,downInactive,21,30,frost]
-hmn1.Kit.setHeatingSchedule('mon_heat',wkend_zoff)
-hmn1.Kit.setHeatingSchedule('tues_heat',wkend_zoff)
+hmn1.Kit.setHeatingSchedule('mon_heat',wkend_zearly)
+hmn1.Kit.setHeatingSchedule('tues_heat',wkend_zearly)
 hmn1.Kit.setHeatingSchedule('wed_heat',wkday_ztraining)
-hmn1.Kit.setHeatingSchedule('thurs_heat',wkday_zlate)
+hmn1.Kit.setHeatingSchedule('thurs_heat',wkend_zearly)
 hmn1.Kit.setHeatingSchedule('fri_heat',wkend_zearly)
-hmn1.Kit.setHeatingSchedule('sat_heat',wkday_zlate)
-hmn1.Kit.setHeatingSchedule('sun_heat',dayfrost)
+hmn1.Kit.setHeatingSchedule('sat_heat',wkend_zoff)
+hmn1.Kit.setHeatingSchedule('sun_heat',wkend_zoff)
 
 eveningwater = [17,30,18,0]
 nowater = []
