@@ -19,7 +19,7 @@ from adaptor import *
 class HeatmiserNetwork:
 ### stat list setup
 
-  def __init__(self):
+  def __init__(self, list = None):
     self.adaptor = Heatmiser_Adaptor()
     self.adaptor.connect()
     
@@ -27,6 +27,8 @@ class HeatmiserNetwork:
     setattr(self,"All",hmBroadcastController(self.adaptor,"All","Broadcast to All"))
     self.current = self.All
     
+    if not list is None:
+      self.setStatList(list)
       
   def setStatList(self, list):
     self.statlist = list

@@ -8,14 +8,13 @@
 import logging
 
 from heatmisercontroller.logging_setup import initialize_logger
-from heatmisercontroller.stats_defn import *
+from heatmisercontroller.stats_defn import StatList
 from heatmisercontroller.hm_constants import *
 from heatmisercontroller.network import *
 
 initialize_logger('logs', logging.INFO, True)
 
-hmn1 = HeatmiserNetwork()
-hmn1.setStatList(StatList)
+hmn1 = HeatmiserNetwork(StatList)
 
 #hmn1.hmSetTemp("Kit",25)
 #hmn1.Kit.holdTemp(30,21) #mins, temp
