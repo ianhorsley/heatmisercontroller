@@ -173,9 +173,12 @@ WRITE_KEYLOCK_ON = 1
 
 WRITE_RUNMODE_HEATING = 0
 WRITE_RUNMODE_FROST = 1
+
 WRITE_HOTWATERSTATE_PROG = 0
 WRITE_HOTWATERSTATE_OVER_ON = 1
 WRITE_HOTWATERSTATE_OVER_OFF = 2
+READ_HOTWATERSTATE_OFF = 0
+READ_HOTWATERSTATE_ON = 1
 
 #these maps are used to translate the unique address which is the same for all controllers to the DCB address for a specific controller
 PROG_MODE_WEEK = 0

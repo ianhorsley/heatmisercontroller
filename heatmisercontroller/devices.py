@@ -447,7 +447,17 @@ class hmController(object):
   def setField(self,field,value):
     retvalue = self.network.hmSetField(self.address,self.protocol,field,value)
     self.lastreadtime = time.time()
-    self._procpartpayload(value,field,field)
+    
+    ###should really be handled by a specific overriding function, rather than in here.
+    #handle odd effect on WRITE_HOTWATERSTATE_PROG
+    if field == 'hotwaterstate':
+      if value == WRITE_HOTWATERSTATE_PROG: #returned to program so outcome is unknown
+        self.datareadtime[field] = None
+        return None
+      elif value == WRITE_HOTWATERSTATE_OFF: #if overridden off store the off read value
+        value = READ_HOTWATERSTATE_OFF
+    
+    self._procpartpayload([value],field,field)
     return retvalue
     
   def setFields(self,field,value):
