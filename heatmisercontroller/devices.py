@@ -322,8 +322,9 @@ class hmController(object):
     #input time.time() (not local)
     localtimenow = time.localtime(timenow)
     nowday = localtimenow.tm_wday + 1  #python tm_wday, range [0, 6], Monday is 0
+    nowsecs = min(localtimenow.tm_sec, 59) #python tm_sec range[0, 61]
     
-    return [nowday, localtimenow.tm_hour, localtimenow.tm_min, localtimenow.tm_sec]
+    return [nowday, localtimenow.tm_hour, localtimenow.tm_min, nowsecs]
   
 #### External functions for printing data
   def display_heating_schedule(self):
