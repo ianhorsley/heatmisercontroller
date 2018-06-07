@@ -208,7 +208,7 @@ class hmController(object):
     self.datareadtime[fieldname] = self.lastreadtime
     
     if fieldname == 'currenttime':
-      self._checkcontrollertime(self.lastreadtime)
+      self._checkcontrollertime()
     
     ###todo, add range validation for other lengths
 
@@ -243,80 +243,31 @@ class hmController(object):
 
     self.rawdata[fullfirstdcbadd:fullfirstdcbadd+len(rawdata)] = rawdata
 
-  def _checkcontrollertime(self,checktime):       
+  def _checkcontrollertime(self):       
     # Now do same sanity checking
     # Check the time is within range
     # If we only do this at say 1 am then there is no issues/complication of day wrap rounds
     # TODO only do once a day
     # currentday is numbered 1-7 for M-S
     # localday (python) is numbered 0-6 for Sun-Sat
-
-    localtime = time.localtime(checktime)
+    
     if not self._check_data_present('currenttime'):
       raise hmResponseError("Time not read before check")
-    
-    localday = time.strftime("%w", localtime)
-    
-    remoteday = self.currenttime[CURRENT_TIME_DAY]%7
-    if (int(localday) != int(remoteday)):
-        raise hmControllerTimeError("C%2d Incorrect day : local is %s, sensor is %s" % (self.address, localday, remoteday))
 
-    remoteseconds = (((self.currenttime[CURRENT_TIME_HOUR] * 60) + self.currenttime[CURRENT_TIME_MIN]) * 60) + self.currenttime[CURRENT_TIME_SEC]
+    localtimearray = self._localtimearray(self.datareadtime['currenttime']) #time that time field was read
+    localweeksecs = self._weeksecs(localtimearray)
+    remoteweeksecs = self._weeksecs(self.data['currenttime'])
+    directdifference = abs(localweeksecs - remoteweeksecs)
+    wrappeddifference = abs(self.DAYSECS * 7 - directdifference) #compute the difference on rollover
+    self.timeerr = min(directdifference, wrappeddifference)
+    logging.debug("Local time %i, remote time %i, error %i"%(localweeksecs,remoteweeksecs,self.timeerr))
 
-    nowhours = localtime.tm_hour
-    nowmins = localtime.tm_min
-    nowsecs = localtime.tm_sec
-    nowseconds = (((nowhours * 60) + nowmins) * 60) + nowsecs
-    logging.debug("Time %d %d" % (remoteseconds, nowseconds))
-    self.timeerr = nowseconds - remoteseconds
-    if (abs(self.timeerr) > TIME_ERR_LIMIT):
-        raise hmControllerTimeError("C%2d Time Error : Greater than %d local is %s, sensor is %s" % (self.address, TIME_ERR_LIMIT, nowseconds, remoteseconds))
+    if self.timeerr > self.DAYSECS:
+        raise hmControllerTimeError("C%2d Incorrect day : local is %s, sensor is %s" % (self.address, localtimearray[CURRENT_TIME_DAY], self.data['currenttime'][CURRENT_TIME_DAY]))
 
-  TEMP_STATE_OFF = 0  #thermostat display is off and frost protection disabled
-  TEMP_STATE_OFF_FROST = 1 #thermostat display is off and frost protection enabled
-  TEMP_STATE_FROST = 2 #frost protection enabled indefinitely
-  TEMP_STATE_HOLIDAY = 3 #holiday mode, frost protection for a period
-  TEMP_STATE_HELD = 4 #temperature held for a number of hours
-  TEMP_STATE_OVERRIDDEN = 5 #temperature overridden until next program time
-  TEMP_STATE_PROGRAM = 6 #following program
-  
-  def getTempState(self):
-    if not self._check_data_present('onoff','frostprot','holidayhours','runmode','tempholdmins','setroomtemp'):
-      if self.autoreadall:
-        self.hmReadAll()
-      else:
-        raise ValueError("Need to read all before getting temp state")
-        
-    if not self._check_data_age(60, 'onoff','holidayhours','runmode','tempholdmins','setroomtemp'):
-      if self.autoreadall:
-        self.hmReadVariables()
-      else:
-        raise ValueError("Vars to old to get temp state")
-    
-    if self.onoff == WRITE_ONOFF_OFF and self.frostprot == READ_FROST_PROT_OFF:
-      return self.TEMP_STATE_OFF
-    elif self.onoff == WRITE_ONOFF_OFF and self.frostprot == READ_FROST_PROT_ON:
-      return self.TEMP_STATE_OFF_FROST
-    elif self.holidayhours != 0:
-      return self.TEMP_STATE_HOLIDAY
-    elif self.runmode == WRITE_RUNMODE_FROST:
-      return self.TEMP_STATE_FROST
-    elif self.tempholdmins != 0:
-      return self.TEMP_STATE_HELD
-    else:
-    
-      if not self._check_data_age(60 * 60 * 2, 'currenttime'):
-        currenttime = self.hmReadTime()
-        self._checkcontrollertime(self.lastreadtimetime)
-      
-      locatimenow = self._localtimearray()
-      scheduletarget = self.heat_schedule.getCurrentScheduleItem(locatimenow)
+    if (self.timeerr > TIME_ERR_LIMIT):
+        raise hmControllerTimeError("C%2d Time Error %d greater than %d: local is %s, sensor is %s" % (self.address, self.timeerr, TIME_ERR_LIMIT, localweeksecs, remoteweeksecs))
 
-      if scheduletarget[SCH_ENT_TEMP] != self.setroomtemp:
-        return self.TEMP_STATE_OVERRIDDEN
-      else:
-        return self.TEMP_STATE_PROGRAM
-  
   def _localtimearray(self, timenow = time.time()):
     #creates an array in heatmiser format for local time. Day 1-7, 1=Monday
     #input time.time() (not local)
@@ -325,6 +276,13 @@ class hmController(object):
     nowsecs = min(localtimenow.tm_sec, 59) #python tm_sec range[0, 61]
     
     return [nowday, localtimenow.tm_hour, localtimenow.tm_min, nowsecs]
+  
+  DAYSECS = 86400
+  HOURSECS = 3600
+  MINSECS = 60
+  def _weeksecs(self, localtimearray):
+    #calculates the time from the start of the week in seconds from a heatmiser time array
+    return ( localtimearray[CURRENT_TIME_DAY] - 1 ) * self.DAYSECS + localtimearray[CURRENT_TIME_HOUR] * self.HOURSECS + localtimearray[CURRENT_TIME_MIN] * self.MINSECS + localtimearray[CURRENT_TIME_SEC]
   
 #### External functions for printing data
   def display_heating_schedule(self):
@@ -382,6 +340,50 @@ class hmController(object):
         
 #### External functions for getting data
 
+  TEMP_STATE_OFF = 0  #thermostat display is off and frost protection disabled
+  TEMP_STATE_OFF_FROST = 1 #thermostat display is off and frost protection enabled
+  TEMP_STATE_FROST = 2 #frost protection enabled indefinitely
+  TEMP_STATE_HOLIDAY = 3 #holiday mode, frost protection for a period
+  TEMP_STATE_HELD = 4 #temperature held for a number of hours
+  TEMP_STATE_OVERRIDDEN = 5 #temperature overridden until next program time
+  TEMP_STATE_PROGRAM = 6 #following program
+  
+  def getTempState(self):
+    if not self._check_data_present('onoff','frostprot','holidayhours','runmode','tempholdmins','setroomtemp'):
+      if self.autoreadall:
+        self.hmReadAll()
+      else:
+        raise ValueError("Need to read all before getting temp state")
+        
+    if not self._check_data_age(60, 'onoff','holidayhours','runmode','tempholdmins','setroomtemp'):
+      if self.autoreadall:
+        self.hmReadVariables()
+      else:
+        raise ValueError("Vars to old to get temp state")
+    
+    if self.onoff == WRITE_ONOFF_OFF and self.frostprot == READ_FROST_PROT_OFF:
+      return self.TEMP_STATE_OFF
+    elif self.onoff == WRITE_ONOFF_OFF and self.frostprot == READ_FROST_PROT_ON:
+      return self.TEMP_STATE_OFF_FROST
+    elif self.holidayhours != 0:
+      return self.TEMP_STATE_HOLIDAY
+    elif self.runmode == WRITE_RUNMODE_FROST:
+      return self.TEMP_STATE_FROST
+    elif self.tempholdmins != 0:
+      return self.TEMP_STATE_HELD
+    else:
+    
+      if not self._check_data_age(60 * 60 * 2, 'currenttime'):
+        currenttime = self.readTime()
+      
+      locatimenow = self._localtimearray()
+      scheduletarget = self.heat_schedule.getCurrentScheduleItem(locatimenow)
+
+      if scheduletarget[SCH_ENT_TEMP] != self.setroomtemp:
+        return self.TEMP_STATE_OVERRIDDEN
+      else:
+        return self.TEMP_STATE_PROGRAM
+
   def getAirSensorType(self):
     if not self._check_data_present('sensorsavaliable'):
       return False
@@ -429,7 +431,7 @@ class hmController(object):
 
   def setTime(self) :
       """set time on controller to match current localtime on server"""
-      return self.hmSetFields(self.address,self.protocol,'currenttime',_localtimearray())
+      return self.hmSetFields(self.address,self.protocol,'currenttime',self._localtimearray())
       
 #general field setting
 
