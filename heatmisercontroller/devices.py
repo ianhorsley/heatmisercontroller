@@ -22,6 +22,15 @@ from .exceptions import hmResponseError, hmControllerTimeError
 from schedule_functions import schedulerdayheat, schedulerweekheat, schedulerdaywater, schedulerweekwater, SCH_ENT_TEMP
 
 class hmController(object):
+  ##Variables used by code
+  lastreadtime = 0 #records last time of a successful read
+  ##Control parameters and default settings
+  autoreadall = True
+  autocorrectime = True
+  #max times for age of data
+  max_age_variables = 60 #variables like holidaymins, etc.
+  max_age_time = 60 * 60 * 24 #time tends to drift very slowly, so it shouldn't need checking very often
+  max_age_temp = 10 #temperature is something that might be sampled very regularly
 
   def __init__(self, network, address, protocol, short_name, long_name, model, mode):
     self.network = network
@@ -62,15 +71,10 @@ class hmController(object):
     
     self.name = short_name
     self.long_name = long_name
-    
-    self.lastreadtime = 0 #records last time of a successful read
-    
+        
     #initialise data structures
     self.data = dict.fromkeys(uniadd.keys(),None)
     self.datareadtime = dict.fromkeys(uniadd.keys(),None)
-    
-    self.autoreadall = True
-    self.autocorrectime = True
    
   def _getDCBaddress(self, uniqueaddress):
     #get the DCB address for a controller from the unique address
@@ -363,7 +367,7 @@ class hmController(object):
       else:
         raise ValueError("Need to read all before getting temp state")
         
-    if not self._check_data_age(60, 'onoff','holidayhours','runmode','tempholdmins','setroomtemp'):
+    if not self._check_data_age(self.max_age_variables, 'onoff','holidayhours','runmode','tempholdmins','setroomtemp'):
       if self.autoreadall is True:
         self.hmReadVariables()
       else:
@@ -381,7 +385,7 @@ class hmController(object):
       return self.TEMP_STATE_HELD
     else:
     
-      if not self._check_data_age(60 * 60 * 2, 'currenttime'):
+      if not self._check_data_age(self.max_age_time, 'currenttime'):
         currenttime = self.readTime()
       
       locatimenow = self._localtimearray()
@@ -401,7 +405,7 @@ class hmController(object):
       else:
         raise ValueError("Need to read all before getting temp state")
         
-    if not self._check_data_age(60, 'onoff','holidayhours','hotwaterstate'):
+    if not self._check_data_age(self.max_age_variables, 'onoff','holidayhours','hotwaterstate'):
       if self.autoreadall is True:
         self.hmReadVariables()
       else:
@@ -413,7 +417,7 @@ class hmController(object):
       return self.TEMP_STATE_HOLIDAY
     else:
     
-      if not self._check_data_age(60 * 60 * 2, 'currenttime'):
+      if not self._check_data_age(self.max_age_time, 'currenttime'):
         currenttime = self.readTime()
       
       locatimenow = self._localtimearray()
@@ -440,11 +444,11 @@ class hmController(object):
       return False
     
     if self.sensorsavaliable == READ_SENSORS_AVALIABLE_INT_ONLY or self.sensorsavaliable == READ_SENSORS_AVALIABLE_INT_FLOOR:
-      if not self._check_data_age(10, 'airtemp'):
+      if not self._check_data_age(self.max_age_temp, 'airtemp'):
         return False
       return self.airtemp
     elif self.sensorsavaliable == READ_SENSORS_AVALIABLE_EXT_ONLY or self.sensorsavaliable == READ_SENSORS_AVALIABLE_EXT_FLOOR:
-      if not self._check_data_age(10, 'remoteairtemp'):
+      if not self._check_data_age(self.max_age_temp, 'remoteairtemp'):
         return False
       return self.remoteairtemp
     else:
