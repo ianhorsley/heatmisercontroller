@@ -428,23 +428,8 @@ class hmController(object):
       self.network.hmSetFields(self.address,self.protocol,day,padschedule)
 
   def setTime(self) :
-      """bla bla"""
-      #protocol = HMV3_ID # TODO should look this up in statlist
-      #if protocol == HMV3_ID:
-
-      msgtimet = time.localtime()
-      day  = int(time.strftime("%w", msgtimet))
-      if (day == 0):
-          day = 7		# Convert python day format to Heatmiser format
-      hour = int(time.strftime("%H", msgtimet))
-      mins = int(time.strftime("%M", msgtimet))
-      secs = int(time.strftime("%S", msgtimet))
-      if (secs == 61):
-          secs = 60 # Need to do this as pyhton seconds can be  [0,61]
-      print "%d %d:%d:%d" % (day, hour, mins, secs)
-      payload = [day, hour, mins, secs]
-          
-      return self.hmSetFields(network_address,'currenttime',payload)
+      """set time on controller to match current localtime on server"""
+      return self.hmSetFields(self.address,self.protocol,'currenttime',_localtimearray())
       
 #general field setting
 
