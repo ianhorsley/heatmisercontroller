@@ -392,6 +392,38 @@ class hmController(object):
       else:
         return self.TEMP_STATE_PROGRAM
 
+  ### UNTESTED OR EVEN CHECKED
+  def getWaterState(self):
+    #does runmode affect hot water state?
+    if not self._check_data_present('onoff','holidayhours','hotwaterstate'):
+      if self.autoreadall is True:
+        self.hmReadAll()
+      else:
+        raise ValueError("Need to read all before getting temp state")
+        
+    if not self._check_data_age(60, 'onoff','holidayhours','hotwaterstate'):
+      if self.autoreadall is True:
+        self.hmReadVariables()
+      else:
+        raise ValueError("Vars to old to get temp state")
+    
+    if self.onoff == WRITE_ONOFF_OFF:
+      return self.TEMP_STATE_OFF
+    elif self.holidayhours != 0:
+      return self.TEMP_STATE_HOLIDAY
+    else:
+    
+      if not self._check_data_age(60 * 60 * 2, 'currenttime'):
+        currenttime = self.readTime()
+      
+      locatimenow = self._localtimearray()
+      scheduletarget = self.water_schedule.getCurrentScheduleItem(locatimenow)
+
+      if scheduletarget[SCH_ENT_TEMP] != self.hotwaterstate:
+        return self.TEMP_STATE_OVERRIDDEN
+      else:
+        return self.TEMP_STATE_PROGRAM
+        
   def getAirSensorType(self):
     if not self._check_data_present('sensorsavaliable'):
       return False
