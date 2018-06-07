@@ -173,15 +173,12 @@ WRITE_KEYLOCK_ON = 1
 
 WRITE_RUNMODE_HEATING = 0
 WRITE_RUNMODE_FROST = 1
+
 WRITE_HOTWATERSTATE_PROG = 0
 WRITE_HOTWATERSTATE_OVER_ON = 1
 WRITE_HOTWATERSTATE_OVER_OFF = 2
-
-#mapping for chunks of heating schedule for a day
-HEAT_MAP_HOUR = 0
-HEAT_MAP_MIN = 1
-HEAT_MAP_TEMP = 2
-HOUR_UNUSED = 24
+READ_HOTWATERSTATE_OFF = 0
+READ_HOTWATERSTATE_ON = 1
 
 #these maps are used to translate the unique address which is the same for all controllers to the DCB address for a specific controller
 PROG_MODE_WEEK = 0
@@ -189,7 +186,7 @@ PROG_MODE_DAY = 1
 DEFAULT_PROG_MODE = PROG_MODE_DAY #allows broadcast to program both modes.
 
 #PRT-E DCB map
-DCB_INVALID = -1
+DCB_INVALID = None
 PRTEmap = range(2)
 PRTEmap[0] = list(reversed([(25,0),(31,DCB_INVALID),(41,6),(42,DCB_INVALID),(70,7),(MAX_UNIQUE_ADDRESS,DCB_INVALID)]))
 PRTEmap[1] = list(reversed([(25,0),(31,DCB_INVALID),(41,6),(42,DCB_INVALID),(70,7),(102,DCB_INVALID),(186,39),(MAX_UNIQUE_ADDRESS,DCB_INVALID)]))

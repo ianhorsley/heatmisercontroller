@@ -19,6 +19,7 @@ from datetime import datetime
 
 from hm_constants import *
 from .exceptions import hmResponseError, hmControllerTimeError
+from schedule_functions import schedulerdayheat, schedulerweekheat, schedulerdaywater, schedulerweekwater, SCH_ENT_TEMP
 
 class hmController(object):
 
@@ -29,6 +30,18 @@ class hmController(object):
     self.expected_model = model
     self.expected_prog_mode = mode
     
+    self.water_schedule = None
+    if self.expected_prog_mode == PROG_MODE_DAY:
+      self.heat_schedule = schedulerdayheat()
+      if model == PRT_HW_MODEL:
+        self.water_schedule = schedulerdaywater()
+    elif self.expected_prog_mode == PROG_MODE_WEEK:
+      self.heat_schedule = schedulerweekheat()
+      if model == PRT_HW_MODEL:
+        self.water_schedule = schedulerweekwater()
+    else:
+      raise ValueError("Unknown program mode")
+      
     if model == PRT_E_MODEL:
       self.DCBmap = PRTEmap[mode]
     elif model == PRT_HW_MODEL:
@@ -52,12 +65,12 @@ class hmController(object):
     
     self.lastreadtime = 0 #records last time of a successful read
     
-    #intialise data structures
+    #initialise data structures
     self.data = dict.fromkeys(uniadd.keys(),None)
     self.datareadtime = dict.fromkeys(uniadd.keys(),None)
     
-    ###SHOULD BE TRUE
     self.autoreadall = True
+    self.autocorrectime = True
    
   def _getDCBaddress(self, uniqueaddress):
     #get the DCB address for a controller from the unique address
@@ -70,7 +83,7 @@ class hmController(object):
     if offset != DCB_INVALID:
       return uniqueaddress-offset
     else:
-      return False
+      return DCB_INVALID
       
   def getRawData(self, startfieldname = None, endfieldname = None):
     if startfieldname == None or endfieldname == None:
@@ -101,10 +114,8 @@ class hmController(object):
 
     return rawdata
     
-  def hmReadTime(self):
-    rawdata = self.hmReadFields('currenttime', 'currenttime')
-    self.lastreadtimetime = time.time()
-    return rawdata
+  def readTime(self, maxage = 0):
+    return self.readField('currenttime', maxage)
 
   def hmReadAll(self):
     try:
@@ -125,7 +136,7 @@ class hmController(object):
     # maxage is valid and data too old
     # or not be read before (maxage = None)
     if maxage == 0 or (maxage is not None and self._check_data_age(maxage, fieldname)) or not self._check_data_present(fieldname):
-      if self.autoreadall:
+      if self.autoreadall is True:
         self.hmReadFields(fieldname)
       else:
         raise ValueError("Need to read %s first"%fieldname)
@@ -163,7 +174,13 @@ class hmController(object):
       val_high = data[0]
       val_low  = data[1]
       value = 1.0*(val_high*256 + val_low)/factor #force float, although always returns integer temps.
-    elif length == 4 or length == 12 or length == 16:
+    elif length == 4:
+      value = data
+    elif length == 12:
+      self.heat_schedule.set_raw(fieldname,data)
+      value = data
+    elif length == 16:
+      self.water_schedule.set_raw(fieldname,data)
       value = data
     else:
       raise ValueError("_procpayload can't process field length")
@@ -191,7 +208,7 @@ class hmController(object):
     self.datareadtime[fieldname] = self.lastreadtime
     
     if fieldname == 'currenttime':
-      self._checkcontrollertime(self.lastreadtime)
+      self._checkcontrollertime()
     
     ###todo, add range validation for other lengths
 
@@ -226,215 +243,63 @@ class hmController(object):
 
     self.rawdata[fullfirstdcbadd:fullfirstdcbadd+len(rawdata)] = rawdata
 
-  def _checkcontrollertime(self,checktime):       
+  def _checkcontrollertime(self):
+    #run compare of times, and try to fix if autocorrectime
+    try:
+      self._comparecontrollertime()
+    except hmControllerTimeError:
+      if self.autocorrectime is True:
+        self.setTime()
+      else:
+        raise
+  
+  def _comparecontrollertime(self):       
     # Now do same sanity checking
     # Check the time is within range
-    # If we only do this at say 1 am then there is no issues/complication of day wrap rounds
-    # TODO only do once a day
     # currentday is numbered 1-7 for M-S
     # localday (python) is numbered 0-6 for Sun-Sat
-
-    localtime = time.localtime(checktime)
+    
     if not self._check_data_present('currenttime'):
       raise hmResponseError("Time not read before check")
-    
-    localday = time.strftime("%w", localtime)
-    
-    remoteday = self.currenttime[CURRENT_TIME_DAY]%7
-    if (int(localday) != int(remoteday)):
-        raise hmControllerTimeError("C%2d Incorrect day : local is %s, sensor is %s" % (self.address, localday, remoteday))
 
-    remoteseconds = (((self.currenttime[CURRENT_TIME_HOUR] * 60) + self.currenttime[CURRENT_TIME_MIN]) * 60) + self.currenttime[CURRENT_TIME_SEC]
+    localtimearray = self._localtimearray(self.datareadtime['currenttime']) #time that time field was read
+    localweeksecs = self._weeksecs(localtimearray)
+    remoteweeksecs = self._weeksecs(self.data['currenttime'])
+    directdifference = abs(localweeksecs - remoteweeksecs)
+    wrappeddifference = abs(self.DAYSECS * 7 - directdifference) #compute the difference on rollover
+    self.timeerr = min(directdifference, wrappeddifference)
+    logging.debug("Local time %i, remote time %i, error %i"%(localweeksecs,remoteweeksecs,self.timeerr))
 
-    nowhours = localtime.tm_hour
-    nowmins = localtime.tm_min
-    nowsecs = localtime.tm_sec
-    nowseconds = (((nowhours * 60) + nowmins) * 60) + nowsecs
-    logging.debug("Time %d %d" % (remoteseconds, nowseconds))
-    self.timeerr = nowseconds - remoteseconds
-    if (abs(self.timeerr) > TIME_ERR_LIMIT):
-        raise hmControllerTimeError("C%2d Time Error : Greater than %d local is %s, sensor is %s" % (self.address, TIME_ERR_LIMIT, nowseconds, remoteseconds))
+    if self.timeerr > self.DAYSECS:
+        raise hmControllerTimeError("C%2d Incorrect day : local is %s, sensor is %s" % (self.address, localtimearray[CURRENT_TIME_DAY], self.data['currenttime'][CURRENT_TIME_DAY]))
 
-  TEMP_STATE_OFF = 0  #thermostat display is off and frost protection disabled
-  TEMP_STATE_OFF_FROST = 1 #thermostat display is off and frost protection enabled
-  TEMP_STATE_FROST = 2 #frost protection enabled indefinitely
-  TEMP_STATE_HOLIDAY = 3 #holiday mode, frost protection for a period
-  TEMP_STATE_HELD = 4 #temperature held for a number of hours
-  TEMP_STATE_OVERRIDDEN = 5 #temperature overridden until next program time
-  TEMP_STATE_PROGRAM = 6 #following program
-  
-  def getTempState(self):
-    if not self._check_data_present('onoff','frostprot','holidayhours','runmode','tempholdmins','setroomtemp'):
-      if self.autoreadall:
-        self.hmReadAll()
-      else:
-        raise ValueError("Need to read all before getting temp state")
-        
-    if not self._check_data_age(60, 'onoff','holidayhours','runmode','tempholdmins','setroomtemp'):
-      if self.autoreadall:
-        self.hmReadVariables()
-      else:
-        raise ValueError("Vars to old to get temp state")
-    
-    if self.onoff == WRITE_ONOFF_OFF and self.frostprot == READ_FROST_PROT_OFF:
-      return self.TEMP_STATE_OFF
-    elif self.onoff == WRITE_ONOFF_OFF and self.frostprot == READ_FROST_PROT_ON:
-      return self.TEMP_STATE_OFF_FROST
-    elif self.holidayhours != 0:
-      return self.TEMP_STATE_HOLIDAY
-    elif self.runmode == WRITE_RUNMODE_FROST:
-      return self.TEMP_STATE_FROST
-    elif self.tempholdmins != 0:
-      return self.TEMP_STATE_HELD
-    else:
-    
-      if not self._check_data_age(60 * 60 * 2, 'currenttime'):
-        currenttime = self.hmReadTime()
-        self._checkcontrollertime(self.lastreadtimetime)
-      
-      locatimenow = self.localtimearray()
-      scheduletarget = self.getCurrentScheduleEntry(locatimenow)
+    if (self.timeerr > TIME_ERR_LIMIT):
+        raise hmControllerTimeError("C%2d Time Error %d greater than %d: local is %s, sensor is %s" % (self.address, self.timeerr, TIME_ERR_LIMIT, localweeksecs, remoteweeksecs))
 
-      if scheduletarget[self.SCH_ENT_TEMP] != self.setroomtemp:
-        return self.TEMP_STATE_OVERRIDDEN
-      else:
-        return self.TEMP_STATE_PROGRAM
+  def _localtimearray(self, timenow = time.time()):
+    #creates an array in heatmiser format for local time. Day 1-7, 1=Monday
+    #input time.time() (not local)
+    localtimenow = time.localtime(timenow)
+    nowday = localtimenow.tm_wday + 1  #python tm_wday, range [0, 6], Monday is 0
+    nowsecs = min(localtimenow.tm_sec, 59) #python tm_sec range[0, 61]
+    
+    return [nowday, localtimenow.tm_hour, localtimenow.tm_min, nowsecs]
   
-  def localtimearray(self):
-    nowday = time.localtime(time.time()).tm_wday + 1
-    nowhours = time.localtime(time.time()).tm_hour
-    nowmins = time.localtime(time.time()).tm_min
-    nowsecs = time.localtime(time.time()).tm_sec
-    
-    return [nowday, nowhours, nowmins, nowsecs]
-  
-  def getCurrentScheduleEntry(self,timearray):
-    ####check time and vars current
-    
-    todayschedule = self._getHeatSchedule(timearray[CURRENT_TIME_DAY])
-      
-    scheduletarget = self._getCurrentEntryFromASchedule(todayschedule,timearray)
-      
-    if scheduletarget == None:
-      yestschedule = self._getPreviousHeatSchedule(timearray)
-      scheduletarget = self._getLastEntryFromASchedule(yestschedule)
-      return [self._getPreviousDay(timearray)] + scheduletarget
-    else:
-      return [timearray[CURRENT_TIME_DAY]] + scheduletarget
-  
-  SCH_ENT_DAY = 0
-  SCH_ENT_HOUR = 1
-  SCH_ENT_MIN = 2
-  SCH_ENT_TEMP = 3
-  
-  def getNextScheduleEntry(self,timearray):
-
-    todayschedule = self._getHeatSchedule(timearray[CURRENT_TIME_DAY])
-    
-    scheduletarget = self._getNextEntryFromASchedule(todayschedule,timearray)
-      
-    if scheduletarget == None:
-      tomschedule = self._getNextHeatSchedule(timearray)
-      scheduletarget = self._getFirstEntryFromASchedule(tomschedule)
-      return [self._getNextDay(timearray)] + scheduletarget
-    else:
-      return [timearray[CURRENT_TIME_DAY]] + scheduletarget
-
-  def _getNextEntryFromASchedule(self,schedule,timearray):
-    hour_minutes = 60
-  
-    scheduletarget = None
-    dayminutes = timearray[CURRENT_TIME_HOUR] * hour_minutes + timearray[CURRENT_TIME_MIN]
-
-    for i in self._reversechunks(schedule,3):
-      if dayminutes < i[HEAT_MAP_HOUR] * hour_minutes + i[HEAT_MAP_MIN] and i[HEAT_MAP_HOUR] != HOUR_UNUSED:
-        scheduletarget = i
-    
-    return scheduletarget
-    
-  def _getCurrentEntryFromASchedule(self,schedule,timearray):
-    hour_minutes = 60
-  
-    scheduletarget = None
-    dayminutes = timearray[CURRENT_TIME_HOUR] * hour_minutes + timearray[CURRENT_TIME_MIN]
-    
-    for i in self._chunks(schedule,3):
-      if dayminutes >= i[HEAT_MAP_HOUR] * hour_minutes + i[HEAT_MAP_MIN] and i[HEAT_MAP_HOUR] != HOUR_UNUSED:
-        scheduletarget = i
-    
-    return scheduletarget
-
-  def _getFirstEntryFromASchedule(self,schedule):
-    #gets first schedule entry if valid (not 24)
-    firstentry = self._chunks(schedule,3).next()
-    if firstentry[HEAT_MAP_HOUR] != HOUR_UNUSED:
-      return firstentry
-    else:
-      return None
-
-  def _getLastEntryFromASchedule(self,schedule):
-    #gets last valid schedule entry (not 24)
-    scheduletarget = None
-    for i in self._reversechunks(schedule,3):
-          if i[HEAT_MAP_HOUR] != HOUR_UNUSED:
-            scheduletarget = i
-            break
-    
-    return scheduletarget
-  
-  def _getPreviousDay(self, timearray):
-    ##bugged
-    if timearray[CURRENT_TIME_DAY] > 1:
-      day = timearray[CURRENT_TIME_DAY] - 1
-    else:
-      day = 7
-    return day
-  
-  def _getNextDay(self,timearray):
-    ##bugged
-    if timearray[CURRENT_TIME_DAY] < 7:
-      day = timearray[CURRENT_TIME_DAY] + 1
-    else:
-      day = 7
-    return day
-  
-  def _getPreviousHeatSchedule(self,timearray):
-    return self._getHeatSchedule(self._getPreviousDay(timearray))
-  
-  def _getNextHeatSchedule(self,timearray):
-    return self._getHeatSchedule(self._getNextDay(timearray))
-    
-  def _getHeatSchedule(self, day):
-    if self.programmode == READ_PROGRAM_MODE_5_2:
-      if day == 6 or day == 7:
-        return self.wend_heat
-      elif day >= 1 and day <= 5:
-        return self.wday_heat
-      else:
-        logging.error("Gen day not recognised")
-    elif self.programmode == READ_PROGRAM_MODE_7:
-      if day == 1:
-        return self.mon_heat
-      elif day == 2:
-        return self.tues_heat
-      elif day == 3:
-        return self.wed_heat
-      elif day == 4:
-        return self.thurs_heat
-      elif day == 5:
-        return self.fri_heat
-      elif day == 6:
-        return self.sat_heat
-      elif day == 7:
-        return self.sun_heat
-      else:
-        logging.error("Gen day not recognised")
-    
-    else:
-      logging.error("Gen program mode not recognised")
-    
+  DAYSECS = 86400
+  HOURSECS = 3600
+  MINSECS = 60
+  def _weeksecs(self, localtimearray):
+    #calculates the time from the start of the week in seconds from a heatmiser time array
+    return ( localtimearray[CURRENT_TIME_DAY] - 1 ) * self.DAYSECS + localtimearray[CURRENT_TIME_HOUR] * self.HOURSECS + localtimearray[CURRENT_TIME_MIN] * self.MINSECS + localtimearray[CURRENT_TIME_SEC]
   
 #### External functions for printing data
+  def display_heating_schedule(self):
+    self.heat_schedule.display()
+      
+  def display_water_schedule(self):
+    if not self.water_schedule is None:
+      self.water_schedule.display()
+
   def printTarget(self):
       
     current_state = self.getTempState()
@@ -450,47 +315,14 @@ class hmController(object):
     elif current_state == self.TEMP_STATE_HELD:
       return "temp held for %i mins at %i"%(self.tempholdmins, self.setroomtemp)
     elif current_state == self.TEMP_STATE_OVERRIDDEN:
-      locatimenow = self.localtimearray()
-      nexttarget = self.getNextScheduleEntry(locatimenow)
+      locatimenow = self._localtimearray()
+      nexttarget = self.heat_schedule.getNextScheduleItem(locatimenow)
       return "temp overridden to %0.1f until %02d:%02d" % (self.setroomtemp, nexttarget[1], nexttarget[2])
     elif current_state == self.TEMP_STATE_PROGRAM:
-      locatimenow = self.localtimearray()
-      nexttarget = self.getNextScheduleEntry(locatimenow)
+      locatimenow = self._localtimearray()
+      nexttarget = self.heat_schedule.getNextScheduleItem(locatimenow)
       return "temp set to %0.1f until %02d:%02d" % (self.setroomtemp, nexttarget[1], nexttarget[2])
-
-  def display_heating_schedule(self):
-    print "Heating Schedule"
-    if self.programmode == READ_PROGRAM_MODE_5_2:
-      print "Weekdays ",
-      self._print_heat_schedule(self.wday_heat)
-      print "Weekends ",
-      self._print_heat_schedule(self.wend_heat)
-    if self.programmode == READ_PROGRAM_MODE_7:
-      print "Monday    ",
-      self._print_heat_schedule(self.mon_heat)
-      print "Tuesday   ",
-      self._print_heat_schedule(self.tues_heat)
-      print "Wednesday ",
-      self._print_heat_schedule(self.wed_heat)
-      print "Thursday  ",
-      self._print_heat_schedule(self.thurs_heat)
-      print "Friday    ",
-      self._print_heat_schedule(self.fri_heat)
-      print "Saturday  ",
-      self._print_heat_schedule(self.sat_heat)
-      print "Sunday    ",
-      self._print_heat_schedule(self.sun_heat)
     
-  def _chunks(self, l, n):
-    """Yield successive n-sized chunks from l."""
-    for i in range(0, len(l), n):
-        yield l[i:i + n]
-        
-  def _reversechunks(self, l, n):
-    """Yield successive n-sized chunks from l."""
-    for i in range(len(l)-n, -1, -n):
-        yield l[i:i + n]
-
   def _check_data_age(self, maxage, *fieldnames):
     #field data age is not more than maxage (in seconds)
     if len(fieldnames) == 0:
@@ -513,67 +345,85 @@ class hmController(object):
         logging.warning("C%i data item %s not avaliable"%(self.address, fieldname))
         return False
     return True
-    
-  def _print_heat_schedule(self,data):
-    if len(data) != 12:
-      logging.warning("Gen heat sch data not valid")
-      return False
-    
-    tempstr = ''
-    for set in self._chunks(data,3):
-      if set[HEAT_MAP_HOUR] != HOUR_UNUSED:
-        tempstr += "%02d:%02d at %02iC " % (set[HEAT_MAP_HOUR],set[HEAT_MAP_MIN],set[HEAT_MAP_TEMP])
-        
-    print tempstr
-    logging.info(tempstr)
-      
-  def display_water_schedule(self):
-    
-    if self.model == PRT_HW_MODEL:
-      print "Hot Water Schedule"
-      if self.programmode == READ_PROGRAM_MODE_5_2:
-        print "Weekdays"
-        self._print_water_schedule(self.wday_water)
-        print "Weekends"
-        self._print_water_schedule(self.wend_water)
-      if self.programmode == READ_PROGRAM_MODE_7:
-        print "Monday    ",
-        self._print_water_schedule(self.mon_water)
-        print "Tuesday   ",
-        self._print_water_schedule(self.tues_water)
-        print "Wednesday ",
-        self._print_water_schedule(self.wed_water)
-        print "Thursday  ",
-        self._print_water_schedule(self.thurs_water)
-        print "Friday    ",
-        self._print_water_schedule(self.fri_water)
-        print "Saturday  ",
-        self._print_water_schedule(self.sat_water)
-        print "Sunday    ",
-        self._print_water_schedule(self.sun_water)
-        
-  def _print_water_schedule(self,data):
-    if len(data) != 16:
-      logging.warning("Gen water sch data not valid")
-      return False
-    toggle = True
-    count = 1
-    
-    tempstr = ''
-    for set in self._chunks(data,2):
-      if set[0] != HOUR_UNUSED:
-        if toggle:
-          tempstr += "Time %i On at %02d:%02d " % (count,set[0],set[1])
-        else:
-          tempstr += "Off at %02d:%02d, " % (set[0],set[1])
-          count=count+1
-        toggle = not toggle
-        
-    print tempstr
-    logging.info(tempstr)
         
 #### External functions for getting data
 
+  TEMP_STATE_OFF = 0  #thermostat display is off and frost protection disabled
+  TEMP_STATE_OFF_FROST = 1 #thermostat display is off and frost protection enabled
+  TEMP_STATE_FROST = 2 #frost protection enabled indefinitely
+  TEMP_STATE_HOLIDAY = 3 #holiday mode, frost protection for a period
+  TEMP_STATE_HELD = 4 #temperature held for a number of hours
+  TEMP_STATE_OVERRIDDEN = 5 #temperature overridden until next program time
+  TEMP_STATE_PROGRAM = 6 #following program
+  
+  def getTempState(self):
+    if not self._check_data_present('onoff','frostprot','holidayhours','runmode','tempholdmins','setroomtemp'):
+      if self.autoreadall is True:
+        self.hmReadAll()
+      else:
+        raise ValueError("Need to read all before getting temp state")
+        
+    if not self._check_data_age(60, 'onoff','holidayhours','runmode','tempholdmins','setroomtemp'):
+      if self.autoreadall is True:
+        self.hmReadVariables()
+      else:
+        raise ValueError("Vars to old to get temp state")
+    
+    if self.onoff == WRITE_ONOFF_OFF and self.frostprot == READ_FROST_PROT_OFF:
+      return self.TEMP_STATE_OFF
+    elif self.onoff == WRITE_ONOFF_OFF and self.frostprot == READ_FROST_PROT_ON:
+      return self.TEMP_STATE_OFF_FROST
+    elif self.holidayhours != 0:
+      return self.TEMP_STATE_HOLIDAY
+    elif self.runmode == WRITE_RUNMODE_FROST:
+      return self.TEMP_STATE_FROST
+    elif self.tempholdmins != 0:
+      return self.TEMP_STATE_HELD
+    else:
+    
+      if not self._check_data_age(60 * 60 * 2, 'currenttime'):
+        currenttime = self.readTime()
+      
+      locatimenow = self._localtimearray()
+      scheduletarget = self.heat_schedule.getCurrentScheduleItem(locatimenow)
+
+      if scheduletarget[SCH_ENT_TEMP] != self.setroomtemp:
+        return self.TEMP_STATE_OVERRIDDEN
+      else:
+        return self.TEMP_STATE_PROGRAM
+
+  ### UNTESTED OR EVEN CHECKED
+  def getWaterState(self):
+    #does runmode affect hot water state?
+    if not self._check_data_present('onoff','holidayhours','hotwaterstate'):
+      if self.autoreadall is True:
+        self.hmReadAll()
+      else:
+        raise ValueError("Need to read all before getting temp state")
+        
+    if not self._check_data_age(60, 'onoff','holidayhours','hotwaterstate'):
+      if self.autoreadall is True:
+        self.hmReadVariables()
+      else:
+        raise ValueError("Vars to old to get temp state")
+    
+    if self.onoff == WRITE_ONOFF_OFF:
+      return self.TEMP_STATE_OFF
+    elif self.holidayhours != 0:
+      return self.TEMP_STATE_HOLIDAY
+    else:
+    
+      if not self._check_data_age(60 * 60 * 2, 'currenttime'):
+        currenttime = self.readTime()
+      
+      locatimenow = self._localtimearray()
+      scheduletarget = self.water_schedule.getCurrentScheduleItem(locatimenow)
+
+      if scheduletarget[SCH_ENT_TEMP] != self.hotwaterstate:
+        return self.TEMP_STATE_OVERRIDDEN
+      else:
+        return self.TEMP_STATE_PROGRAM
+        
   def getAirSensorType(self):
     if not self._check_data_present('sensorsavaliable'):
       return False
@@ -603,30 +453,50 @@ class hmController(object):
 #### External functions for setting data
 
   def setHeatingSchedule(self, day, schedule):
-    schedule += [HOUR_UNUSED,0,12] * ((uniadd[day][UNIADD_LEN] - len(schedule))/3)
-    self.network.hmSetFields(self.address,self.protocol,day,schedule)
+    padschedule = self.heat_schedule.pad_schedule(schedule)
+    self.network.hmSetFields(self.address,self.protocol,day,padschedule)
     
   def setWaterSchedule(self, day, schedule):
+    padschedule = self.water_schedule.pad_schedule(schedule)
     if day == 'all':
-      schedule += [HOUR_UNUSED,0] * ((uniadd['mon_water'][UNIADD_LEN] - len(schedule))/2)
-      self.network.hmSetFields(self.address,self.protocol,'mon_water',schedule)
-      self.network.hmSetFields(self.address,self.protocol,'tues_water',schedule)
-      self.network.hmSetFields(self.address,self.protocol,'wed_water',schedule)
-      self.network.hmSetFields(self.address,self.protocol,'thurs_water',schedule)
-      self.network.hmSetFields(self.address,self.protocol,'fri_water',schedule)
-      self.network.hmSetFields(self.address,self.protocol,'sat_water',schedule)
-      self.network.hmSetFields(self.address,self.protocol,'sun_water',schedule)
+      self.setFields('mon_water',padschedule)
+      self.setFields('tues_water',padschedule)
+      self.setFields('wed_water',padschedule)
+      self.setFields('thurs_water',padschedule)
+      self.setFields('fri_water',padschedule)
+      self.setFields('sat_water',padschedule)
+      self.setFields('sun_water',padschedule)
     else:
-      schedule += [HOUR_UNUSED,0] * ((uniadd[day][UNIADD_LEN] - len(schedule))/2)
-      self.network.hmSetFields(self.address,self.protocol,day,schedule)
+      self.setFields(day,padschedule)
+
+  def setTime(self) :
+      """set time on controller to match current localtime on server"""
+      timenow = time.time() + 0.5 #allow a little time for any delay in setting
+      return self.setFields('currenttime',self._localtimearray(timenow))
       
 #general field setting
 
   def setField(self,field,value):
-    return self.network.hmSetField(self.address,self.protocol,field,value)
-
+    retvalue = self.network.hmSetField(self.address,self.protocol,field,value)
+    self.lastreadtime = time.time()
+    
+    ###should really be handled by a specific overriding function, rather than in here.
+    #handle odd effect on WRITE_HOTWATERSTATE_PROG
+    if field == 'hotwaterstate':
+      if value == WRITE_HOTWATERSTATE_PROG: #returned to program so outcome is unknown
+        self.datareadtime[field] = None
+        return None
+      elif value == WRITE_HOTWATERSTATE_OFF: #if overridden off store the off read value
+        value = READ_HOTWATERSTATE_OFF
+    
+    self._procpartpayload([value],field,field)
+    return retvalue
+    
   def setFields(self,field,value):
-    return self.network.hmSetFields(self.address,self.protocol,field,value)
+    retvalue = self.network.hmSetFields(self.address,self.protocol,field,value)
+    self.lastreadtime = time.time()
+    self._procpartpayload(value,field,field)
+    return retvalue
 
 #overriding      
       

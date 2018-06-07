@@ -14,7 +14,7 @@ from heatmisercontroller.hm_constants import *
 from heatmisercontroller.network import *
 
 #start logging
-initialize_logger('logs', logging.WARN)
+initialize_logger('logs', logging.WARN, True)
 
 hmn1 = HeatmiserNetwork()
 hmn1.setStatList(StatList)

@@ -3,8 +3,8 @@ import logging
 import time
 
 from heatmisercontroller.devices import hmController
-from heatmisercontroller.hm_constants import HMV3_ID, PRT_HW_MODEL, PROG_MODE_DAY
-from heatmisercontroller.exceptions import hmResponseError
+from heatmisercontroller.hm_constants import HMV3_ID, PRT_E_MODEL, PRT_HW_MODEL, PROG_MODE_DAY, DCB_INVALID
+from heatmisercontroller.exceptions import hmResponseError, hmControllerTimeError
 
 class test_reading_data(unittest.TestCase):
   def setUp(self):
@@ -41,24 +41,46 @@ class test_reading_data(unittest.TestCase):
   def test_readall(self):
     pass
 
-class test_other_functions(unittest.TestCase):   
- 
-  def test_checkcontrollertime_1(self):
-    
-    #print time.time()
-    #print time.localtime(time.time())
+class test_other_functions(unittest.TestCase):
+  def test_getDCBaddress(self):
+    self.func = hmController(None, 1, HMV3_ID, 'test', 'test controller', PRT_E_MODEL, PROG_MODE_DAY)
+    self.assertEqual(0, self.func._getDCBaddress(0))
+    self.assertEqual(24, self.func._getDCBaddress(24))
+    self.assertEqual(DCB_INVALID, self.func._getDCBaddress(26))
+  
+class test_time_functions(unittest.TestCase):
+  def setUp(self):
+    #gettimezone offset
+    is_dst = time.daylight and time.localtime().tm_isdst > 0
+    self.utc_offset = - (time.altzone if is_dst else time.timezone)
     self.func = hmController(None, 1, HMV3_ID, 'test', 'test controller', PRT_HW_MODEL, PROG_MODE_DAY)
-    self.func.datareadtime['currenttime'] = 1 #has been read
-    self.func.currenttime = [4, 9, 33, 0]
-    testtime = 1527755588.43 #31/05/2018 09:33
     
-    self.func._checkcontrollertime(testtime)
+  def test_comparecontrollertime_none(self):
+    with self.assertRaises(hmResponseError):
+      self.func._comparecontrollertime()
+  def test_comparecontrollertime_bad(self):
+    self.func.datareadtime['currenttime'] = ( 1 + 3) * 86400 + 9 * 3600 + 33 * 60 + 0 - self.utc_offset #has been read 
+    self.func.data['currenttime'] = self.func.currenttime = [1, 0, 0, 0]
+    with self.assertRaises(hmControllerTimeError):
+      self.func._comparecontrollertime()
+    
+  def test_comparecontrollertime_1(self):
+    self.func.datareadtime['currenttime'] = ( 4 + 3) * 86400 + 9 * 3600 + 33 * 60 + 5 - self.utc_offset #has been read 
+    self.func.data['currenttime'] = self.func.currenttime = [4, 9, 33, 0]
+    self.func._comparecontrollertime()
+    self.assertEqual(5, self.func.timeerr)
+    
+  def test_comparecontrollertime_2(self):
+    self.func.datareadtime['currenttime'] = ( 7 + 3) * 86400 + 23 * 3600 + 59 * 60 + 55 - self.utc_offset #has been read 
+    self.func.data['currenttime'] = self.func.currenttime = [1, 0, 0, 0]
+    self.func._comparecontrollertime()
+    self.assertEqual(5, self.func.timeerr)
 
-    # Check that the returned data from the serial port == goodmessage
-    # assert retasarray == self.goodmessage
-
-  #_getDCBaddress  
-      
+  def test_localtimearray(self):
+    self.assertEqual([4, 6, 48, 47], self.func._localtimearray(1528350527))
+    self.assertEqual([7, 6, 48, 47], self.func._localtimearray(1528350527-86400*4))
+  
+  
 if __name__ == '__main__':
     unittest.main()
 
