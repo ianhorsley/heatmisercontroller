@@ -69,8 +69,8 @@ class hmController(object):
     self.data = dict.fromkeys(uniadd.keys(),None)
     self.datareadtime = dict.fromkeys(uniadd.keys(),None)
     
-    ###SHOULD BE TRUE
     self.autoreadall = True
+    self.autocorrectime = True
    
   def _getDCBaddress(self, uniqueaddress):
     #get the DCB address for a controller from the unique address
@@ -136,7 +136,7 @@ class hmController(object):
     # maxage is valid and data too old
     # or not be read before (maxage = None)
     if maxage == 0 or (maxage is not None and self._check_data_age(maxage, fieldname)) or not self._check_data_present(fieldname):
-      if self.autoreadall:
+      if self.autoreadall is True:
         self.hmReadFields(fieldname)
       else:
         raise ValueError("Need to read %s first"%fieldname)
@@ -243,11 +243,19 @@ class hmController(object):
 
     self.rawdata[fullfirstdcbadd:fullfirstdcbadd+len(rawdata)] = rawdata
 
-  def _checkcontrollertime(self):       
+  def _checkcontrollertime(self):
+    #run compare of times, and try to fix if autocorrectime
+    try:
+      self._comparecontrollertime()
+    except hmControllerTimeError:
+      if self.autocorrectime is True:
+        self.setTime()
+      else:
+        raise
+  
+  def _comparecontrollertime(self):       
     # Now do same sanity checking
     # Check the time is within range
-    # If we only do this at say 1 am then there is no issues/complication of day wrap rounds
-    # TODO only do once a day
     # currentday is numbered 1-7 for M-S
     # localday (python) is numbered 0-6 for Sun-Sat
     
@@ -350,13 +358,13 @@ class hmController(object):
   
   def getTempState(self):
     if not self._check_data_present('onoff','frostprot','holidayhours','runmode','tempholdmins','setroomtemp'):
-      if self.autoreadall:
+      if self.autoreadall is True:
         self.hmReadAll()
       else:
         raise ValueError("Need to read all before getting temp state")
         
     if not self._check_data_age(60, 'onoff','holidayhours','runmode','tempholdmins','setroomtemp'):
-      if self.autoreadall:
+      if self.autoreadall is True:
         self.hmReadVariables()
       else:
         raise ValueError("Vars to old to get temp state")
@@ -419,27 +427,34 @@ class hmController(object):
   def setWaterSchedule(self, day, schedule):
     padschedule = self.water_schedule.pad_schedule(schedule)
     if day == 'all':
-      self.network.hmSetFields(self.address,self.protocol,'mon_water',padschedule)
-      self.network.hmSetFields(self.address,self.protocol,'tues_water',padschedule)
-      self.network.hmSetFields(self.address,self.protocol,'wed_water',padschedule)
-      self.network.hmSetFields(self.address,self.protocol,'thurs_water',padschedule)
-      self.network.hmSetFields(self.address,self.protocol,'fri_water',padschedule)
-      self.network.hmSetFields(self.address,self.protocol,'sat_water',padschedule)
-      self.network.hmSetFields(self.address,self.protocol,'sun_water',padschedule)
+      self.setFields('mon_water',padschedule)
+      self.setFields('tues_water',padschedule)
+      self.setFields('wed_water',padschedule)
+      self.setFields('thurs_water',padschedule)
+      self.setFields('fri_water',padschedule)
+      self.setFields('sat_water',padschedule)
+      self.setFields('sun_water',padschedule)
     else:
-      self.network.hmSetFields(self.address,self.protocol,day,padschedule)
+      self.setFields(day,padschedule)
 
   def setTime(self) :
       """set time on controller to match current localtime on server"""
-      return self.hmSetFields(self.address,self.protocol,'currenttime',self._localtimearray())
+      timenow = time.time() + 0.5 #allow a little time for any delay in setting
+      return self.setFields('currenttime',self._localtimearray(timenow))
       
 #general field setting
 
   def setField(self,field,value):
-    return self.network.hmSetField(self.address,self.protocol,field,value)
-
+    retvalue = self.network.hmSetField(self.address,self.protocol,field,value)
+    self.lastreadtime = time.time()
+    self._procpartpayload(value,field,field)
+    return retvalue
+    
   def setFields(self,field,value):
-    return self.network.hmSetFields(self.address,self.protocol,field,value)
+    retvalue = self.network.hmSetFields(self.address,self.protocol,field,value)
+    self.lastreadtime = time.time()
+    self._procpartpayload(value,field,field)
+    return retvalue
 
 #overriding      
       

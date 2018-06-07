@@ -55,25 +55,25 @@ class test_time_functions(unittest.TestCase):
     self.utc_offset = - (time.altzone if is_dst else time.timezone)
     self.func = hmController(None, 1, HMV3_ID, 'test', 'test controller', PRT_HW_MODEL, PROG_MODE_DAY)
     
-  def test_checkcontrollertime_none(self):
+  def test_comparecontrollertime_none(self):
     with self.assertRaises(hmResponseError):
-      self.func._checkcontrollertime()
-  def test_checkcontrollertime_bad(self):
+      self.func._comparecontrollertime()
+  def test_comparecontrollertime_bad(self):
     self.func.datareadtime['currenttime'] = ( 1 + 3) * 86400 + 9 * 3600 + 33 * 60 + 0 - self.utc_offset #has been read 
     self.func.data['currenttime'] = self.func.currenttime = [1, 0, 0, 0]
     with self.assertRaises(hmControllerTimeError):
-      self.func._checkcontrollertime()
+      self.func._comparecontrollertime()
     
-  def test_checkcontrollertime_1(self):
+  def test_comparecontrollertime_1(self):
     self.func.datareadtime['currenttime'] = ( 4 + 3) * 86400 + 9 * 3600 + 33 * 60 + 5 - self.utc_offset #has been read 
     self.func.data['currenttime'] = self.func.currenttime = [4, 9, 33, 0]
-    self.func._checkcontrollertime()
+    self.func._comparecontrollertime()
     self.assertEqual(5, self.func.timeerr)
     
-  def test_checkcontrollertime_2(self):
+  def test_comparecontrollertime_2(self):
     self.func.datareadtime['currenttime'] = ( 7 + 3) * 86400 + 23 * 3600 + 59 * 60 + 55 - self.utc_offset #has been read 
     self.func.data['currenttime'] = self.func.currenttime = [1, 0, 0, 0]
-    self.func._checkcontrollertime()
+    self.func._comparecontrollertime()
     self.assertEqual(5, self.func.timeerr)
 
   def test_localtimearray(self):
