@@ -91,6 +91,7 @@ class HeatmiserControllerFileSetup(HeatmiserControllerSetup):
         specpath = os.path.join(self._module_path, "hmcontroller.spec")
             
         # Initialize attribute settings as a ConfigObj instance
+        logging.debug("Loading %s and checking against %s"%(filename, specpath))
         try:
             self.settings = ConfigObj(filename, file_error=True, configspec=specpath)
             validator = Validator()

@@ -7,6 +7,7 @@
 
 # Assume Python 2.7.x
 #
+import os
 import serial
 import time
 import logging
@@ -15,32 +16,45 @@ import logging
 from devices import *
 from stats_defn import *
 from adaptor import *
+import setup as hms
 
 class HeatmiserNetwork:
 ### stat list setup
 
-  def __init__(self, list = None):
-    self.adaptor = Heatmiser_Adaptor()
+  def __init__(self, configfile = None):
+    
+    # Initialize controller setup
+    if configfile is None:
+      self._module_path = os.path.abspath(os.path.dirname(__file__))
+      configfile = os.path.join(self._module_path, "hmcontroller.conf")
+    try:
+        self._setup = hms.HeatmiserControllerFileSetup(configfile)
+        settings = self._setup.settings
+    except hms.HeatmiserControllerSetupInitError as e:
+        logger.critical(e)
+        sys.exit("Unable to load configuration file: " + configfile)
+    
+    # Initialize and connect to heatmiser network, probably through serial port
+    self.adaptor = Heatmiser_Adaptor(self._setup)
     self.adaptor.connect()
     
     #create a broadcast device
     setattr(self,"All",hmBroadcastController(self.adaptor,"All","Broadcast to All"))
     self.current = self.All
     
-    if not list is None:
-      self.setStatList(list)
+    self.setStatList(settings['devices'])
       
   def setStatList(self, list):
-    self.statlist = list
-    self.statnum = len(self.statlist)
+    self._statlist = list
+    self._statnum = len(self._statlist)
 
-    self.controllers = []
-    for stat in list:
-      if hasattr(self,stat[SL_SHORT_NAME]):
-        print "error duplicate stat short name"
+    self._controllers = range(self._statnum)
+    for name, controllersettings in list.iteritems():
+      if hasattr(self,name):
+        print "error duplicate stat name"
       else:
-        setattr(self,stat[SL_SHORT_NAME],hmController(self.adaptor,stat[SL_ADDR],stat[SL_PROTOCOL],stat[SL_SHORT_NAME],stat[SL_LONG_NAME],stat[SL_EXPECTED_TYPE],stat[SL_MODE]))
-        self.controllers.append(getattr(self,stat[SL_SHORT_NAME]))
+        setattr(self,name,hmController(self.adaptor,controllersettings))
+        self._controllers[controllersettings['displayorder']] = getattr(self,name)
 
     self.current = self.controllers[0]
   
