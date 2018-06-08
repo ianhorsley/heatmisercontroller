@@ -96,7 +96,7 @@ class HeatmiserControllerFileSetup(HeatmiserControllerSetup):
             validator = Validator()
             self.settings.validate(validator, copy=True)
             # Check the settings file sections
-            self.settings['controllers']
+            self.settings['controller']
             self.settings['serial']
             self.settings['devices']
         except IOError as e:
