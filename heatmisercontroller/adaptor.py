@@ -16,10 +16,7 @@ from comms_settings import *
 import framing
 
 from .exceptions import hmResponseError, hmResponseErrorCRC
-
-# Master Address
-MY_MASTER_ADDR = 0x81
-    
+ 
 def retryer(max_retries=3):
   def wraps(func):
 
@@ -41,31 +38,52 @@ def retryer(max_retries=3):
     
 class Heatmiser_Adaptor:
 
-  def __init__(self):
+  def __init__(self, setup):
+  
+    # Initialize setup and get settings
+    self._setup = setup
+    settings = self._setup.settings
     
     self.serport = serial.Serial()
-    self.serport.port = COM_PORT
-    self.serport.baudrate = COM_BAUD
-    self.serport.bytesize = COM_SIZE
-    self.serport.parity = COM_PARITY
-    self.serport.stopbits = COM_STOP
-    self.serport.timeout = COM_TIMEOUT
-    self.serport.write_timeout = COM_TIMEOUT
-    
-    self.COM_TIMEOUT = COM_TIMEOUT
-    self.COM_START_TIMEOUT = COM_START_TIMEOUT
+    self.serport.bytesize = COM_SIZE = serial.EIGHTBITS
+    self.serport.parity = COM_PARITY = serial.PARITY_NONE
+    self.serport.stopbits = COM_STOP = serial.STOPBITS_ONE
     
     self.lastsendtime = None
     self.creationtime = time.time()
     
-    self.lastreceivetime = time.time() - COM_BUS_RESET_TIME # so that system will get on with sending straight away
+    self._update_settings(settings)
     
-    self.write_max_retries = 3
-    self.read_max_retries = 3
+    self.lastreceivetime = self.creationtime - self.serport.COM_BUS_RESET_TIME # so that system will get on with sending straight away
     
   def __del__(self):
     self._disconnect()
     
+###
+
+  def _update_settings(self, settings):
+    """Check settings and update if needed."""   
+    
+    for name, value in settings['controller'].iteritems():
+      setattr(self, name, value)
+    
+    # Configure serial settings     
+        
+    wasopen = False
+    if self.serport.isOpen():
+      wasopen = True
+      self.serport.close() # close port
+    
+    for name, value in settings['serial'].iteritems():
+      setattr(self.serport, name, value)
+    
+    if not self.serport.isOpen() and wasopen:
+      try:
+        self.serport.open()
+      except serial.SerialException as e:
+        logging.error("Could not open serial port %s: %s" % (self.serport.portstr, e))
+        raise
+        
 ### low level serial commands
 
   def connect(self):
@@ -95,7 +113,7 @@ class Heatmiser_Adaptor:
         self.connect()
 
       #check time since last received to make sure bus has settled.
-      waittime = COM_BUS_RESET_TIME - (time.time() - self.lastreceivetime)
+      waittime = self.serport.COM_BUS_RESET_TIME - (time.time() - self.lastreceivetime)
       if waittime > 0:
         logging.debug("Gen waiting before sending %.2f"% ( waittime ))
         time.sleep(waittime)
@@ -121,7 +139,7 @@ class Heatmiser_Adaptor:
     #clears input buffer
     #use after CRC check wrong; encase more data was sent than expected.
   
-    time.sleep(self.COM_TIMEOUT) #wait for read timeout to ensure slave finished sending
+    time.sleep(self.serport.COM_TIMEOUT) #wait for read timeout to ensure slave finished sending
     try:
       if self.serport.isOpen():
         self.serport.reset_input_buffer() #reset input buffer and dump any contents
@@ -139,7 +157,7 @@ class Heatmiser_Adaptor:
       
       # Listen for the first byte
       timereadstart = time.time()
-      self.serport.timeout = self.COM_START_TIMEOUT #wait for start of response
+      self.serport.timeout = self.serport.COM_START_TIMEOUT #wait for start of response
       try:
         firstbyteread = self.serport.read(1)
       except serial.SerialException as e:
@@ -154,7 +172,7 @@ class Heatmiser_Adaptor:
           raise hmResponseError("No Response")
         
         # Listen for the rest of the response
-        self.serport.timeout = max(COM_MIN_TIMEOUT, self.COM_TIMEOUT - timereadfirstbyte) #wait for full time out for rest of response, but not less than COM_MIN_TIMEOUT)
+        self.serport.timeout = max(self.serport.COM_MIN_TIMEOUT, self.serport.COM_TIMEOUT - timereadfirstbyte) #wait for full time out for rest of response, but not less than COM_MIN_TIMEOUT)
         try:
           byteread = self.serport.read(length - 1)
         except serial.SerialException as e:
@@ -168,7 +186,7 @@ class Heatmiser_Adaptor:
 
         return data
       finally:
-        self.serport.timeout = self.COM_TIMEOUT #make sure timeout is reverted
+        self.serport.timeout = self.serport.COM_TIMEOUT #make sure timeout is reverted
         self.lastreceivetime = time.time() #record last read time. Used to manage bus settling.
 
 ### protocol functions
@@ -176,7 +194,7 @@ class Heatmiser_Adaptor:
   @retryer(max_retries = 3)
   def hmWriteToController(self, network_address, protocol, dcb_address, length, payload):
       ###shouldn't be labelled dcb_address. It is a unique address.
-      msg = framing._hmFormFrame(network_address, protocol, MY_MASTER_ADDR, FUNC_WRITE, dcb_address, length, payload)
+      msg = framing._hmFormFrame(network_address, protocol, self.my_master_addr, FUNC_WRITE, dcb_address, length, payload)
       
       try:
         self._hmSendMsg(msg)
@@ -186,11 +204,11 @@ class Heatmiser_Adaptor:
       else:
         logging.debug("C%i written to address %i length %i payload %s"%(network_address,dcb_address, length, ', '.join(str(x) for x in payload)))
         if network_address == BROADCAST_ADDR:
-          self.lastreceivetime = time.time() + COM_SEND_MIN_TIME - COM_BUS_RESET_TIME # if broadcasting force it to wait longer until next send
+          self.lastreceivetime = time.time() + self.serport.COM_SEND_MIN_TIME - self.serport.COM_BUS_RESET_TIME # if broadcasting force it to wait longer until next send
         else:
           response = self._hmReceiveMsg(FRAME_WRITE_RESP_LENGTH)
           try:
-            framing._hmVerifyWriteAck(protocol, network_address, MY_MASTER_ADDR, response)
+            framing._hmVerifyWriteAck(protocol, network_address, self.my_master_addr, response)
           except hmResponseErrorCRC:
             self._hmClearInputBuffer()
             raise
@@ -199,10 +217,10 @@ class Heatmiser_Adaptor:
   def hmReadFromController(self, network_address, protocol, dcb_start_address, expectedLength, readall = False):
     ###mis labelled dcb addres, should be unique
       if readall:
-        msg = framing._hmFormReadFrame(network_address, protocol, MY_MASTER_ADDR, DCB_START, RW_LENGTH_ALL)
+        msg = framing._hmFormReadFrame(network_address, protocol, self.my_master_addr, DCB_START, RW_LENGTH_ALL)
         logging.debug("C %i read request to address %i length %i"%(network_address,DCB_START, RW_LENGTH_ALL))
       else:
-        msg = framing._hmFormReadFrame(network_address, protocol, MY_MASTER_ADDR, dcb_start_address, expectedLength)
+        msg = framing._hmFormReadFrame(network_address, protocol, self.my_master_addr, dcb_start_address, expectedLength)
         logging.debug("C %i read request to address %i length %i"%(network_address,dcb_start_address, expectedLength))
       
       try:
@@ -222,7 +240,7 @@ class Heatmiser_Adaptor:
           logging.debug("C%i read in %.2f s from address %i length %i response %s"%(network_address,time.time()-time1,dcb_start_address, expectedLength, ', '.join(str(x) for x in response)))
         
           try:
-            framing._hmVerifyResponse(protocol, network_address, MY_MASTER_ADDR, FUNC_READ, expectedLength , response)
+            framing._hmVerifyResponse(protocol, network_address, self.my_master_addr, FUNC_READ, expectedLength , response)
           except hmResponseErrorCRC:
             self._hmClearInputBuffer()
             raise
