@@ -13,7 +13,6 @@ import logging
 
 from hm_constants import *
 import serial
-#from comms_settings import *
 import framing
 
 from .exceptions import hmResponseError, hmResponseErrorCRC

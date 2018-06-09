@@ -14,10 +14,10 @@
 [ devices ]
   [[ __many__ ]]
     address = integer(0, 32)
-    displayorder = integer(0, 32, default=32)
-    longname = string(max=25, default=)
+    display_order = integer(0, 32, default=32)
+    long_name = string(max=25, default=)
     protocol = integer(default=3)
-    expectedtype = string(default=prt_e_model)
-    programmode = option('day','week',default='day')
-    controlmode = option('auto','manual',default='auto')
-    frosttemperature = integer(0, 32, default=10)
+    expected_model = string(default=prt_e_model)
+    expected_prog_mode = option('day','week',default='day')
+    control_mode = option('auto','manual',default='auto')
+    frost_temperature = integer(0, 32, default=10)

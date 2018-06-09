@@ -9,7 +9,6 @@ import time
 import logging
 
 from heatmisercontroller.logging_setup import initialize_logger
-from heatmisercontroller.stats_defn import StatList
 from heatmisercontroller.hm_constants import *
 from heatmisercontroller.network import *
 

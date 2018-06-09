@@ -14,7 +14,6 @@ import logging
 
 # Import our own stuff
 from devices import *
-from stats_defn import *
 from adaptor import *
 import setup as hms
 
@@ -39,7 +38,7 @@ class HeatmiserNetwork:
     self.adaptor.connect()
     
     #create a broadcast device
-    setattr(self,"All",hmBroadcastController(self.adaptor,"All","Broadcast to All"))
+    setattr(self,"All",hmBroadcastController(self.adaptor,"Broadcast to All"))
     self.current = self.All
     
     self.setStatList(settings['devices'])

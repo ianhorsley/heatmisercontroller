@@ -181,18 +181,18 @@ READ_HOTWATERSTATE_OFF = 0
 READ_HOTWATERSTATE_ON = 1
 
 #these maps are used to translate the unique address which is the same for all controllers to the DCB address for a specific controller
-PROG_MODE_WEEK = 0
-PROG_MODE_DAY = 1
+PROG_MODE_WEEK = 'week'
+PROG_MODE_DAY = 'day'
 DEFAULT_PROG_MODE = PROG_MODE_DAY #allows broadcast to program both modes.
 
+#models
+DEVICE_MODELS = {'prt_e_model': 3, 'prt_hw_model': 4, False: 0}
 #PRT-E DCB map
 DCB_INVALID = None
 PRTEmap = range(2)
 PRTEmap[0] = list(reversed([(25,0),(31,DCB_INVALID),(41,6),(42,DCB_INVALID),(70,7),(MAX_UNIQUE_ADDRESS,DCB_INVALID)]))
 PRTEmap[1] = list(reversed([(25,0),(31,DCB_INVALID),(41,6),(42,DCB_INVALID),(70,7),(102,DCB_INVALID),(186,39),(MAX_UNIQUE_ADDRESS,DCB_INVALID)]))
-PRT_E_MODEL = 03
 PRTHWmap = range(2)
 PRTHWmap[0] = list(reversed([(25,0),(31,DCB_INVALID),(102,6),(MAX_UNIQUE_ADDRESS,DCB_INVALID)]))
 PRTHWmap[1] = list(reversed([(25,0),(31,DCB_INVALID),(MAX_UNIQUE_ADDRESS,6)]))
-PRT_HW_MODEL = 04
 STRAIGHTmap = list([(MAX_UNIQUE_ADDRESS,0)])
