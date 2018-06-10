@@ -9,6 +9,7 @@
 #
 
 #relook at the setfield and setfields. Should they be in adaptor. Payload length checking should happen on all results.
+#could clean up class setup. basic controller could be write only or read only. two classes that inherite. General, gets both, and broadcast, takes write only.
 
 import logging
 import time
