@@ -8,9 +8,7 @@
 # Assume Python 2.7.x
 #
 
-#consider adding timestamps to all parameters for their age.
 #relook at the setfield and setfields. Should they be in adaptor. Payload length checking should happen on all results.
-#some sort of get variable function, with max age, for single parameters. if to old would autoget. Still need to auto trigger full read in some cases.
 
 import logging
 import time
@@ -61,11 +59,13 @@ class hmController(object):
         self.water_schedule = schedulerweekwater()
     else:
       raise ValueError("Unknown program mode")
-      
+    
+    self._expected_prog_mode_number = PROG_MODES[self._expected_prog_mode]
+    
     if self._expected_model == 'prt_e_model':
-      self.DCBmap = PRTEmap[mode]
+      self.DCBmap = PRTEmap[self._expected_prog_mode]
     elif self._expected_model == 'prt_hw_model':
-      self.DCBmap = PRTHWmap[mode]
+      self.DCBmap = PRTHWmap[self._expected_prog_mode]
     elif self._expected_model == False:
       self.DCBmap = STRAIGHTmap
     else:
@@ -102,7 +102,7 @@ class hmController(object):
   def hmReadVariables(self):
     rawdata1 = self.hmReadFields('setroomtemp', 'holidayhours')
   
-    if self.readField('model', None) == PRT_HW_MODEL:
+    if self.readField('model', None) == DEVICE_MODELS['prt_hw_model']:
       lastfield = 'hotwaterstate'
     else:
       lastfield = 'heatingstate'
@@ -113,7 +113,7 @@ class hmController(object):
     
   def hmReadTempsandDemand(self):
   
-    if self.readField('model', None) == PRT_HW_MODEL:
+    if self.readField('model', None) == DEVICE_MODELS['prt_hw_model']:
       lastfield = 'hotwaterstate'
     else:
       lastfield = 'heatingstate'
@@ -203,7 +203,7 @@ class hmController(object):
     if fieldname == 'model' and value != self._expected_model_number:
       raise hmResponseError('Model is unexpected')
     
-    if fieldname == 'programmode' and value != self._expected_prog_mode:
+    if fieldname == 'programmode' and value != self._expected_prog_mode_number:
       raise hmResponseError('Programme mode is unexpected')
     
     if fieldname == 'version' and self._expected_model != 'prt_hw_model':

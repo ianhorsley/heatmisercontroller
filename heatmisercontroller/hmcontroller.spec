@@ -1,3 +1,5 @@
+[ controller ]
+    __many__ = integer()
 
 [ serial ]
     baudrate = integer()

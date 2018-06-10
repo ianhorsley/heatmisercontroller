@@ -15,13 +15,24 @@ class SerialTestClass(object):
             serial.serial_for_url(url=self._port,
                                   timeout=self._timeout,
                                   baudrate=self._baudrate)
-                                      
+        self.serialPort.COM_BUS_RESET_TIME = 0.1
+        self.serialPort.COM_START_TIMEOUT = 0.1
+        self.serialPort.COM_TIMEOUT = 1
+        self.serialPort.COM_MIN_TIMEOUT = 0.1
+        
+class setupTestClass(object):
+    def __init__(self):
+      self.settings = {}
+      self.settings['controller'] = {'none':None}
+      self.settings['serial'] = {'COM_BUS_RESET_TIME': 0.1}
+                                  
 class test_serial(unittest.TestCase):
   def setUp(self):
   
     self.serialport = SerialTestClass()
     logging.basicConfig(level=logging.ERROR)
-    self.func = Heatmiser_Adaptor()
+    setup = setupTestClass()
+    self.func = Heatmiser_Adaptor(setup)
     self.func.serport = self.serialport.serialPort
     self.goodmessage = [5, 10, 129, 0, 34, 0, 8, 0, 193, 72]      
       

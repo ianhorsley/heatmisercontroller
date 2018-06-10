@@ -39,7 +39,7 @@ class HeatmiserNetwork:
     
     #create a broadcast device
     setattr(self,"All",hmBroadcastController(self.adaptor,"Broadcast to All"))
-    self.current = self.All
+    self._current = self.All
     
     self.setStatList(settings['devices'])
       
@@ -47,15 +47,16 @@ class HeatmiserNetwork:
     self._statlist = list
     self._statnum = len(self._statlist)
 
-    self._controllers = range(self._statnum)
+    self.controllers = range(self._statnum)
     for name, controllersettings in list.iteritems():
+      controllersettings['name'] = name
       if hasattr(self,name):
         print "error duplicate stat name"
       else:
         setattr(self,name,hmController(self.adaptor,controllersettings))
-        self._controllers[controllersettings['displayorder']] = getattr(self,name)
+        self.controllers[controllersettings['display_order']-1] = getattr(self,name)
 
-    self.current = self.controllers[0]
+    self._current = self.controllers[0]
   
   def getStatAddress(self,shortname):
     if isinstance(shortname,basestring):
@@ -67,10 +68,10 @@ class HeatmiserNetwork:
       return shortname
 
   def setCurrentControllerByName(self,name):
-    self.current = getattr(self,name)
+    self._current = getattr(self,name)
     
   def setCurrentControllerByIndex(self,index):
-    self.current = self.controllers[index]
+    self._current = self.controllers[index]
     
   def controllerByName(self,name):
     return getattr(self,name)

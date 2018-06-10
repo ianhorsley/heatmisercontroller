@@ -184,15 +184,16 @@ READ_HOTWATERSTATE_ON = 1
 PROG_MODE_WEEK = 'week'
 PROG_MODE_DAY = 'day'
 DEFAULT_PROG_MODE = PROG_MODE_DAY #allows broadcast to program both modes.
+PROG_MODES = {'week':0,'day':1}
 
 #models
 DEVICE_MODELS = {'prt_e_model': 3, 'prt_hw_model': 4, False: 0}
 #PRT-E DCB map
 DCB_INVALID = None
-PRTEmap = range(2)
-PRTEmap[0] = list(reversed([(25,0),(31,DCB_INVALID),(41,6),(42,DCB_INVALID),(70,7),(MAX_UNIQUE_ADDRESS,DCB_INVALID)]))
-PRTEmap[1] = list(reversed([(25,0),(31,DCB_INVALID),(41,6),(42,DCB_INVALID),(70,7),(102,DCB_INVALID),(186,39),(MAX_UNIQUE_ADDRESS,DCB_INVALID)]))
-PRTHWmap = range(2)
-PRTHWmap[0] = list(reversed([(25,0),(31,DCB_INVALID),(102,6),(MAX_UNIQUE_ADDRESS,DCB_INVALID)]))
-PRTHWmap[1] = list(reversed([(25,0),(31,DCB_INVALID),(MAX_UNIQUE_ADDRESS,6)]))
+PRTEmap = {}
+PRTEmap[PROG_MODE_WEEK] = list(reversed([(25,0),(31,DCB_INVALID),(41,6),(42,DCB_INVALID),(70,7),(MAX_UNIQUE_ADDRESS,DCB_INVALID)]))
+PRTEmap[PROG_MODE_DAY] = list(reversed([(25,0),(31,DCB_INVALID),(41,6),(42,DCB_INVALID),(70,7),(102,DCB_INVALID),(186,39),(MAX_UNIQUE_ADDRESS,DCB_INVALID)]))
+PRTHWmap = {}
+PRTHWmap[PROG_MODE_WEEK] = list(reversed([(25,0),(31,DCB_INVALID),(102,6),(MAX_UNIQUE_ADDRESS,DCB_INVALID)]))
+PRTHWmap[PROG_MODE_DAY] = list(reversed([(25,0),(31,DCB_INVALID),(MAX_UNIQUE_ADDRESS,6)]))
 STRAIGHTmap = list([(MAX_UNIQUE_ADDRESS,0)])

@@ -13,21 +13,21 @@ from heatmisercontroller.hm_constants import *
 from heatmisercontroller.network import *
 
 #start logging
-initialize_logger('logs', logging.DEBUG, True)
+initialize_logger('logs', logging.WARN, True)
 
 hmn1 = HeatmiserNetwork()
 
 # CYCLE THROUGH ALL CONTROLLERS
 for current_controller in hmn1.controllers:
-  print "\r\nGetting all data control %2d in %s *****************************" % (current_controller.address, current_controller.long_name)
+  print "\r\nGetting all data control %2d in %s *****************************" % (current_controller._address, current_controller._long_name)
   
   try:
     current_controller.hmReadAll()
   except hmResponseError as e:
-    print "C%d in %s Failed to Read due to %s" % (current_controller.address,  current_controller.name.ljust(4), str(e))
+    print "C%d in %s Failed to Read due to %s" % (current_controller._address,  current_controller._name.ljust(4), str(e))
   else:
-    disptext = "C%d Air Temp is %.1f from type %.f and Target set to %d  Boiler Demand %d" % (current_controller.address, current_controller.getAirTemp(), current_controller.getAirSensorType(), current_controller.setroomtemp, current_controller.heatingstate)
-    if current_controller.model == PRT_HW_MODEL:
+    disptext = "C%d Air Temp is %.1f from type %.f and Target set to %d  Boiler Demand %d" % (current_controller._address, current_controller.getAirTemp(), current_controller.getAirSensorType(), current_controller.setroomtemp, current_controller.heatingstate)
+    if current_controller.model == 'prt_hw_model':
       print "%s Hot Water Demand %d" % (disptext, current_controller.hotwaterstate)
     else:
       print disptext
@@ -44,12 +44,12 @@ while True:
     try:
       current_controller.hmReadTempsandDemand()
     except hmResponseError as e:
-      print "C%d in %s Failed to Read due to %s" % (current_controller.address,  current_controller.name.ljust(4),str(e))
+      print "C%d in %s Failed to Read due to %s" % (current_controller._address,  current_controller._name.ljust(4),str(e))
     else: 
       targettext = current_controller.printTarget()
-      disptext = "C%d in %s Air Temp is %.1f from type %.f, %s, Heat %d" % (current_controller.address,  current_controller.name.ljust(4), current_controller.getAirTemp(), current_controller.getAirSensorType(), targettext, current_controller.heatingstate)
+      disptext = "C%d in %s Air Temp is %.1f from type %.f, %s, Heat %d" % (current_controller._address,  current_controller._name.ljust(4), current_controller.getAirTemp(), current_controller.getAirSensorType(), targettext, current_controller.heatingstate)
       
-      if current_controller.model == PRT_HW_MODEL:
+      if current_controller.model == 'prt_hw_model':
         print "%s Water %d" % (disptext, current_controller.hotwaterstate)
       else:
         print disptext
