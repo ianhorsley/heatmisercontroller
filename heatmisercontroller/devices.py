@@ -31,9 +31,9 @@ class hmController(object):
   max_age_time = 60 * 60 * 24 #time tends to drift very slowly, so it shouldn't need checking very often
   max_age_temp = 10 #temperature is something that might be sampled very regularly
 
-  def __init__(self, network, devicesettings):
+  def __init__(self, adaptor, devicesettings):
     #address, protocol, short_name, long_name, model, mode
-    self._network = network
+    self._adaptor = adaptor
     
     self.water_schedule = None
     self._update_settings(devicesettings)
@@ -128,7 +128,7 @@ class hmController(object):
 
   def hmReadAll(self):
     try:
-      self.rawdata = self._network.hmReadAllFromController(self._address, self._protocol, self.DCBlength)
+      self.rawdata = self._adaptor.hmReadAllFromController(self._address, self._protocol, self.DCBlength)
     except serial.SerialException as e:
       logging.warn("C%i Read all failed, Serial Port error %s"%(self._address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH), str(e)))
       raise
@@ -162,7 +162,7 @@ class hmController(object):
     readlength = lastfieldinfo[UNIADD_ADD] - firstfieldinfo[UNIADD_ADD] + lastfieldinfo[UNIADD_LEN]
 
     try:
-      rawdata = self._network.hmReadFromController(self._address, self._protocol, firstfieldinfo[UNIADD_ADD], readlength)
+      rawdata = self._adaptor.hmReadFromController(self._address, self._protocol, firstfieldinfo[UNIADD_ADD], readlength)
     except serial.SerialException as e:
       logging.warn("C%i Read failed of fields %s to %s, Serial Port error %s"%(self._address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH), str(e)))
       raise
@@ -463,7 +463,7 @@ class hmController(object):
 
   def setHeatingSchedule(self, day, schedule):
     padschedule = self.heat_schedule.pad_schedule(schedule)
-    self._network.hmSetFields(self._address,self._protocol,day,padschedule)
+    self._adaptor.hmSetFields(self._address,self._protocol,day,padschedule)
     
   def setWaterSchedule(self, day, schedule):
     padschedule = self.water_schedule.pad_schedule(schedule)
@@ -486,7 +486,7 @@ class hmController(object):
 #general field setting
 
   def setField(self,field,value):
-    retvalue = self._network.hmSetField(self._address,self._protocol,field,value)
+    retvalue = self._adaptor.hmSetField(self._address,self._protocol,field,value)
     self.lastreadtime = time.time()
     
     ###should really be handled by a specific overriding function, rather than in here.
@@ -502,7 +502,7 @@ class hmController(object):
     return retvalue
     
   def setFields(self,field,value):
-    retvalue = self._network.hmSetFields(self._address,self._protocol,field,value)
+    retvalue = self._adaptor.hmSetFields(self._address,self._protocol,field,value)
     self.lastreadtime = time.time()
     self._procpartpayload(value,field,field)
     return retvalue
@@ -514,51 +514,51 @@ class hmController(object):
   
     #check hold temp not applied
     if self.readField('tempholdmins') == 0:
-      return self._network.hmSetField(self._address,self._protocol,'setroomtemp',temp)
+      return self._adaptor.hmSetField(self._address,self._protocol,'setroomtemp',temp)
     else:
       logging.warn("%i address, temp hold applied so won't set temp"%(self._address))
 
   def releaseTemp(self) :
     #release SetTemp back to the program, but only if temp isn't held
     if self.readField('tempholdmins') == 0:
-      return self._network.hmSetField(self._address,self._protocol,'tempholdmins',0)
+      return self._adaptor.hmSetField(self._address,self._protocol,'tempholdmins',0)
     else:
       logging.warn("%i address, temp hold applied so won't remove set temp"%(self._address))     
 
   def holdTemp(self, minutes, temp) :
     #sets the temperature demand overrding the program for a set time. Believe it then returns to program.
-    self._network.hmSetField(self._address,self._protocol,'setroomtemp',temp)
-    return self._network.hmSetField(self._address,self._protocol,'tempholdmins',minutes)
+    self._adaptor.hmSetField(self._address,self._protocol,'setroomtemp',temp)
+    return self._adaptor.hmSetField(self._address,self._protocol,'tempholdmins',minutes)
     #didn't stay on if did minutes followed by temp.
     
   def releaseHoldTemp(self) :
     #release SetTemp or HoldTemp back to the program
-    return self._network.hmSetField(self._address,self._protocol,'tempholdmins',0)
+    return self._adaptor.hmSetField(self._address,self._protocol,'tempholdmins',0)
     
   def setHoliday(self, hours) :
     #sets holiday up for a defined number of hours
-    return self._network.hmSetField(self._address,self._protocol,'holidayhours',hours)
+    return self._adaptor.hmSetField(self._address,self._protocol,'holidayhours',hours)
   
   def releaseHoliday(self) :
     #cancels holiday mode
-    return self._network.hmSetField(self._address,self._protocol,'holidayhours',0)
+    return self._adaptor.hmSetField(self._address,self._protocol,'holidayhours',0)
 
 #onoffs
 
   def setOn(self):
-    return self._network.hmSetField(self._address,self._protocol,'onoff',WRITE_ONOFF_ON)
+    return self._adaptor.hmSetField(self._address,self._protocol,'onoff',WRITE_ONOFF_ON)
   def setOff(self):
-    return self._network.hmSetField(self._address,self._protocol,'onoff',WRITE_ONOFF_OFF)
+    return self._adaptor.hmSetField(self._address,self._protocol,'onoff',WRITE_ONOFF_OFF)
     
   def setHeat(self):
-    return self._network.hmSetField(self._address,self._protocol,'runmode',WRITE_RUNMODE_HEATING)
+    return self._adaptor.hmSetField(self._address,self._protocol,'runmode',WRITE_RUNMODE_HEATING)
   def setFrost(self):
-    return self._network.hmSetField(self._address,self._protocol,'runmode',WRITE_RUNMODE_FROST)
+    return self._adaptor.hmSetField(self._address,self._protocol,'runmode',WRITE_RUNMODE_FROST)
     
   def setLock(self):
-    return self._network.hmSetField(self._address,self._protocol,'keylock',WRITE_KEYLOCK_ON)
+    return self._adaptor.hmSetField(self._address,self._protocol,'keylock',WRITE_KEYLOCK_ON)
   def setUnlock(self):
-    return self._network.hmSetField(self._address,self._protocol,'keylock',WRITE_KEYLOCK_OFF)
+    return self._adaptor.hmSetField(self._address,self._protocol,'keylock',WRITE_KEYLOCK_OFF)
   
 #other
 #set floor limit
