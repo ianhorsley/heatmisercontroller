@@ -22,10 +22,12 @@ class HeatmiserNetwork:
 
   def __init__(self, configfile = None):
     
-    # Initialize controller setup
+    # Select default configuration file if none provided
     if configfile is None:
       self._module_path = os.path.abspath(os.path.dirname(__file__))
       configfile = os.path.join(self._module_path, "hmcontroller.conf")
+      
+    # Initialize controller setup
     try:
         self._setup = hms.HeatmiserControllerFileSetup(configfile)
         settings = self._setup.settings
@@ -37,13 +39,14 @@ class HeatmiserNetwork:
     self.adaptor = Heatmiser_Adaptor(self._setup)
     self.adaptor.connect()
     
-    #create a broadcast device
+    # Create a broadcast device
     setattr(self,"All",hmBroadcastController(self.adaptor,"Broadcast to All"))
     self._current = self.All
     
     self.setStatList(settings['devices'])
       
   def setStatList(self, list):
+    # Store list of stats
     self._statlist = list
     self._statnum = len(self._statlist)
 
@@ -61,9 +64,9 @@ class HeatmiserNetwork:
   def getStatAddress(self,shortname):
     if isinstance(shortname,basestring):
       #matches = [x for x in self.statlist if x[SL_SHORT_NAME] == shortname]
-      shorts = [row[SL_SHORT_NAME] for row in self.statlist]
+      shorts = [row[SL_SHORT_NAME] for row in self._statlist]
       
-      return self.statlist[shorts.index(shortname)][SL_ADDR]
+      return self.statlist[shorts.index(shortname)]['address']
     else:
       return shortname
 
