@@ -504,12 +504,6 @@ class hmController(object):
     else:
         self._procpartpayload([value],field,field)
     return retvalue
-    
-  def setFields(self,field,value):
-    retvalue = self._adaptor.setField(self._address,self._protocol,field,value)
-    self.lastreadtime = time.time()
-    self._procpartpayload(value,field,field)
-    return retvalue
 
 #overriding      
       

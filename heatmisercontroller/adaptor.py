@@ -283,60 +283,6 @@ class Heatmiser_Adaptor:
                 logging.info("C%i set field %s to %s"%(network_address, fieldname.ljust(FIELD_NAME_LENGTH), ', '.join(str(x) for x in payload)))
         else:
             raise ValueError("Un-supported protocol found %s" % protocol)
-        
-    def hmSetField(self, network_address, protocol, fieldname,state) :
-        #set a field to a state. Defined for single or double length fields
-        fieldinfo = uniadd[fieldname]
-        
-        if not isinstance(state, (int, long)) or state < fieldinfo[UNIADD_RANGE][0] or state > fieldinfo[UNIADD_RANGE][1]:
-            raise ValueError("hmSetField: invalid requested value")
-        elif fieldinfo[UNIADD_LEN] != 1 and fieldinfo[UNIADD_LEN] != 2 :
-            raise ValueError("hmSetField: field isn't single or dual")
-        elif len(fieldinfo) < UNIADD_WRITE + 1 or fieldinfo[UNIADD_WRITE] != 'W':
-            raise ValueError("hmSetField: field isn't writeable")
-        
-        if network_address == BROADCAST_ADDR or protocol == HMV3_ID:
-            if fieldinfo[UNIADD_LEN] == 1:
-                payload = [state]
-            elif fieldinfo[UNIADD_LEN] == 2:
-                pay_lo = (state & BYTEMASK)
-                pay_hi = (state >> 8) & BYTEMASK
-                payload = [pay_lo, pay_hi]
-            try:
-                self.hmWriteToController(network_address, protocol, fieldinfo[UNIADD_ADD], fieldinfo[UNIADD_LEN], payload)
-            except:
-                logging.info("C%i failed to set field %s to %i"%(network_address, fieldname.ljust(FIELD_NAME_LENGTH), state))
-                raise
-            else:
-                logging.info("C%i set field %s to %i"%(network_address, fieldname.ljust(FIELD_NAME_LENGTH), state))
-        else:
-            raise ValueError("Un-supported protocol found %s" % protocol)
-                    
-    def hmSetFields(self, network_address,protocol,uniqueaddress,payload) :
-        #set a field to a state. Defined for fields greater than 2 in length
-        fieldinfo = uniadd[uniqueaddress]
-        
-        if len(payload) != fieldinfo[UNIADD_LEN]:
-            raise ValueError("hmSetFields: invalid payload length")
-        elif fieldinfo[UNIADD_LEN] <= 2:
-            raise ValueError("hmSetFields: field isn't array")
-        elif fieldinfo[UNIADD_WRITE] != 'W':
-            raise ValueError("hmSetFields: field isn't writeable")
-        self._checkPayloadValues(payload, fieldinfo[UNIADD_RANGE])
-        
-        ###could add payload padding
-        #payloadgrouped=chunks(payload,len(fieldinfo[UNIADD_RANGE]))
-        
-        if network_address == BROADCAST_ADDR or protocol == HMV3_ID:
-            try :
-                self.hmWriteToController(network_address, protocol, fieldinfo[UNIADD_ADD], len(payload), payload)
-            except:
-                logging.debug("C%i failed to set field %s to %s"%(network_address, uniqueaddress.ljust(FIELD_NAME_LENGTH), ', '.join(str(x) for x in payload)))
-                raise
-            else:
-                logging.info("C%i Set field %s to %s"%(network_address, uniqueaddress.ljust(FIELD_NAME_LENGTH), ', '.join(str(x) for x in payload)))
-        else:
-            raise ValueError("Un-supported protocol found %s" % protocol)
 
     def _checkPayloadValues(self, payload, ranges):
         #checks the payload matches the ranges if ranges are defined        
@@ -349,5 +295,3 @@ class Heatmiser_Adaptor:
                     range = ranges[i % len(ranges)]
                     if item < range[0] or item > range[1]:
                         raise ValueError("setField: payload out of range")
-
-
