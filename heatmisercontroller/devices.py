@@ -222,6 +222,7 @@ class hmController(object):
     ###todo, add range validation for other lengths
 
   def _procpartpayload(self, rawdata, firstfieldname, lastfieldname):
+    #rawdata must be a list
     #converts field names to unique addresses to allow process of shortened raw data
     firstfieldadd = uniadd[firstfieldname][UNIADD_ADD] 
     lastfieldadd = uniadd[lastfieldname][UNIADD_ADD]
@@ -463,30 +464,30 @@ class hmController(object):
 
   def setHeatingSchedule(self, day, schedule):
     padschedule = self.heat_schedule.pad_schedule(schedule)
-    self._adaptor.hmSetFields(self._address,self._protocol,day,padschedule)
+    self._adaptor.setField(self._address,self._protocol,day,padschedule)
     
   def setWaterSchedule(self, day, schedule):
     padschedule = self.water_schedule.pad_schedule(schedule)
     if day == 'all':
-      self.setFields('mon_water',padschedule)
-      self.setFields('tues_water',padschedule)
-      self.setFields('wed_water',padschedule)
-      self.setFields('thurs_water',padschedule)
-      self.setFields('fri_water',padschedule)
-      self.setFields('sat_water',padschedule)
-      self.setFields('sun_water',padschedule)
+      self.setField('mon_water',padschedule)
+      self.setField('tues_water',padschedule)
+      self.setField('wed_water',padschedule)
+      self.setField('thurs_water',padschedule)
+      self.setField('fri_water',padschedule)
+      self.setField('sat_water',padschedule)
+      self.setField('sun_water',padschedule)
     else:
-      self.setFields(day,padschedule)
+      self.setField(day,padschedule)
 
   def setTime(self) :
       """set time on controller to match current localtime on server"""
       timenow = time.time() + 0.5 #allow a little time for any delay in setting
-      return self.setFields('currenttime',self._localtimearray(timenow))
+      return self.setField('currenttime',self._localtimearray(timenow))
       
 #general field setting
 
   def setField(self,field,value):
-    retvalue = self._adaptor.hmSetField(self._address,self._protocol,field,value)
+    retvalue = self._adaptor.setField(self._address,self._protocol,field,value)
     self.lastreadtime = time.time()
     
     ###should really be handled by a specific overriding function, rather than in here.
@@ -498,11 +499,14 @@ class hmController(object):
       elif value == WRITE_HOTWATERSTATE_OFF: #if overridden off store the off read value
         value = READ_HOTWATERSTATE_OFF
     
-    self._procpartpayload([value],field,field)
+    if isinstance(value, list):
+        self._procpartpayload(value,field,field)
+    else:
+        self._procpartpayload([value],field,field)
     return retvalue
     
   def setFields(self,field,value):
-    retvalue = self._adaptor.hmSetFields(self._address,self._protocol,field,value)
+    retvalue = self._adaptor.setField(self._address,self._protocol,field,value)
     self.lastreadtime = time.time()
     self._procpartpayload(value,field,field)
     return retvalue
@@ -514,51 +518,51 @@ class hmController(object):
   
     #check hold temp not applied
     if self.readField('tempholdmins') == 0:
-      return self._adaptor.hmSetField(self._address,self._protocol,'setroomtemp',temp)
+      return self._adaptor.setField(self._address,self._protocol,'setroomtemp',temp)
     else:
       logging.warn("%i address, temp hold applied so won't set temp"%(self._address))
 
   def releaseTemp(self) :
     #release SetTemp back to the program, but only if temp isn't held
     if self.readField('tempholdmins') == 0:
-      return self._adaptor.hmSetField(self._address,self._protocol,'tempholdmins',0)
+      return self._adaptor.setField(self._address,self._protocol,'tempholdmins',0)
     else:
       logging.warn("%i address, temp hold applied so won't remove set temp"%(self._address))     
 
   def holdTemp(self, minutes, temp) :
     #sets the temperature demand overrding the program for a set time. Believe it then returns to program.
-    self._adaptor.hmSetField(self._address,self._protocol,'setroomtemp',temp)
-    return self._adaptor.hmSetField(self._address,self._protocol,'tempholdmins',minutes)
+    self._adaptor.setField(self._address,self._protocol,'setroomtemp',temp)
+    return self._adaptor.setField(self._address,self._protocol,'tempholdmins',minutes)
     #didn't stay on if did minutes followed by temp.
     
   def releaseHoldTemp(self) :
     #release SetTemp or HoldTemp back to the program
-    return self._adaptor.hmSetField(self._address,self._protocol,'tempholdmins',0)
+    return self._adaptor.setField(self._address,self._protocol,'tempholdmins',0)
     
   def setHoliday(self, hours) :
     #sets holiday up for a defined number of hours
-    return self._adaptor.hmSetField(self._address,self._protocol,'holidayhours',hours)
+    return self._adaptor.setField(self._address,self._protocol,'holidayhours',hours)
   
   def releaseHoliday(self) :
     #cancels holiday mode
-    return self._adaptor.hmSetField(self._address,self._protocol,'holidayhours',0)
+    return self._adaptor.setField(self._address,self._protocol,'holidayhours',0)
 
 #onoffs
 
   def setOn(self):
-    return self._adaptor.hmSetField(self._address,self._protocol,'onoff',WRITE_ONOFF_ON)
+    return self._adaptor.setField(self._address,self._protocol,'onoff',WRITE_ONOFF_ON)
   def setOff(self):
-    return self._adaptor.hmSetField(self._address,self._protocol,'onoff',WRITE_ONOFF_OFF)
+    return self._adaptor.setField(self._address,self._protocol,'onoff',WRITE_ONOFF_OFF)
     
   def setHeat(self):
-    return self._adaptor.hmSetField(self._address,self._protocol,'runmode',WRITE_RUNMODE_HEATING)
+    return self._adaptor.setField(self._address,self._protocol,'runmode',WRITE_RUNMODE_HEATING)
   def setFrost(self):
-    return self._adaptor.hmSetField(self._address,self._protocol,'runmode',WRITE_RUNMODE_FROST)
+    return self._adaptor.setField(self._address,self._protocol,'runmode',WRITE_RUNMODE_FROST)
     
   def setLock(self):
-    return self._adaptor.hmSetField(self._address,self._protocol,'keylock',WRITE_KEYLOCK_ON)
+    return self._adaptor.setField(self._address,self._protocol,'keylock',WRITE_KEYLOCK_ON)
   def setUnlock(self):
-    return self._adaptor.hmSetField(self._address,self._protocol,'keylock',WRITE_KEYLOCK_OFF)
+    return self._adaptor.setField(self._address,self._protocol,'keylock',WRITE_KEYLOCK_OFF)
   
 #other
 #set floor limit

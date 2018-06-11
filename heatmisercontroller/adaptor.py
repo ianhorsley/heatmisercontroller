@@ -297,10 +297,10 @@ class Heatmiser_Adaptor:
         
         if network_address == BROADCAST_ADDR or protocol == HMV3_ID:
             if fieldinfo[UNIADD_LEN] == 1:
-                payload = [payload]
+                payload = [state]
             elif fieldinfo[UNIADD_LEN] == 2:
-                pay_lo = (payload & BYTEMASK)
-                pay_hi = (payload >> 8) & BYTEMASK
+                pay_lo = (state & BYTEMASK)
+                pay_hi = (state >> 8) & BYTEMASK
                 payload = [pay_lo, pay_hi]
             try:
                 self.hmWriteToController(network_address, protocol, fieldinfo[UNIADD_ADD], fieldinfo[UNIADD_LEN], payload)
