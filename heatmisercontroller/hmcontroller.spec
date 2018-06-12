@@ -1,3 +1,7 @@
+[ setup ]
+  retry_time_interval = integer(default = 5)
+  check_time_interval = integer(default = 1)
+
 [ controller ]
     __many__ = integer()
 

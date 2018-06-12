@@ -44,7 +44,6 @@ each setup.
 
 """
 
-
 class HeatmiserControllerSetup(object):
 
     def __init__(self):
@@ -79,16 +78,6 @@ class HeatmiserControllerFileSetup(HeatmiserControllerSetup):
         # Initialization
         super(HeatmiserControllerFileSetup, self).__init__()
 
-        # Initialize update timestamp
-        self._settings_update_timestamp = 0
-        self._retry_time_interval = 5
-
-        # create a timeout message if time out is set (>0)
-        if self._retry_time_interval > 0:
-            self.retry_msg = " Retry in " + str(self._retry_time_interval) + " seconds"
-        else:
-            self.retry_msg = ""
-
         self._module_path = os.path.abspath(os.path.dirname(__file__))
         specpath = os.path.join(self._module_path, "hmcontroller.spec")
             
@@ -102,6 +91,7 @@ class HeatmiserControllerFileSetup(HeatmiserControllerSetup):
             self.settings['controller']
             self.settings['serial']
             self.settings['devices']
+            self.settings['setup']
         except IOError as e:
             raise HeatmiserControllerSetupInitError(e)
         except SyntaxError as e:
@@ -110,6 +100,16 @@ class HeatmiserControllerFileSetup(HeatmiserControllerSetup):
         except KeyError as e:
             raise HeatmiserControllerSetupInitError(
                 'Configuration file error - section: ' + str(e))
+                
+        # Initialize update timestamps
+        self._settings_update_timestamp = 0
+        
+        # Load use configured variables
+        for name, value in self.settings['setup'].iteritems():
+            setattr(self, '_'+name, value)
+
+        # create a timeout message if time out is set (>0)
+        self.retry_msg = " Retry in " + str(self._retry_time_interval) + " seconds" if self._retry_time_interval <= 0 else ""
 
     def check_settings(self):
         """Check settings
@@ -123,7 +123,7 @@ class HeatmiserControllerFileSetup(HeatmiserControllerSetup):
         if now - self._settings_update_timestamp < 0:
             return
         # Update timestamp
-        self._settings_update_timestamp = now
+        self._settings_update_timestamp = now + self._check_time_interval
         
         # Backup settings
         settings = dict(self.settings)
