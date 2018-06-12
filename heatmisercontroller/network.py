@@ -11,6 +11,7 @@ import os
 import serial
 import time
 import logging
+import sys
 
 # Import our own stuff
 from devices import *
@@ -32,7 +33,7 @@ class HeatmiserNetwork:
         self._setup = hms.HeatmiserControllerFileSetup(configfile)
         settings = self._setup.settings
     except hms.HeatmiserControllerSetupInitError as e:
-        logger.critical(e)
+        logging.error(e)
         sys.exit("Unable to load configuration file: " + configfile)
     
     # Initialize and connect to heatmiser network, probably through serial port

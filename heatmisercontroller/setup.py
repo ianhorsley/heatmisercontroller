@@ -21,9 +21,9 @@ dictionary with the following keys:
         'controller': a dictionary containing general settings
         'serial': a dictionary containing the serial port settings
         'devices': a dictionary containing the configuration of each remote device
+        'setup': 
 
-
-        The hub settings are:
+        The controller settings are:
         'loglevel': the logging level
         
         ###interfacers and reporters are dictionaries with the following keys:
@@ -88,11 +88,7 @@ class HeatmiserControllerFileSetup(HeatmiserControllerSetup):
         logging.debug("Loading %s and checking against %s"%(filename, specpath))
         try:
             self.settings = ConfigObj(filename, file_error=True, configspec=specpath)
-            validator = Validator()
-            self.settings.validate(validator, copy=True)
-            # Check the settings file sections
-            for name in self._sections:
-                self.settings[name]
+            self._validator = Validator()
         except IOError as e:
             raise HeatmiserControllerSetupInitError(e)
         except SyntaxError as e:
@@ -100,23 +96,26 @@ class HeatmiserControllerFileSetup(HeatmiserControllerSetup):
                 'Error parsing config file \"%s\": ' % filename + str(e))
         except KeyError as e:
             raise HeatmiserControllerSetupInitError(
-                'Configuration file error - section: ' + str(e))
-                
+                'Configuration file error - section missing: ' + str(e))
+        
+        #check settings and add any default values
+        self._check_settings()
+        
         # Initialize update timestamps
         self._settings_update_timestamp = 0
         
         # Load use configured variables
         for name, value in self.settings['setup'].iteritems():
-            setattr(self, '_'+name, value)
+            setattr(self, '_c_'+name, value)
 
         # create a timeout message if time out is set (>0)
-        self.retry_msg = " Retry in " + str(self._retry_time_interval) + " seconds" if self._retry_time_interval <= 0 else ""
+        self.retry_msg = " Retry in " + str(self._c_retry_time_interval) + " seconds" if self._c_retry_time_interval <= 0 else ""
 
-    def check_settings(self):
-        """Check settings
-        
-        Update attribute settings and return True if modified.
-        
+    def reload_settings(self):
+        """Reload and check settings
+
+        Update attribute settings and return True if modified. Return False if failed to load new settings. Return None if nothing new or not checked
+
         """
         
         # Check settings only once per second
@@ -124,7 +123,7 @@ class HeatmiserControllerFileSetup(HeatmiserControllerSetup):
         if now - self._settings_update_timestamp < 0:
             return
         # Update timestamp
-        self._settings_update_timestamp = now + self._check_time_interval
+        self._settings_update_timestamp = now + self._c_check_time_interval
         
         # Backup settings
         settings = dict(self.settings)
@@ -134,29 +133,44 @@ class HeatmiserControllerFileSetup(HeatmiserControllerSetup):
             self.settings.reload()
         except IOError as e:
             self._log.warning('Could not get settings: ' + str(e) + self.retry_msg)
-            self._settings_update_timestamp = now + self._retry_time_interval
+            self._settings_update_timestamp = now + self._c_retry_time_interval
             return
         except SyntaxError as e:
             self._log.warning('Could not get settings: ' + 
                               'Error parsing config file: ' + str(e) + self.retry_msg)
-            self._settings_update_timestamp = now + self._retry_time_interval
+            self._settings_update_timestamp = now + self._c_retry_time_interval
             return
         except Exception:
             import traceback
             self._log.warning("Couldn't get settings, Exception: " +
                               traceback.format_exc() + self.retry_msg)
-            self._settings_update_timestamp = now + self._retry_time_interval
+            self._settings_update_timestamp = now + self._c_retry_time_interval
             return
-        
+
         if self.settings != settings:
-            # Check the settings file sections
             try:
-                for name in self._sections:
-                    self.settings[name]
-            except KeyError as e:
-                self._log.warning("Configuration file missing section: " + str(e))
-            else:
-                 return True
+                self._check_settings()
+            except (ValueError, KeyError):
+                self.settings = settings
+                return False
+            return True
+            
+    def _check_settings(self):
+        try:
+            # Validate the configuration file and copy any missing defaults
+            returnval = self.settings.validate(self._validator, preserve_errors=True, copy=True)
+            if not returnval is True:
+                raise ValueError("failed validation of config file %s"%str(returnval))
+
+            # Check the settings file sections exist
+            for name in self._sections:
+                self.settings[name]
+        except (ValueError, KeyError) as e:
+            logging.warning("Configuration parse failed : " + str(e))
+            raise
+
+
+            
 
 
 

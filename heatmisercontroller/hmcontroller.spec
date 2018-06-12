@@ -6,7 +6,7 @@
     __many__ = integer()
 
 [ serial ]
-    baudrate = integer()
+  baudrate = integer()
 	timeout = integer(0, 32)
 	write_timeout = integer(0, 32)
 	
