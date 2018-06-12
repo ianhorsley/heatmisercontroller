@@ -11,6 +11,7 @@ import logging
 from heatmisercontroller.logging_setup import initialize_logger
 from heatmisercontroller.hm_constants import *
 from heatmisercontroller.network import *
+from heatmisercontroller.exceptions import hmResponseError
 
 #start logging
 initialize_logger('logs', logging.WARN, True)

@@ -1,5 +1,5 @@
 ==========
-HeatmiserContoller
+HeatmiserController
 ==========
 
 Python implementation of Heatmiser protocol for serial connected devices.

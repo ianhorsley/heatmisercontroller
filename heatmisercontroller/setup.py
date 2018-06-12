@@ -9,6 +9,8 @@ import os
 from configobj import ConfigObj
 from validate import Validator
 
+from .exceptions import HeatmiserControllerSetupInitError
+
 """class HeatmiserControllerSetup
 
 User interface to setup the contoller.
@@ -156,13 +158,5 @@ class HeatmiserControllerFileSetup(HeatmiserControllerSetup):
             else:
                  return True
 
-"""class HeatmiserControllerSetupInitError
 
-Raise this when init fails.
-
-"""
-
-
-class HeatmiserControllerSetupInitError(Exception):
-    pass
 
