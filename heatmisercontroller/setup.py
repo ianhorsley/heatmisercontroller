@@ -80,6 +80,9 @@ class HeatmiserControllerFileSetup(HeatmiserControllerSetup):
 
         self._module_path = os.path.abspath(os.path.dirname(__file__))
         specpath = os.path.join(self._module_path, "hmcontroller.spec")
+        
+        # List of expected sections
+        self._sections = ['controller', 'serial', 'devices', 'setup']
             
         # Initialize attribute settings as a ConfigObj instance
         logging.debug("Loading %s and checking against %s"%(filename, specpath))
@@ -88,10 +91,8 @@ class HeatmiserControllerFileSetup(HeatmiserControllerSetup):
             validator = Validator()
             self.settings.validate(validator, copy=True)
             # Check the settings file sections
-            self.settings['controller']
-            self.settings['serial']
-            self.settings['devices']
-            self.settings['setup']
+            for name in self._sections:
+                self.settings[name]
         except IOError as e:
             raise HeatmiserControllerSetupInitError(e)
         except SyntaxError as e:
@@ -150,9 +151,8 @@ class HeatmiserControllerFileSetup(HeatmiserControllerSetup):
         if self.settings != settings:
             # Check the settings file sections
             try:
-                self.settings['hub']
-                self.settings['interfacers']
-                self.settings['reporters']
+                for name in self._sections:
+                    self.settings[name]
             except KeyError as e:
                 self._log.warning("Configuration file missing section: " + str(e))
             else:
