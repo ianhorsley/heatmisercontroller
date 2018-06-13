@@ -23,5 +23,10 @@ setup(name='heatmisercontroller',
         'configobj'
       ],
       test_suite="tests",
-      include_package_data=True,
+      scripts=[
+        'bin/hm_get_example.py',
+        'bin/hm_set_example.py'
+      ],
+
+      #include_package_data=True,
       zip_safe=False)
