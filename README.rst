@@ -1,10 +1,10 @@
 ==========
-HeatmiserContoller
+HeatmiserController
 ==========
 
 Python implementation of Heatmiser protocol for serial connected devices.
 
-Originally written to get direct access to heatmiser devices. It was created for reading and controlling Slimline-N and Slimline-HWN DS1820 thermostats connected to RS232 serial port through RS485 adapter.
+Originally written to get direct access to heatmiser devices. It was created for reading and controlling Slimline-N and Slimline-HWN  thermostats connected to RS232 serial port through RS485 adapter.
 
 Documentation used
 ==================

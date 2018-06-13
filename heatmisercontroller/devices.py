@@ -8,9 +8,8 @@
 # Assume Python 2.7.x
 #
 
-#consider adding timestamps to all parameters for their age.
 #relook at the setfield and setfields. Should they be in adaptor. Payload length checking should happen on all results.
-#some sort of get variable function, with max age, for single parameters. if to old would autoget. Still need to auto trigger full read in some cases.
+#could clean up class setup. basic controller could be write only or read only. two classes that inherite. General, gets both, and broadcast, takes write only.
 
 import logging
 import time
@@ -22,56 +21,66 @@ from .exceptions import hmResponseError, hmControllerTimeError
 from schedule_functions import schedulerdayheat, schedulerweekheat, schedulerdaywater, schedulerweekwater, SCH_ENT_TEMP
 
 class hmController(object):
+  ##Variables used by code
+  lastreadtime = 0 #records last time of a successful read
+  ##Control parameters and default settings
+  autoreadall = True
+  autocorrectime = True
+  #max times for age of data
+  max_age_variables = 60 #variables like holidaymins, etc.
+  max_age_time = 60 * 60 * 24 #time tends to drift very slowly, so it shouldn't need checking very often
+  max_age_temp = 10 #temperature is something that might be sampled very regularly
 
-  def __init__(self, network, address, protocol, short_name, long_name, model, mode):
-    self.network = network
-    self.address = address
-    self.protocol = protocol
-    self.expected_model = model
-    self.expected_prog_mode = mode
+  def __init__(self, adaptor, devicesettings):
+    #address, protocol, short_name, long_name, model, mode
+    self._adaptor = adaptor
     
     self.water_schedule = None
-    if self.expected_prog_mode == PROG_MODE_DAY:
+    self._update_settings(devicesettings)
+
+    self.rawdata = [None] * self.DCBlength
+        
+    #initialise data structures
+    self.data = dict.fromkeys(uniadd.keys(),None)
+    self.datareadtime = dict.fromkeys(uniadd.keys(),None)
+  
+  def _update_settings(self, settings):
+    """Check settings and update if needed."""   
+    
+    for name, value in settings.iteritems():
+      setattr(self, '_' + name, value)
+      
+    if self._expected_prog_mode == PROG_MODE_DAY:
       self.heat_schedule = schedulerdayheat()
-      if model == PRT_HW_MODEL:
+      if self._expected_model == 'prt_hw_model':
         self.water_schedule = schedulerdaywater()
-    elif self.expected_prog_mode == PROG_MODE_WEEK:
+    elif self._expected_prog_mode == PROG_MODE_WEEK:
       self.heat_schedule = schedulerweekheat()
-      if model == PRT_HW_MODEL:
+      if self._expected_model == 'prt_hw_model':
         self.water_schedule = schedulerweekwater()
     else:
       raise ValueError("Unknown program mode")
-      
-    if model == PRT_E_MODEL:
-      self.DCBmap = PRTEmap[mode]
-    elif model == PRT_HW_MODEL:
-      self.DCBmap = PRTHWmap[mode]
-    elif model == False:
+    
+    self._expected_prog_mode_number = PROG_MODES[self._expected_prog_mode]
+    
+    if self._expected_model == 'prt_e_model':
+      self.DCBmap = PRTEmap[self._expected_prog_mode]
+    elif self._expected_model == 'prt_hw_model':
+      self.DCBmap = PRTHWmap[self._expected_prog_mode]
+    elif self._expected_model == False:
       self.DCBmap = STRAIGHTmap
     else:
-      raise ValueError("UNKNOWN MODEL")
-      
+      raise ValueError("Unknown model %s"%self._expected_model)
+    
+    self._expected_model_number = DEVICE_MODELS[self._expected_model]
+    
     if self.DCBmap[0][1] != DCB_INVALID:
       self.DCBlength = self.DCBmap[0][0] - self.DCBmap[0][1] + 1
     elif self.DCBmap[1][1] != DCB_INVALID:
       self.DCBlength = self.DCBmap[1][0] - self.DCBmap[1][1] + 1
     else:
       raise ValueError("DCB map length not found")
-    
-    self.rawdata = [None] * self.DCBlength
-    
-    self.name = short_name
-    self.long_name = long_name
-    
-    self.lastreadtime = 0 #records last time of a successful read
-    
-    #initialise data structures
-    self.data = dict.fromkeys(uniadd.keys(),None)
-    self.datareadtime = dict.fromkeys(uniadd.keys(),None)
-    
-    self.autoreadall = True
-    self.autocorrectime = True
-   
+  
   def _getDCBaddress(self, uniqueaddress):
     #get the DCB address for a controller from the unique address
 
@@ -94,7 +103,7 @@ class hmController(object):
   def hmReadVariables(self):
     rawdata1 = self.hmReadFields('setroomtemp', 'holidayhours')
   
-    if self.readField('model', None) == PRT_HW_MODEL:
+    if self.readField('model', None) == DEVICE_MODELS['prt_hw_model']:
       lastfield = 'hotwaterstate'
     else:
       lastfield = 'heatingstate'
@@ -105,7 +114,7 @@ class hmController(object):
     
   def hmReadTempsandDemand(self):
   
-    if self.readField('model', None) == PRT_HW_MODEL:
+    if self.readField('model', None) == DEVICE_MODELS['prt_hw_model']:
       lastfield = 'hotwaterstate'
     else:
       lastfield = 'heatingstate'
@@ -119,12 +128,12 @@ class hmController(object):
 
   def hmReadAll(self):
     try:
-      self.rawdata = self.network.hmReadAllFromController(self.address, self.protocol, self.DCBlength)
+      self.rawdata = self._adaptor.hmReadAllFromController(self._address, self._protocol, self.DCBlength)
     except serial.SerialException as e:
-      logging.warn("C%i Read all failed, Serial Port error %s"%(self.address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH), str(e)))
+      logging.warn("C%i Read all failed, Serial Port error %s"%(self._address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH), str(e)))
       raise
     else:
-      logging.info("C%i Read all, %s"%(self.address, ', '.join(str(x) for x in self.rawdata)))
+      logging.info("C%i Read all, %s"%(self._address, ', '.join(str(x) for x in self.rawdata)))
       self.lastreadtime = time.time()
       self._procpayload(self.rawdata)
       return self.rawdata
@@ -153,12 +162,12 @@ class hmController(object):
     readlength = lastfieldinfo[UNIADD_ADD] - firstfieldinfo[UNIADD_ADD] + lastfieldinfo[UNIADD_LEN]
 
     try:
-      rawdata = self.network.hmReadFromController(self.address, self.protocol, firstfieldinfo[UNIADD_ADD], readlength)
+      rawdata = self._adaptor.hmReadFromController(self._address, self._protocol, firstfieldinfo[UNIADD_ADD], readlength)
     except serial.SerialException as e:
-      logging.warn("C%i Read failed of fields %s to %s, Serial Port error %s"%(self.address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH), str(e)))
+      logging.warn("C%i Read failed of fields %s to %s, Serial Port error %s"%(self._address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH), str(e)))
       raise
     else:
-      logging.info("C%i Read fields %s to %s, %s"%(self.address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH), ', '.join(str(x) for x in rawdata)))
+      logging.info("C%i Read fields %s to %s, %s"%(self._address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH), ', '.join(str(x) for x in rawdata)))
       self.lastreadtime = time.time()
       self._procpartpayload(rawdata, firstfieldname, lastfieldname)
       return rawdata
@@ -192,13 +201,13 @@ class hmController(object):
     if fieldname == 'DCBlen' and value != self.DCBlength:
       raise hmResponseError('DCBlengh is unexpected')
     
-    if fieldname == 'model' and value != self.expected_model:
+    if fieldname == 'model' and value != self._expected_model_number:
       raise hmResponseError('Model is unexpected')
     
-    if fieldname == 'programmode' and value != self.expected_prog_mode:
+    if fieldname == 'programmode' and value != self._expected_prog_mode_number:
       raise hmResponseError('Programme mode is unexpected')
     
-    if fieldname == 'version' and self.expected_model != PRT_HW_MODEL:
+    if fieldname == 'version' and self._expected_model != 'prt_hw_model':
       value = data[0] & 0x7f
       self.floorlimiting = data[0] >> 7
       self.data['floorlimiting'] = self.floorlimiting
@@ -213,13 +222,14 @@ class hmController(object):
     ###todo, add range validation for other lengths
 
   def _procpartpayload(self, rawdata, firstfieldname, lastfieldname):
+    #rawdata must be a list
     #converts field names to unique addresses to allow process of shortened raw data
     firstfieldadd = uniadd[firstfieldname][UNIADD_ADD] 
     lastfieldadd = uniadd[lastfieldname][UNIADD_ADD]
     self._procpayload(rawdata, firstfieldadd, lastfieldadd)
     
   def _procpayload(self, rawdata, firstfieldadd = 0, lastfieldadd = MAX_UNIQUE_ADDRESS):
-    logging.debug("C%i Processing Payload"%(self.address) )
+    logging.debug("C%i Processing Payload"%(self._address) )
 
     fullfirstdcbadd = self._getDCBaddress(firstfieldadd)
     
@@ -239,7 +249,7 @@ class hmController(object):
           try:
             self._procfield(rawdata[dcbadd:dcbadd+length], attrname, values)
           except hmResponseError as e:
-            logging.warn("C%i Field %s process failed due to %s"%(self.address, attrname, str(e)))
+            logging.warn("C%i Field %s process failed due to %s"%(self._address, attrname, str(e)))
 
     self.rawdata[fullfirstdcbadd:fullfirstdcbadd+len(rawdata)] = rawdata
 
@@ -271,10 +281,10 @@ class hmController(object):
     logging.debug("Local time %i, remote time %i, error %i"%(localweeksecs,remoteweeksecs,self.timeerr))
 
     if self.timeerr > self.DAYSECS:
-        raise hmControllerTimeError("C%2d Incorrect day : local is %s, sensor is %s" % (self.address, localtimearray[CURRENT_TIME_DAY], self.data['currenttime'][CURRENT_TIME_DAY]))
+        raise hmControllerTimeError("C%2d Incorrect day : local is %s, sensor is %s" % (self._address, localtimearray[CURRENT_TIME_DAY], self.data['currenttime'][CURRENT_TIME_DAY]))
 
     if (self.timeerr > TIME_ERR_LIMIT):
-        raise hmControllerTimeError("C%2d Time Error %d greater than %d: local is %s, sensor is %s" % (self.address, self.timeerr, TIME_ERR_LIMIT, localweeksecs, remoteweeksecs))
+        raise hmControllerTimeError("C%2d Time Error %d greater than %d: local is %s, sensor is %s" % (self._address, self.timeerr, TIME_ERR_LIMIT, localweeksecs, remoteweeksecs))
 
   def _localtimearray(self, timenow = time.time()):
     #creates an array in heatmiser format for local time. Day 1-7, 1=Monday
@@ -332,7 +342,7 @@ class hmController(object):
       if not self._check_data_present(fieldname):
         return False
       if time.time() - self.datareadtime[fieldname] > maxage:
-        logging.warning("C%i data item %s too old"%(self.address, fieldname))
+        logging.warning("C%i data item %s too old"%(self._address, fieldname))
         return False
     return True
     
@@ -342,7 +352,7 @@ class hmController(object):
 
     for fieldname in fieldnames:
       if self.datareadtime[fieldname] == None:
-        logging.warning("C%i data item %s not avaliable"%(self.address, fieldname))
+        logging.warning("C%i data item %s not avaliable"%(self._address, fieldname))
         return False
     return True
         
@@ -363,7 +373,7 @@ class hmController(object):
       else:
         raise ValueError("Need to read all before getting temp state")
         
-    if not self._check_data_age(60, 'onoff','holidayhours','runmode','tempholdmins','setroomtemp'):
+    if not self._check_data_age(self.max_age_variables, 'onoff','holidayhours','runmode','tempholdmins','setroomtemp'):
       if self.autoreadall is True:
         self.hmReadVariables()
       else:
@@ -381,7 +391,7 @@ class hmController(object):
       return self.TEMP_STATE_HELD
     else:
     
-      if not self._check_data_age(60 * 60 * 2, 'currenttime'):
+      if not self._check_data_age(self.max_age_time, 'currenttime'):
         currenttime = self.readTime()
       
       locatimenow = self._localtimearray()
@@ -401,7 +411,7 @@ class hmController(object):
       else:
         raise ValueError("Need to read all before getting temp state")
         
-    if not self._check_data_age(60, 'onoff','holidayhours','hotwaterstate'):
+    if not self._check_data_age(self.max_age_variables, 'onoff','holidayhours','hotwaterstate'):
       if self.autoreadall is True:
         self.hmReadVariables()
       else:
@@ -413,7 +423,7 @@ class hmController(object):
       return self.TEMP_STATE_HOLIDAY
     else:
     
-      if not self._check_data_age(60 * 60 * 2, 'currenttime'):
+      if not self._check_data_age(self.max_age_time, 'currenttime'):
         currenttime = self.readTime()
       
       locatimenow = self._localtimearray()
@@ -440,11 +450,11 @@ class hmController(object):
       return False
     
     if self.sensorsavaliable == READ_SENSORS_AVALIABLE_INT_ONLY or self.sensorsavaliable == READ_SENSORS_AVALIABLE_INT_FLOOR:
-      if not self._check_data_age(10, 'airtemp'):
+      if not self._check_data_age(self.max_age_temp, 'airtemp'):
         return False
       return self.airtemp
     elif self.sensorsavaliable == READ_SENSORS_AVALIABLE_EXT_ONLY or self.sensorsavaliable == READ_SENSORS_AVALIABLE_EXT_FLOOR:
-      if not self._check_data_age(10, 'remoteairtemp'):
+      if not self._check_data_age(self.max_age_temp, 'remoteairtemp'):
         return False
       return self.remoteairtemp
     else:
@@ -454,30 +464,30 @@ class hmController(object):
 
   def setHeatingSchedule(self, day, schedule):
     padschedule = self.heat_schedule.pad_schedule(schedule)
-    self.network.hmSetFields(self.address,self.protocol,day,padschedule)
+    self._adaptor.setField(self._address,self._protocol,day,padschedule)
     
   def setWaterSchedule(self, day, schedule):
     padschedule = self.water_schedule.pad_schedule(schedule)
     if day == 'all':
-      self.setFields('mon_water',padschedule)
-      self.setFields('tues_water',padschedule)
-      self.setFields('wed_water',padschedule)
-      self.setFields('thurs_water',padschedule)
-      self.setFields('fri_water',padschedule)
-      self.setFields('sat_water',padschedule)
-      self.setFields('sun_water',padschedule)
+      self.setField('mon_water',padschedule)
+      self.setField('tues_water',padschedule)
+      self.setField('wed_water',padschedule)
+      self.setField('thurs_water',padschedule)
+      self.setField('fri_water',padschedule)
+      self.setField('sat_water',padschedule)
+      self.setField('sun_water',padschedule)
     else:
-      self.setFields(day,padschedule)
+      self.setField(day,padschedule)
 
   def setTime(self) :
       """set time on controller to match current localtime on server"""
       timenow = time.time() + 0.5 #allow a little time for any delay in setting
-      return self.setFields('currenttime',self._localtimearray(timenow))
+      return self.setField('currenttime',self._localtimearray(timenow))
       
 #general field setting
 
   def setField(self,field,value):
-    retvalue = self.network.hmSetField(self.address,self.protocol,field,value)
+    retvalue = self._adaptor.setField(self._address,self._protocol,field,value)
     self.lastreadtime = time.time()
     
     ###should really be handled by a specific overriding function, rather than in here.
@@ -489,13 +499,10 @@ class hmController(object):
       elif value == WRITE_HOTWATERSTATE_OFF: #if overridden off store the off read value
         value = READ_HOTWATERSTATE_OFF
     
-    self._procpartpayload([value],field,field)
-    return retvalue
-    
-  def setFields(self,field,value):
-    retvalue = self.network.hmSetFields(self.address,self.protocol,field,value)
-    self.lastreadtime = time.time()
-    self._procpartpayload(value,field,field)
+    if isinstance(value, list):
+        self._procpartpayload(value,field,field)
+    else:
+        self._procpartpayload([value],field,field)
     return retvalue
 
 #overriding      
@@ -505,60 +512,60 @@ class hmController(object):
   
     #check hold temp not applied
     if self.readField('tempholdmins') == 0:
-      return self.network.hmSetField(self.address,self.protocol,'setroomtemp',temp)
+      return self._adaptor.setField(self._address,self._protocol,'setroomtemp',temp)
     else:
-      logging.warn("%i address, temp hold applied so won't set temp"%(self.address))
+      logging.warn("%i address, temp hold applied so won't set temp"%(self._address))
 
   def releaseTemp(self) :
     #release SetTemp back to the program, but only if temp isn't held
     if self.readField('tempholdmins') == 0:
-      return self.network.hmSetField(self.address,self.protocol,'tempholdmins',0)
+      return self._adaptor.setField(self._address,self._protocol,'tempholdmins',0)
     else:
-      logging.warn("%i address, temp hold applied so won't remove set temp"%(self.address))     
+      logging.warn("%i address, temp hold applied so won't remove set temp"%(self._address))     
 
   def holdTemp(self, minutes, temp) :
     #sets the temperature demand overrding the program for a set time. Believe it then returns to program.
-    self.network.hmSetField(self.address,self.protocol,'setroomtemp',temp)
-    return self.network.hmSetField(self.address,self.protocol,'tempholdmins',minutes)
+    self._adaptor.setField(self._address,self._protocol,'setroomtemp',temp)
+    return self._adaptor.setField(self._address,self._protocol,'tempholdmins',minutes)
     #didn't stay on if did minutes followed by temp.
     
   def releaseHoldTemp(self) :
     #release SetTemp or HoldTemp back to the program
-    return self.network.hmSetField(self.address,self.protocol,'tempholdmins',0)
+    return self._adaptor.setField(self._address,self._protocol,'tempholdmins',0)
     
   def setHoliday(self, hours) :
     #sets holiday up for a defined number of hours
-    return self.network.hmSetField(self.address,self.protocol,'holidayhours',hours)
+    return self._adaptor.setField(self._address,self._protocol,'holidayhours',hours)
   
   def releaseHoliday(self) :
     #cancels holiday mode
-    return self.network.hmSetField(self.address,self.protocol,'holidayhours',0)
+    return self._adaptor.setField(self._address,self._protocol,'holidayhours',0)
 
 #onoffs
 
   def setOn(self):
-    return self.network.hmSetField(self.address,self.protocol,'onoff',WRITE_ONOFF_ON)
+    return self._adaptor.setField(self._address,self._protocol,'onoff',WRITE_ONOFF_ON)
   def setOff(self):
-    return self.network.hmSetField(self.address,self.protocol,'onoff',WRITE_ONOFF_OFF)
+    return self._adaptor.setField(self._address,self._protocol,'onoff',WRITE_ONOFF_OFF)
     
   def setHeat(self):
-    return self.network.hmSetField(self.address,self.protocol,'runmode',WRITE_RUNMODE_HEATING)
+    return self._adaptor.setField(self._address,self._protocol,'runmode',WRITE_RUNMODE_HEATING)
   def setFrost(self):
-    return self.network.hmSetField(self.address,self.protocol,'runmode',WRITE_RUNMODE_FROST)
+    return self._adaptor.setField(self._address,self._protocol,'runmode',WRITE_RUNMODE_FROST)
     
   def setLock(self):
-    return self.network.hmSetField(self.address,self.protocol,'keylock',WRITE_KEYLOCK_ON)
+    return self._adaptor.setField(self._address,self._protocol,'keylock',WRITE_KEYLOCK_ON)
   def setUnlock(self):
-    return self.network.hmSetField(self.address,self.protocol,'keylock',WRITE_KEYLOCK_OFF)
+    return self._adaptor.setField(self._address,self._protocol,'keylock',WRITE_KEYLOCK_OFF)
   
 #other
 #set floor limit
 #set holiday
 
-
 class hmBroadcastController(hmController):
   #create a controller that only broadcasts
-  def __init__(self, network, short_name, long_name):
-    super(hmBroadcastController, self).__init__(network, BROADCAST_ADDR, DEFAULT_PROTOCOL, short_name, long_name, False, DEFAULT_PROG_MODE)
+  def __init__(self, network, long_name):
+    settings = {'address':BROADCAST_ADDR,'display_order': 0, 'long_name': long_name,'protocol':DEFAULT_PROTOCOL,'expected_model':False,'expected_prog_mode':DEFAULT_PROG_MODE}
+    super(hmBroadcastController, self).__init__(network, settings)
   
   ##add methods to block or remove get functions

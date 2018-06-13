@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 #
 # Ian Horsley 2018
 
@@ -8,14 +8,12 @@
 import logging
 
 from heatmisercontroller.logging_setup import initialize_logger
-from heatmisercontroller.stats_defn import *
 from heatmisercontroller.hm_constants import *
 from heatmisercontroller.network import *
 
 initialize_logger('logs', logging.INFO, True)
 
 hmn1 = HeatmiserNetwork()
-hmn1.setStatList(StatList)
 
 #hmn1.hmSetTemp("Kit",25)
 #hmn1.Kit.holdTemp(30,21) #mins, temp
@@ -33,6 +31,7 @@ hmn1.All.setOn()
 #hmn1.controllerByName('B1').setOff()
 #hmn1.hmSetField(BROADCAST_ADDR,HMV3_ID,'onoff',WRITE_ONOFF_ON)  
 #hmn1.hmSetField('Cons',HMV3_ID,'onoff',WRITE_ONOFF_OFF)
+hmn1.Sit.setField('runmode',WRITE_RUNMODE_FROST)
 
 #hmn1.B2.setTemp(24)
 #hmn1.Kit.setTemp(24)
@@ -96,12 +95,15 @@ hmn1.B2.setHeatingSchedule('sun_heat',dayfrost)
 #hmn1.hmSetFields('Kit','wday_heat',[7,0,19,9,30,10,17,0,19,21,30,10])
 #hmn1.hmSetFields('B1',HMV3_ID,'wday_heat',[7,0,18,8,30,10,20,30,18,22,0,16])
 #hmn1.hmSetFields('B2',HMV3_ID,'wday_heat',[7,0,19,8,30,10,20,30,19,22,0,16])
-hmn1.controllerByName('Cons').setFields('wday_heat',[9,0,12,21,30,10,24,0,5,24,0,5])
+hmn1.controllerByName('Cons').setField('wday_heat',[9,0,12,21,30,10,24,0,5,24,0,5])
 
 #hmn1.hmSetFields('Kit','wend_heat',[7,0,19,21,30,10,24,0,5,24,0,5])
 #hmn1.hmSetFields('B1',HMV3_ID,'wend_heat',[7,0,18,9,30,10,20,30,18,22,0,16])
 #hmn1.hmSetFields('B2',HMV3_ID,'wend_heat',[7,0,19,9,30,10,20,30,19,22,0,16])
-hmn1.controllerByName('Cons').setFields('wend_heat',[9,0,12,21,30,10,24,0,5,24,0,5])
+hmn1.controllerByName('Cons').setField('wend_heat',[9,0,12,21,30,10,24,0,5,24,0,5])
+
+hmn1.Sit.setHeatingSchedule('wday_heat',dayfrost)
+hmn1.Sit.setHeatingSchedule('wend_heat',dayfrost)
 
 #hmn1.hmSetFields("Kit",'wday_water',[7,0,8,0,16,0,17,0,24,0,24,0,24,0,24,0])
 #hmn1.hmSetFields("Kit",'wday_water',[24,0,24,0,24,0,24,0,24,0,24,0,24,0,24,0])
