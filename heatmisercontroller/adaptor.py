@@ -10,11 +10,10 @@
 
 import time
 import logging
+import serial
 
 from hm_constants import *
-import serial
 import framing
-
 from .exceptions import hmResponseError, hmResponseErrorCRC
  
 def retryer(max_retries=3):
