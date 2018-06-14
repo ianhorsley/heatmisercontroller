@@ -124,8 +124,8 @@ uniadd = {'DCBlen':[0,2,1,[]],
 'floortemp': [36,2,10,[]], #ffff if no sensor
 'airtemp': [38,2,10,[]], #ffff if no sensor
 'errorcode': [40,1,1,[0,3]], #0 built in, 1, floor, 2 remote
-'heatingstate': [41,1,1,[0,1]], #0 none, 1 heating currently
-'hotwaterstate': [42,1,1,[0,3],'W'], # read [0=off,1=on], write [0=as prog,1=override on,2=overide off]
+'heatingdemand': [41,1,1,[0,1]], #0 none, 1 heating currently
+'hotwaterdemand': [42,1,1,[0,3],'W'], # read [0=off,1=on], write [0=as prog,1=override on,2=overide off]
 'currenttime': [43,4,1,[[1,7],[0,23],[0,59],[0,59]],'W'], #day (Mon - Sun), hour, min, sec.
 #5/2 progamming #if hour = 24 entry not used
 'wday_heat':[47,12,1,[[0,24],[0,59],[5,35]],"W"], #hour, min, temp  (should minutes be only 0 and 30?)
@@ -174,11 +174,11 @@ WRITE_KEYLOCK_ON = 1
 WRITE_RUNMODE_HEATING = 0
 WRITE_RUNMODE_FROST = 1
 
-WRITE_HOTWATERSTATE_PROG = 0
-WRITE_HOTWATERSTATE_OVER_ON = 1
-WRITE_HOTWATERSTATE_OVER_OFF = 2
-READ_HOTWATERSTATE_OFF = 0
-READ_HOTWATERSTATE_ON = 1
+WRITE_HOTWATERDEMAND_PROG = 0
+WRITE_HOTWATERDEMAND_OVER_ON = 1
+WRITE_HOTWATERDEMAND_OVER_OFF = 2
+READ_HOTWATERDEMAND_OFF = 0
+READ_HOTWATERDEMAND_ON = 1
 
 #these maps are used to translate the unique address which is the same for all controllers to the DCB address for a specific controller
 PROG_MODE_WEEK = 'week'

@@ -104,9 +104,9 @@ class hmController(object):
     rawdata1 = self.hmReadFields('setroomtemp', 'holidayhours')
   
     if self.readField('model', None) == DEVICE_MODELS['prt_hw_model']:
-      lastfield = 'hotwaterstate'
+      lastfield = 'hotwaterdemand'
     else:
-      lastfield = 'heatingstate'
+      lastfield = 'heatingdemand'
 
     rawdata2 = self.hmReadFields('tempholdmins', lastfield)
     
@@ -115,9 +115,9 @@ class hmController(object):
   def hmReadTempsandDemand(self):
   
     if self.readField('model', None) == DEVICE_MODELS['prt_hw_model']:
-      lastfield = 'hotwaterstate'
+      lastfield = 'hotwaterdemand'
     else:
-      lastfield = 'heatingstate'
+      lastfield = 'heatingdemand'
 
     rawdata = self.hmReadFields('remoteairtemp', lastfield)
 
@@ -358,6 +358,10 @@ class hmController(object):
         
 #### External functions for getting data
 
+  def isHotWater(self):
+    #returns True if stat is a model with hotwater control, False otherwise
+    return self._expected_model == 'prt_hw_model'
+
   TEMP_STATE_OFF = 0  #thermostat display is off and frost protection disabled
   TEMP_STATE_OFF_FROST = 1 #thermostat display is off and frost protection enabled
   TEMP_STATE_FROST = 2 #frost protection enabled indefinitely
@@ -405,13 +409,13 @@ class hmController(object):
   ### UNTESTED OR EVEN CHECKED
   def getWaterState(self):
     #does runmode affect hot water state?
-    if not self._check_data_present('onoff','holidayhours','hotwaterstate'):
+    if not self._check_data_present('onoff','holidayhours','hotwaterdemand'):
       if self.autoreadall is True:
         self.hmReadAll()
       else:
         raise ValueError("Need to read all before getting temp state")
         
-    if not self._check_data_age(self.max_age_variables, 'onoff','holidayhours','hotwaterstate'):
+    if not self._check_data_age(self.max_age_variables, 'onoff','holidayhours','hotwaterdemand'):
       if self.autoreadall is True:
         self.hmReadVariables()
       else:
@@ -429,7 +433,7 @@ class hmController(object):
       locatimenow = self._localtimearray()
       scheduletarget = self.water_schedule.getCurrentScheduleItem(locatimenow)
 
-      if scheduletarget[SCH_ENT_TEMP] != self.hotwaterstate:
+      if scheduletarget[SCH_ENT_TEMP] != self.hotwaterdemand:
         return self.TEMP_STATE_OVERRIDDEN
       else:
         return self.TEMP_STATE_PROGRAM
@@ -491,13 +495,13 @@ class hmController(object):
     self.lastreadtime = time.time()
     
     ###should really be handled by a specific overriding function, rather than in here.
-    #handle odd effect on WRITE_HOTWATERSTATE_PROG
-    if field == 'hotwaterstate':
-      if value == WRITE_HOTWATERSTATE_PROG: #returned to program so outcome is unknown
+    #handle odd effect on WRITE_hotwaterdemand_PROG
+    if field == 'hotwaterdemand':
+      if value == WRITE_HOTWATERDEMAND_PROG: #returned to program so outcome is unknown
         self.datareadtime[field] = None
         return None
-      elif value == WRITE_HOTWATERSTATE_OFF: #if overridden off store the off read value
-        value = READ_HOTWATERSTATE_OFF
+      elif value == WRITE_HOTWATERDEMAND_OFF: #if overridden off store the off read value
+        value = READ_HOTWATERDEMAND_OFF
     
     if isinstance(value, list):
         self._procpartpayload(value,field,field)
