@@ -49,6 +49,32 @@ class test_other_functions(unittest.TestCase):
     self.assertEqual(0, self.func._getDCBaddress(0))
     self.assertEqual(24, self.func._getDCBaddress(24))
     self.assertEqual(DCB_INVALID, self.func._getDCBaddress(26))
+    
+  def test_getFieldBlocks(self):
+    self.settings = {'address':1,'protocol':HMV3_ID,'long_name':'test controller','expected_model':'prt_e_model','expected_prog_mode':PROG_MODE_DAY}
+    self.func = hmController(None, self.settings)
+    self.assertEqual([[34, 41, 8]], self.func._getFieldBlocks('remoteairtemp','hotwaterdemand'))
+    self.assertEqual([[43, 43, 4]], self.func._getFieldBlocks('hotwaterdemand','currenttime'))
+    self.assertEqual([[0, 24, 26], [32, 41, 10], [43, 43, 4]], self.func._getFieldBlocks('DCBlen','currenttime'))
+    self.assertEqual([[0, 24, 26], [32, 41, 10], [43, 59, 28], [103, 175, 84]], self.func._getFieldBlocks('DCBlen','sun_water'))
+    
+  def test_checkblock4(self):
+    self.settings = {'address':1,'protocol':HMV3_ID,'long_name':'test controller','expected_model':'prt_e_model','expected_prog_mode':PROG_MODE_DAY}
+    self.func = hmController(None, self.settings)
+    print 'DCBlen','sun_water'
+    print self.func._getFieldBlocks('DCBlen','sun_water')
+    from timeit import default_timer as timer
+    start = timer()
+    for i in range(1):self.func._getFieldBlocks('DCBlen','sun_water')
+    print (timer()-start)/1000
+    
+  def test_buildDCBtables(self):
+    self.settings = {'address':1,'protocol':HMV3_ID,'long_name':'test controller','expected_model':'prt_e_model','expected_prog_mode':PROG_MODE_DAY}
+    self.func = hmController(None, self.settings)    
+    self.func._buildDCBtables()
+    expected = [[0,0],[25,25],[26,None],[31,None],[32,26],[186,147],[187,None],[298,None]]
+    for u,d in expected:
+        self.assertEqual(d,self.func._uniquetodcb[u])
   
 class test_time_functions(unittest.TestCase):
   def setUp(self):

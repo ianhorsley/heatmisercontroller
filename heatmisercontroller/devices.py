@@ -52,11 +52,11 @@ class hmController(object):
       
     if self._expected_prog_mode == PROG_MODE_DAY:
       self.heat_schedule = schedulerdayheat()
-      if self._expected_model == 'prt_hw_model':
+      if self.isHotWater():
         self.water_schedule = schedulerdaywater()
     elif self._expected_prog_mode == PROG_MODE_WEEK:
       self.heat_schedule = schedulerweekheat()
-      if self._expected_model == 'prt_hw_model':
+      if self.isHotWater():
         self.water_schedule = schedulerweekwater()
     else:
       raise ValueError("Unknown program mode")
@@ -71,6 +71,7 @@ class hmController(object):
       self.DCBmap = STRAIGHTmap
     else:
       raise ValueError("Unknown model %s"%self._expected_model)
+    self._buildDCBtables()
     
     self._expected_model_number = DEVICE_MODELS[self._expected_model]
     
@@ -80,8 +81,9 @@ class hmController(object):
       self.DCBlength = self.DCBmap[1][0] - self.DCBmap[1][1] + 1
     else:
       raise ValueError("DCB map length not found")
-  
-  def _getDCBaddress(self, uniqueaddress):
+    self.fullreadtime = self._estimateReadTime(self.DCBlength)
+    
+  def _getDCBaddressold(self, uniqueaddress):
     #get the DCB address for a controller from the unique address
 
     offset = DCB_INVALID
@@ -93,7 +95,28 @@ class hmController(object):
       return uniqueaddress-offset
     else:
       return DCB_INVALID
-      
+
+  def _getDCBaddress(self, uniqueaddress):
+    #get the DCB address for a controller from the unique address
+        return self._uniquetodcb[uniqueaddress]
+  
+  def _buildDCBtables(self):
+    #build a forward lookup table for the DCB values from uniqueaddress
+    self._uniquetodcb = range(MAX_UNIQUE_ADDRESS+1)
+    
+    for uniquemax, offsetsel in self.DCBmap:
+        self._uniquetodcb[0:uniquemax + 1] = [x - offsetsel for x in range(uniquemax + 1)] if not offsetsel is DCB_INVALID else [DCB_INVALID] * (uniquemax + 1)
+        
+    #self._fullDCB = sum(x is not None for x in self._uniquetodcb))
+    
+    self._uniquetoname = [DCB_INVALID] * (MAX_UNIQUE_ADDRESS + 1)
+    self._uniquetofieldstart = [DCB_INVALID] * (MAX_UNIQUE_ADDRESS + 1)
+    for key, data in uniadd.iteritems():
+        fieldaddress = data[UNIADD_ADD]
+        fieldlength = data[UNIADD_LEN]
+        self._uniquetoname[fieldaddress] = key
+        self._uniquetofieldstart[fieldaddress:fieldaddress+fieldlength] = [fieldaddress] * fieldlength
+  
   def getRawData(self, startfieldname = None, endfieldname = None):
     if startfieldname == None or endfieldname == None:
       return self.rawdata
@@ -101,27 +124,10 @@ class hmController(object):
       return self.rawdata[self._getDCBaddress(uniadd[startfieldname][UNIADD_ADD]):self._getDCBaddress(uniadd[endfieldname][UNIADD_ADD])]
     
   def hmReadVariables(self):
-    rawdata1 = self.hmReadFields('setroomtemp', 'holidayhours')
-  
-    if self.readField('model', None) == DEVICE_MODELS['prt_hw_model']:
-      lastfield = 'hotwaterdemand'
-    else:
-      lastfield = 'heatingdemand'
-
-    rawdata2 = self.hmReadFields('tempholdmins', lastfield)
-    
-    return rawdata1 + rawdata2
+    self.readFields('setroomtemp', 'hotwaterdemand')
     
   def hmReadTempsandDemand(self):
-  
-    if self.readField('model', None) == DEVICE_MODELS['prt_hw_model']:
-      lastfield = 'hotwaterdemand'
-    else:
-      lastfield = 'heatingdemand'
-
-    rawdata = self.hmReadFields('remoteairtemp', lastfield)
-
-    return rawdata
+    self.readFields('remoteairtemp', 'hotwaterdemand')
     
   def readTime(self, maxage = 0):
     return self.readField('currenttime', maxage)
@@ -130,10 +136,10 @@ class hmController(object):
     try:
       self.rawdata = self._adaptor.hmReadAllFromController(self._address, self._protocol, self.DCBlength)
     except serial.SerialException as e:
-      logging.warn("C%i Read all failed, Serial Port error %s"%(self._address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH), str(e)))
+      logging.warn("C%i Read all failed, Serial Port error %s"%(self._address, str(e)))
       raise
     else:
-      logging.info("C%i Read all, %s"%(self._address, ', '.join(str(x) for x in self.rawdata)))
+      logging.info("C%i Read all"%(self._address))
       self.lastreadtime = time.time()
       self._procpayload(self.rawdata)
       return self.rawdata
@@ -146,31 +152,69 @@ class hmController(object):
     # or not be read before (maxage = None)
     if maxage == 0 or (maxage is not None and self._check_data_age(maxage, fieldname)) or not self._check_data_present(fieldname):
       if self.autoreadall is True:
-        self.hmReadFields(fieldname)
+        self.readFields(fieldname)
       else:
         raise ValueError("Need to read %s first"%fieldname)
     return self.data[fieldname]
-  
-  #consider moving to adaptor.py
-  def hmReadFields(self, firstfieldname, lastfieldname = None):
-    if lastfieldname == None:
-      lastfieldname = firstfieldname
-  
+    
+  def _getFieldBlocks(self, firstfieldname, lastfieldname):
+    #data can only be requested from the controller in contiguous blocks
+    #functions takes a first and last field and seperates out the individual blocks avaliable for the controller type
+    #return, uniquestart, uniqueend, length of read
+    
     firstfieldinfo = uniadd[firstfieldname]
     lastfieldinfo = uniadd[lastfieldname]
 
-    readlength = lastfieldinfo[UNIADD_ADD] - firstfieldinfo[UNIADD_ADD] + lastfieldinfo[UNIADD_LEN]
+    blocks = []
+    previousDCBaddress = None
 
-    try:
-      rawdata = self._adaptor.hmReadFromController(self._address, self._protocol, firstfieldinfo[UNIADD_ADD], readlength)
-    except serial.SerialException as e:
-      logging.warn("C%i Read failed of fields %s to %s, Serial Port error %s"%(self._address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH), str(e)))
-      raise
+    for uniqueaddress, DCBaddress in enumerate(self._uniquetodcb[firstfieldinfo[UNIADD_ADD]:lastfieldinfo[UNIADD_ADD] + 1],firstfieldinfo[UNIADD_ADD]):
+        if previousDCBaddress is None and not DCBaddress is None:
+            start = uniqueaddress
+        elif not previousDCBaddress is None and DCBaddress is None:
+            blocks.append([start,self._uniquetofieldstart[previousuniqueaddress],uniqueaddress-start])
+        
+        previousDCBaddress = DCBaddress
+        previousuniqueaddress = uniqueaddress
+    if not previousDCBaddress is None:
+        blocks.append([start,self._uniquetofieldstart[previousuniqueaddress],lastfieldinfo[UNIADD_LEN]+previousuniqueaddress-start])
+    return blocks
+  
+  def _estimateBlocksReadTime(self,blocks):
+    #estimates read time for a set of blocks, including the COM_BUS_RESET_TIME between blocks 
+    #excludes the COM_BUS_RESET_TIME before first block
+    readtimes = [self._estimateReadTime(x[2]) for x in blocks]
+    return sum(readtimes) + self._adaptor.minTimeBetweenReads() * (len(blocks) - 1)
+  
+  def _estimateReadTime(self,length):
+    #estiamtes the read time for a call to hmReadFromController without COM_BUS_RESET_TIME
+    #based on empirical measurements of one prt_hw_model and 5 prt_e_model
+    return length * 0.002075 + 0.070727
+  
+  def readFields(self,firstfieldname, lastfieldname = None):
+    #reads fields from controller, safe for blocks crossing gaps in dcb
+    if lastfieldname == None:
+        lastfieldname = firstfieldname
+
+    blockstoread = self._getFieldBlocks(firstfieldname, lastfieldname)
+    logging.debug(blockstoread)
+    estimatedreadtime = self._estimateBlocksReadTime(blockstoread)
+    
+    if estimatedreadtime < self.fullreadtime - 0.02: #if to close to full read time, then read all
+        try:
+            for firstfieldaddress, lastfieldaddress, blocklength in blockstoread:
+                logging.debug("Reading ui %i to %i len %i, proc %s to %s"%(firstfieldaddress,lastfieldaddress,blocklength,self._uniquetoname[firstfieldaddress], self._uniquetoname[lastfieldaddress]))
+                rawdata = self._adaptor.hmReadFromController(self._address, self._protocol, firstfieldaddress, blocklength)
+                self.lastreadtime = time.time()
+                self._procpartpayload(rawdata, self._uniquetoname[firstfieldaddress], self._uniquetoname[lastfieldaddress])
+        except serial.SerialException as e:
+            logging.warn("C%i Read failed of fields %s to %s, Serial Port error %s"%(self._address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH), str(e)))
+            raise
+        else:
+            logging.info("C%i Read fields %s to %s, in %i blocks"%(self._address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH),len(blockstoread)))
     else:
-      logging.info("C%i Read fields %s to %s, %s"%(self._address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH), ', '.join(str(x) for x in rawdata)))
-      self.lastreadtime = time.time()
-      self._procpartpayload(rawdata, firstfieldname, lastfieldname)
-      return rawdata
+        logging.debug("C%i Read fields %s to %s by readAll, %0.3f %0.3f"%(self._address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH), estimatedreadtime, self.fullreadtime))
+        self.hmReadAll()
   
   def _procfield(self,data,fieldname,fieldinfo):
     length = fieldinfo[UNIADD_LEN]

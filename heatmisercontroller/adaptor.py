@@ -211,6 +211,9 @@ class Heatmiser_Adaptor:
                     except hmResponseErrorCRC:
                         self._hmClearInputBuffer()
                         raise
+                        
+    def minTimeBetweenReads(self):
+        return self.serport.COM_BUS_RESET_TIME
     
     @retryer(max_retries = 2)
     def hmReadFromController(self, network_address, protocol, dcb_start_address, expectedLength, readall = False):

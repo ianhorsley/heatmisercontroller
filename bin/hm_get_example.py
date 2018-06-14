@@ -28,7 +28,7 @@ for current_controller in hmn1.controllers:
     print "C%d in %s Failed to Read due to %s" % (current_controller._address,  current_controller._name.ljust(4), str(e))
   else:
     disptext = "C%d Air Temp is %.1f from type %.f and Target set to %d  Boiler Demand %d" % (current_controller._address, current_controller.getAirTemp(), current_controller.getAirSensorType(), current_controller.setroomtemp, current_controller.heatingdemand)
-    if current_controller.model == DEVICE_MODELS['prt_hw_model']:
+    if current_controller.isHotWater():
       print "%s Hot Water Demand %d" % (disptext, current_controller.hotwaterdemand)
     else:
       print disptext
@@ -50,7 +50,7 @@ while True:
       targettext = current_controller.printTarget()
       disptext = "C%d in %s Air Temp is %.1f from type %.f, %s, Heat %d" % (current_controller._address,  current_controller._name.ljust(4), current_controller.getAirTemp(), current_controller.getAirSensorType(), targettext, current_controller.heatingdemand)
       
-      if current_controller.model == DEVICE_MODELS['prt_hw_model']:
+      if current_controller.isHotWater():
         print "%s Water %d" % (disptext, current_controller.hotwaterdemand)
       else:
         print disptext

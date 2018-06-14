@@ -119,6 +119,7 @@ uniadd = {'DCBlen':[0,2,1,[]],
 'keylock': [22,1,1,[0,1],'W'], #1 = on
 'runmode': [23,1,1,[0,1],'W'],  #0 = heating mode, 1 = frost protection mode
 'holidayhours': [24,2,1,[0,720],'W'], #range guessed and tested, setting to 0 cancels hold and puts back to program gap from 26 to 31
+###DCB BREAK
 'tempholdmins': [32,2,1,[0,5760],'W'], #range guessed and tested, setting to 0 cancels hold and puts setroomtemp back to program
 'remoteairtemp': [34,2,10,[]], #ffff if no sensor
 'floortemp': [36,2,10,[]], #ffff if no sensor
