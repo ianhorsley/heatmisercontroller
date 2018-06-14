@@ -210,7 +210,10 @@ class Heatmiser_Adaptor:
                         framing._hmVerifyWriteAck(protocol, network_address, self.my_master_addr, response)
                     except hmResponseErrorCRC:
                         self._hmClearInputBuffer()
-                        raise
+                        rais
+    def minTimeBetweenReads(self):
+        return self.serport.COM_BUS_RESET_TIME
+
     
     @retryer(max_retries = 2)
     def hmReadFromController(self, network_address, protocol, dcb_start_address, expectedLength, readall = False):

@@ -24,20 +24,25 @@ hmn1 = HeatmiserNetwork()
 #hmn1.All.setField('holidayhours',96)
 hmn1.All.releaseHoliday()
 
-hmn1.Kit.setField('hotwaterstate',WRITE_HOTWATERSTATE_PROG)
+hmn1.Kit.setField('hotwaterdemand',WRITE_HOTWATERDEMAND_PROG)
+
 #hmn1.hmSetField(BROADCAST_ADDR,'runmode',WRITE_RUNMODE_HEATING)
 hmn1.All.setOn()
 #hmn1.hmUpdateTime(2)
 #hmn1.controllerByName('B1').setOff()
 #hmn1.hmSetField(BROADCAST_ADDR,HMV3_ID,'onoff',WRITE_ONOFF_ON)  
 #hmn1.hmSetField('Cons',HMV3_ID,'onoff',WRITE_ONOFF_OFF)
-hmn1.Sit.setField('runmode',WRITE_RUNMODE_FROST)
+
+hmn1.All.setField('runmode',WRITE_RUNMODE_HEATING)
 
 #hmn1.B2.setTemp(24)
 #hmn1.Kit.setTemp(24)
 #hmn1.B1.setTemp(24)
 #hmn1.B2.setTemp(24)
 #hmn1.Cons.setTemp(24)
+
+#hmn1.All.setTemp(24)
+
 hmn1.Kit.releaseTemp()
 hmn1.B1.releaseTemp()
 hmn1.B2.releaseTemp()
