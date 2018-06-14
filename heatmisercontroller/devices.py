@@ -71,6 +71,7 @@ class hmController(object):
       self.DCBmap = STRAIGHTmap
     else:
       raise ValueError("Unknown model %s"%self._expected_model)
+
     self._buildDCBtables()
     
     self._expected_model_number = DEVICE_MODELS[self._expected_model]
@@ -81,9 +82,11 @@ class hmController(object):
       self.DCBlength = self.DCBmap[1][0] - self.DCBmap[1][1] + 1
     else:
       raise ValueError("DCB map length not found")
+
     self.fullreadtime = self._estimateReadTime(self.DCBlength)
     
   def _getDCBaddressold(self, uniqueaddress):
+
     #get the DCB address for a controller from the unique address
 
     offset = DCB_INVALID
@@ -136,10 +139,12 @@ class hmController(object):
     try:
       self.rawdata = self._adaptor.hmReadAllFromController(self._address, self._protocol, self.DCBlength)
     except serial.SerialException as e:
+
       logging.warn("C%i Read all failed, Serial Port error %s"%(self._address, str(e)))
       raise
     else:
       logging.info("C%i Read all"%(self._address))
+
       self.lastreadtime = time.time()
       self._procpayload(self.rawdata)
       return self.rawdata
