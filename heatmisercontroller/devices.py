@@ -41,8 +41,9 @@ class hmController(object):
     self.rawdata = [None] * self.DCBlength
         
     #initialise data structures
-    self.data = dict.fromkeys(uniadd.keys(),None)
-    self.datareadtime = dict.fromkeys(uniadd.keys(),None)
+    self._buildfieldtables()
+    self.data = dict.fromkeys(self._fieldnametonum.keys(),None)
+    self.datareadtime = dict.fromkeys(self._fieldnametonum.keys(),None)
   
   def _update_settings(self, settings):
     """Check settings and update if needed."""   
@@ -103,23 +104,23 @@ class hmController(object):
     #get the DCB address for a controller from the unique address
         return self._uniquetodcb[uniqueaddress]
   
+  def _buildfieldtables(self):
+    self._fieldnametonum = {}
+    #self._uniquetofieldstart = [DCB_INVALID] * (MAX_UNIQUE_ADDRESS + 1)
+    for key, data in enumerate(fields):
+        fieldname = data[FIELD_NAME]
+        #fieldlength = data[UNIADD_LEN]
+        self._fieldnametonum[fieldname] = key
+        #self._uniquetofieldstart[fieldaddress:fieldaddress+fieldlength] = [fieldaddress] * fieldlength
+        
   def _buildDCBtables(self):
     #build a forward lookup table for the DCB values from uniqueaddress
     self._uniquetodcb = range(MAX_UNIQUE_ADDRESS+1)
-    
     for uniquemax, offsetsel in self.DCBmap:
         self._uniquetodcb[0:uniquemax + 1] = [x - offsetsel for x in range(uniquemax + 1)] if not offsetsel is DCB_INVALID else [DCB_INVALID] * (uniquemax + 1)
         
     #self._fullDCB = sum(x is not None for x in self._uniquetodcb))
     
-    self._uniquetoname = [DCB_INVALID] * (MAX_UNIQUE_ADDRESS + 1)
-    self._uniquetofieldstart = [DCB_INVALID] * (MAX_UNIQUE_ADDRESS + 1)
-    for key, data in uniadd.iteritems():
-        fieldaddress = data[UNIADD_ADD]
-        fieldlength = data[UNIADD_LEN]
-        self._uniquetoname[fieldaddress] = key
-        self._uniquetofieldstart[fieldaddress:fieldaddress+fieldlength] = [fieldaddress] * fieldlength
-  
   def getRawData(self, startfieldname = None, endfieldname = None):
     if startfieldname == None or endfieldname == None:
       return self.rawdata
@@ -167,13 +168,13 @@ class hmController(object):
     #functions takes a first and last field and seperates out the individual blocks avaliable for the controller type
     #return, uniquestart, uniqueend, length of read
     
-    firstfieldinfo = uniadd[firstfieldname]
-    lastfieldinfo = uniadd[lastfieldname]
+    firstfieldid = self._fieldnametonum[firstfieldname]
+    lastfieldid = self._fieldnametonum[lastfieldname]
 
     blocks = []
     previousDCBaddress = None
 
-    for uniqueaddress, DCBaddress in enumerate(self._uniquetodcb[firstfieldinfo[UNIADD_ADD]:lastfieldinfo[UNIADD_ADD] + 1],firstfieldinfo[UNIADD_ADD]):
+    for fieldnum, fieldinfo in enumerate(fields[firstfieldid:lastfieldid + 1],lastfieldid):
         if previousDCBaddress is None and not DCBaddress is None:
             start = uniqueaddress
         elif not previousDCBaddress is None and DCBaddress is None:
