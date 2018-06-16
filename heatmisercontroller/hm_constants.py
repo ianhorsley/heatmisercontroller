@@ -200,3 +200,16 @@ PRTHWmap = {}
 PRTHWmap[PROG_MODE_WEEK] = list(reversed([(25,0),(31,DCB_INVALID),(102,6),(MAX_UNIQUE_ADDRESS,DCB_INVALID)]))
 PRTHWmap[PROG_MODE_DAY] = list(reversed([(25,0),(31,DCB_INVALID),(MAX_UNIQUE_ADDRESS,6)]))
 STRAIGHTmap = list([(MAX_UNIQUE_ADDRESS,0)])
+
+#Fields for each stat type and mode, list of ranges.
+#PRT-E fields
+FIELDRANGES = {}
+FIELDRANGES['prt_e_model'] = {}
+FIELDRANGES['prt_e_model'][PROG_MODE_WEEK] = [['DCBlen','holidayhours'],['tempholdmins','heatingdemand'],['currenttime','wend_heat']]
+FIELDRANGES['prt_e_model'][PROG_MODE_DAY] = [['DCBlen','holidayhours'],['tempholdmins','heatingdemand'],['currenttime','wend_heat'],['mon_heat','sun_heat']]
+#PRT-HW fields
+FIELDRANGES['prt_hw_model'] = {}
+FIELDRANGES['prt_hw_model'][PROG_MODE_WEEK] = [['DCBlen','holidayhours'],['tempholdmins','wend_water']]
+FIELDRANGES['prt_hw_model'][PROG_MODE_DAY] = [['DCBlen','holidayhours'],['tempholdmins','sun_water']]
+#Full map
+FIELDRANGES[False] = {PROG_MODE_WEEK: [['DCBlen','sun_water']],PROG_MODE_DAY: [['DCBlen','sun_water']]}

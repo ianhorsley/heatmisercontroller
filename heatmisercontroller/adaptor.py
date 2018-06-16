@@ -192,29 +192,29 @@ class Heatmiser_Adaptor:
     
     @retryer(max_retries = 3)
     def hmWriteToController(self, network_address, protocol, dcb_address, length, payload):
-            ###shouldn't be labelled dcb_address. It is a unique address.
-            msg = framing._hmFormFrame(network_address, protocol, self.my_master_addr, FUNC_WRITE, dcb_address, length, payload)
-            
-            try:
-                self._hmSendMsg(msg)
-            except Exception as e:
-                logging.warn("C%i writing to address, no message sent"%(network_address))
-                raise
+        ###shouldn't be labelled dcb_address. It is a unique address.
+        msg = framing._hmFormFrame(network_address, protocol, self.my_master_addr, FUNC_WRITE, dcb_address, length, payload)
+        
+        try:
+            self._hmSendMsg(msg)
+        except Exception as e:
+            logging.warn("C%i writing to address, no message sent"%(network_address))
+            raise
+        else:
+            logging.debug("C%i written to address %i length %i payload %s"%(network_address,dcb_address, length, ', '.join(str(x) for x in payload)))
+            if network_address == BROADCAST_ADDR:
+                self.lastreceivetime = time.time() + self.serport.COM_SEND_MIN_TIME - self.serport.COM_BUS_RESET_TIME # if broadcasting force it to wait longer until next send
             else:
-                logging.debug("C%i written to address %i length %i payload %s"%(network_address,dcb_address, length, ', '.join(str(x) for x in payload)))
-                if network_address == BROADCAST_ADDR:
-                    self.lastreceivetime = time.time() + self.serport.COM_SEND_MIN_TIME - self.serport.COM_BUS_RESET_TIME # if broadcasting force it to wait longer until next send
-                else:
-                    response = self._hmReceiveMsg(FRAME_WRITE_RESP_LENGTH)
-                    try:
-                        framing._hmVerifyWriteAck(protocol, network_address, self.my_master_addr, response)
-                    except hmResponseErrorCRC:
-                        self._hmClearInputBuffer()
-                        rais
+                response = self._hmReceiveMsg(FRAME_WRITE_RESP_LENGTH)
+                try:
+                    framing._hmVerifyWriteAck(protocol, network_address, self.my_master_addr, response)
+                except hmResponseErrorCRC:
+                    self._hmClearInputBuffer()
+                    raise
+                    
     def minTimeBetweenReads(self):
         return self.serport.COM_BUS_RESET_TIME
 
-    
     @retryer(max_retries = 2)
     def hmReadFromController(self, network_address, protocol, dcb_start_address, expectedLength, readall = False):
         ###mis labelled dcb addres, should be unique
@@ -251,49 +251,4 @@ class Heatmiser_Adaptor:
     def hmReadAllFromController(self, network_address, protocol, expectedLength):
         return self.hmReadFromController(network_address, protocol, DCB_START, expectedLength, True)
         
-    def setField(self, network_address, protocol, fieldname, payload):
-        #set a field (single member of uniadd) to a state or payload. Defined for all field lengths.
-        fieldinfo = uniadd[fieldname]
-        
-        if len(fieldinfo) < UNIADD_WRITE + 1 or fieldinfo[UNIADD_WRITE] != 'W':
-            #check that write is part of field info and is 'W'
-            raise ValueError("setField: field isn't writeable")        
-        elif fieldinfo[UNIADD_LEN] in [1, 2] and not isinstance(payload, (int, long)):
-            #one or two byte field, not single length payload or value out of range
-            raise TypeError("setField: invalid requested value")
-        elif fieldinfo[UNIADD_LEN] > 2 and len(payload) != fieldinfo[UNIADD_LEN]:
-            raise ValueError("setField: invalid payload length")
-            
-        self._checkPayloadValues(payload, fieldinfo[UNIADD_RANGE])
-        
-        ###could add payload padding
-        #payloadgrouped=chunks(payload,len(fieldinfo[UNIADD_RANGE]))  
-        
-        if network_address == BROADCAST_ADDR or protocol == HMV3_ID:
-            if fieldinfo[UNIADD_LEN] == 1:
-                payload = [payload]
-            elif fieldinfo[UNIADD_LEN] == 2:
-                pay_lo = (payload & BYTEMASK)
-                pay_hi = (payload >> 8) & BYTEMASK
-                payload = [pay_lo, pay_hi]
-            try:
-                self.hmWriteToController(network_address, protocol, fieldinfo[UNIADD_ADD], fieldinfo[UNIADD_LEN], payload)
-            except:
-                logging.info("C%i failed to set field %s to %s"%(network_address, fieldname.ljust(FIELD_NAME_LENGTH), ', '.join(str(x) for x in payload)))
-                raise
-            else:
-                logging.info("C%i set field %s to %s"%(network_address, fieldname.ljust(FIELD_NAME_LENGTH), ', '.join(str(x) for x in payload)))
-        else:
-            raise ValueError("Un-supported protocol found %s" % protocol)
 
-    def _checkPayloadValues(self, payload, ranges):
-        #checks the payload matches the ranges if ranges are defined        
-        if ranges != []:
-            if isinstance(payload, (int, long)):
-                if ( payload < ranges[0] or payload > ranges[1] ):
-                    raise ValueError("setField: payload out of range")
-            else:
-                for i, item in enumerate(payload):
-                    range = ranges[i % len(ranges)]
-                    if item < range[0] or item > range[1]:
-                        raise ValueError("setField: payload out of range")

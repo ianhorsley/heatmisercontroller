@@ -36,14 +36,15 @@ class hmController(object):
     self._adaptor = adaptor
     
     self.water_schedule = None
-    self._update_settings(devicesettings)
-
-    self.rawdata = [None] * self.DCBlength
         
     #initialise data structures
     self._buildfieldtables()
     self.data = dict.fromkeys(self._fieldnametonum.keys(),None)
     self.datareadtime = dict.fromkeys(self._fieldnametonum.keys(),None)
+    
+    self._update_settings(devicesettings)
+
+    self.rawdata = [None] * self.DCBlength
   
   def _update_settings(self, settings):
     """Check settings and update if needed."""   
@@ -63,6 +64,8 @@ class hmController(object):
       raise ValueError("Unknown program mode")
     
     self._expected_prog_mode_number = PROG_MODES[self._expected_prog_mode]
+    
+    self._fieldranges = FIELDRANGES[self._expected_model][self._expected_prog_mode]
     
     if self._expected_model == 'prt_e_model':
       self.DCBmap = PRTEmap[self._expected_prog_mode]
@@ -106,19 +109,20 @@ class hmController(object):
   
   def _buildfieldtables(self):
     self._fieldnametonum = {}
-    #self._uniquetofieldstart = [DCB_INVALID] * (MAX_UNIQUE_ADDRESS + 1)
     for key, data in enumerate(fields):
         fieldname = data[FIELD_NAME]
-        #fieldlength = data[UNIADD_LEN]
         self._fieldnametonum[fieldname] = key
-        #self._uniquetofieldstart[fieldaddress:fieldaddress+fieldlength] = [fieldaddress] * fieldlength
         
   def _buildDCBtables(self):
     #build a forward lookup table for the DCB values from uniqueaddress
     self._uniquetodcb = range(MAX_UNIQUE_ADDRESS+1)
     for uniquemax, offsetsel in self.DCBmap:
         self._uniquetodcb[0:uniquemax + 1] = [x - offsetsel for x in range(uniquemax + 1)] if not offsetsel is DCB_INVALID else [DCB_INVALID] * (uniquemax + 1)
-        
+    
+    #build list of valid fields for this stat
+    self._fieldsvalid = [False] * len(fields)
+    for first, last in self._fieldranges:
+      self._fieldsvalid[self._fieldnametonum[first]: self._fieldnametonum[last] + 1] = [True] * (self._fieldnametonum[last] - self._fieldnametonum[first])
     #self._fullDCB = sum(x is not None for x in self._uniquetodcb))
     
   def getRawData(self, startfieldname = None, endfieldname = None):
@@ -170,20 +174,20 @@ class hmController(object):
     
     firstfieldid = self._fieldnametonum[firstfieldname]
     lastfieldid = self._fieldnametonum[lastfieldname]
-
+    
     blocks = []
-    previousDCBaddress = None
+    previousfieldvalid = False
 
-    for fieldnum, fieldinfo in enumerate(fields[firstfieldid:lastfieldid + 1],lastfieldid):
-        if previousDCBaddress is None and not DCBaddress is None:
-            start = uniqueaddress
-        elif not previousDCBaddress is None and DCBaddress is None:
-            blocks.append([start,self._uniquetofieldstart[previousuniqueaddress],uniqueaddress-start])
+    for fieldnum, fieldvalid in enumerate(self._fieldsvalid[firstfieldid:lastfieldid + 1],firstfieldid):
+        if previousfieldvalid is False and not fieldvalid is False:
+            start = fields[fieldnum][FIELD_ADD]
+        elif not previousfieldvalid is False and fieldvalid is False:
+            blocks.append([start,fields[fieldnum][FIELD_ADD],fields[fieldnum][FIELD_ADD] + fields[fieldnum][FIELD_LEN] - start])
         
-        previousDCBaddress = DCBaddress
-        previousuniqueaddress = uniqueaddress
-    if not previousDCBaddress is None:
-        blocks.append([start,self._uniquetofieldstart[previousuniqueaddress],lastfieldinfo[UNIADD_LEN]+previousuniqueaddress-start])
+        previousfieldvalid = fieldvalid
+
+    if not previousfieldvalid is False:
+        blocks.append([start,fields[lastfieldid][FIELD_ADD],fields[lastfieldid][FIELD_ADD] + fields[lastfieldid][FIELD_LEN] - start])
     return blocks
   
   def _estimateBlocksReadTime(self,blocks):
@@ -222,10 +226,11 @@ class hmController(object):
         logging.debug("C%i Read fields %s to %s by readAll, %0.3f %0.3f"%(self._address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH), estimatedreadtime, self.fullreadtime))
         self.hmReadAll()
   
-  def _procfield(self,data,fieldname,fieldinfo):
-    length = fieldinfo[UNIADD_LEN]
-    factor = fieldinfo[UNIADD_DIV]
-    range = fieldinfo[UNIADD_RANGE]
+  def _procfield(self,data,fieldinfo):
+    fieldname = fieldinfo[FIELD_NAME]
+    length = fieldinfo[FIELD_LEN]
+    factor = fieldinfo[FIELD_DIV]
+    range = fieldinfo[FIELD_RANGE]
   
     if length == 1:
       value = data[0]/factor
@@ -274,32 +279,31 @@ class hmController(object):
   def _procpartpayload(self, rawdata, firstfieldname, lastfieldname):
     #rawdata must be a list
     #converts field names to unique addresses to allow process of shortened raw data
-    firstfieldadd = uniadd[firstfieldname][UNIADD_ADD] 
-    lastfieldadd = uniadd[lastfieldname][UNIADD_ADD]
-    self._procpayload(rawdata, firstfieldadd, lastfieldadd)
+    firstfieldid = self._fieldnametonum[firstfieldname]
+    lastfieldid = self._fieldnametonum[lastfieldname]
+    self._procpayload(rawdata, firstfieldid, lastfieldid)
     
-  def _procpayload(self, rawdata, firstfieldadd = 0, lastfieldadd = MAX_UNIQUE_ADDRESS):
+  def _procpayload(self, rawdata, firstfieldid = 0, lastfieldid = len(fields)):
     logging.debug("C%i Processing Payload"%(self._address) )
 
-    fullfirstdcbadd = self._getDCBaddress(firstfieldadd)
+    fullfirstdcbadd = self._getDCBaddress(fields[firstfieldid][FIELD_ADD])
     
-    for attrname, values in uniadd.iteritems():
-      uniqueaddress = values[UNIADD_ADD]
-      if uniqueaddress >= firstfieldadd and uniqueaddress <= lastfieldadd:
-        length = values[UNIADD_LEN]
+    for fieldinfo in fields[firstfieldid:lastfieldid + 1]:
+      uniqueaddress = fieldinfo[FIELD_ADD]
+      
+      length = fieldinfo[FIELD_LEN]
+      dcbadd = self._getDCBaddress(uniqueaddress)
 
-        ###todo, add 7 day prog to getDCBaddress selection
-        dcbadd = self._getDCBaddress(uniqueaddress)
-
-        if dcbadd == DCB_INVALID:
-          setattr(self, attrname, None)
-        else:
-          dcbadd -= fullfirstdcbadd #adjust for the start of the request
-          
-          try:
-            self._procfield(rawdata[dcbadd:dcbadd+length], attrname, values)
-          except hmResponseError as e:
-            logging.warn("C%i Field %s process failed due to %s"%(self._address, attrname, str(e)))
+      if dcbadd == DCB_INVALID:
+        setattr(self, fieldinfo[FIELD_NAME], None)
+        self.data[fieldinfo[FIELD_NAME]] = None
+      else:
+        dcbadd -= fullfirstdcbadd #adjust for the start of the request
+        
+        try:
+          self._procfield(rawdata[dcbadd:dcbadd+length], fieldinfo)
+        except hmResponseError as e:
+          logging.warn("C%i Field %s process failed due to %s"%(self._address, attrname, str(e)))
 
     self.rawdata[fullfirstdcbadd:fullfirstdcbadd+len(rawdata)] = rawdata
 
@@ -540,25 +544,66 @@ class hmController(object):
       
 #general field setting
 
-  def setField(self,field,value):
-    retvalue = self._adaptor.setField(self._address,self._protocol,field,value)
+  def setField(self,fieldname,payload):
+    #set a field (single member of fields) to a state or payload. Defined for all field lengths.
+    fieldinfo = fields[self._fieldnametonum[fieldname]]
+    
+    if len(fieldinfo) < FIELD_WRITE + 1 or fieldinfo[FIELD_WRITE] != 'W':
+        #check that write is part of field info and is 'W'
+        raise ValueError("setField: field isn't writeable")        
+               
+    self._checkPayloadValues(payload, fieldinfo)
+
+    if fieldinfo[FIELD_LEN] == 1:
+        payload = [payload]
+    elif fieldinfo[FIELD_LEN] == 2:
+        pay_lo = (payload & BYTEMASK)
+        pay_hi = (payload >> 8) & BYTEMASK
+        payload = [pay_lo, pay_hi]
+    try:
+        print payload
+        self._adaptor.hmWriteToController(self._address, self._protocol, fieldinfo[FIELD_ADD], fieldinfo[FIELD_LEN], payload)
+    except:
+        logging.info("C%i failed to set field %s to %s"%(self._address, fieldname.ljust(FIELD_NAME_LENGTH), ', '.join(str(x) for x in payload)))
+        raise
+    else:
+        logging.info("C%i set field %s to %s"%(self._address, fieldname.ljust(FIELD_NAME_LENGTH), ', '.join(str(x) for x in payload)))
+    
     self.lastreadtime = time.time()
     
     ###should really be handled by a specific overriding function, rather than in here.
     #handle odd effect on WRITE_hotwaterdemand_PROG
-    if field == 'hotwaterdemand':
+    if fieldname == 'hotwaterdemand':
       if value == WRITE_HOTWATERDEMAND_PROG: #returned to program so outcome is unknown
         self.datareadtime[field] = None
         return None
       elif value == WRITE_HOTWATERDEMAND_OFF: #if overridden off store the off read value
         value = READ_HOTWATERDEMAND_OFF
     
-    if isinstance(value, list):
-        self._procpartpayload(value,field,field)
-    else:
-        self._procpartpayload([value],field,field)
-    return retvalue
-
+    self._procpartpayload(payload,fieldname,fieldname)
+    
+  def _checkPayloadValues(self, payload, fieldinfo):
+      #check the payload matches field details
+      
+      if fieldinfo[FIELD_LEN] in [1, 2] and not isinstance(payload, (int, long)):
+          #one or two byte field, not single length payload
+          raise TypeError("setField: invalid requested value")
+      elif fieldinfo[FIELD_LEN] > 2 and len(payload) != fieldinfo[FIELD_LEN]:
+          #greater than two byte field, payload length must match field length
+          raise ValueError("setField: invalid payload length")
+  
+      #checks the payload matches the ranges if ranges are defined 
+      ranges = fieldinfo[FIELD_RANGE]
+      if ranges != []:
+          if isinstance(payload, (int, long)):
+              if ( payload < ranges[0] or payload > ranges[1] ):
+                  raise ValueError("setField: payload out of range")
+          else:
+              for i, item in enumerate(payload):
+                  range = ranges[i % len(ranges)]
+                  if item < range[0] or item > range[1]:
+                      raise ValueError("setField: payload out of range")
+  
 #overriding      
       
   def setTemp(self, temp) :

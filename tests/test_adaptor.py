@@ -27,10 +27,6 @@ class SerialTestClass(object):
             self.serialPort.COM_TIMEOUT = noTimeOut
             self.serialPort.COM_MIN_TIMEOUT = noTimeOut
 
-class argstore(object):
-    def store(self, *args):
-        self.args = args
-            
 class setupTestClass(object):
     def __init__(self):
       self.settings = {}
@@ -76,38 +72,6 @@ class test_serial(unittest.TestCase):
     ret = self.func._hmReceiveMsg(1)
     # Check that the returned data from the serial port == goodmessage
     assert ret == self.goodmessage[:1]
-
-class test_protocol(unittest.TestCase):
-  def setUp(self):
-    self.serialport = SerialTestClass(0)
-    logging.basicConfig(level=logging.ERROR)
-    setup = setupTestClass()
-    self.func = Heatmiser_Adaptor(setup)
-    self.func.serport = self.serialport.serialPort
-
-  def test_setfield_1(self):
-    #checks the arguements sent to hmWriteToController
-    #network_address, protocol, fieldname, payload
-    tester = argstore()
-    self.func.hmWriteToController = tester.store
-    self.func.setField(5, HMV3_ID, 'frosttemp', 7 )
-    self.assertEqual(tester.args,(5, 3, 17, 1, [7]))
-    
-  def test_setfield_2(self):
-    tester = argstore()
-    self.func.hmWriteToController = tester.store
-    self.func.setField(5, HMV3_ID, 'currenttime', [7,7,7,7] )
-    self.assertEqual(tester.args,(5, 3, 43, 4, [7,7,7,7]))
-    
-  def test_setfield_errors(self):
-    with self.assertRaises(ValueError):
-        self.func.setField(5, HMV3_ID, 'frosttemp', 3 )
-    with self.assertRaises(TypeError):
-        self.func.setField(5, HMV3_ID, 'frosttemp', [3,3] )
-    with self.assertRaises(ValueError):
-        self.func.setField(5, HMV3_ID, 'currenttime', [8,7,7,7] )
-    with self.assertRaises(TypeError):
-        self.func.setField(5, HMV3_ID, 'currenttime', 7  )    
     
 if __name__ == '__main__':
     unittest.main()
