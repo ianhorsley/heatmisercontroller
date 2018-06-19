@@ -5,7 +5,7 @@ def readme():
         return f.read()
 
 setup(name='heatmisercontroller',
-      version='0.1',
+      version='0.2',
       description='Python implementation of Heatmiser protocol for serial connected thermostats ',
       long_description=readme(),
       classifiers=[
