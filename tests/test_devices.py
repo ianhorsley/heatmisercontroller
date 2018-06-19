@@ -140,9 +140,11 @@ class test_protocol(unittest.TestCase):
     
   def test_setfield_2(self):
     self.func.autocorrectime = False
-    self.func.lastreadtime = 7 * 86400 + 7 *3600 + 7 * 60 - 3600
-    self.func.setField('currenttime', [7,7,7,7] )
-    self.assertEqual(self.tester.args,(5, 3, 43, 4, [7,7,7,7]))
+    #self.func.lastreadtime = 7 * 86400 + 7 *3600 + 7 * 60 - 3600
+    self.func.lastreadtime = time.time()
+    loctime = self.func._localtimearray(self.func.lastreadtime)
+    self.func.setField('currenttime', loctime )
+    self.assertEqual(self.tester.args,(5, 3, 43, 4, loctime))
     
   def test_setfield_errors(self):
     with self.assertRaises(ValueError):
