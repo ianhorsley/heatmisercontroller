@@ -38,12 +38,13 @@ class test_reading_data(unittest.TestCase):
     
   def test_procpayload(self):
     import time
-    print "tz", -time.timezone
+    print "tz %i alt tz %i"%(time.timezone, time.altzone)
     goodmessage = [1, 37, 0, 22, 4, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 38, 1, 9, 12, 28, 1, 1, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 220, 0, 0, 0, 3, 14, 49, 36, 7, 0, 19, 9, 30, 10, 17, 0, 19, 21, 30, 10, 7, 0, 19, 21, 30, 10, 24, 0, 5, 24, 0, 5, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 8, 0, 9, 0, 18, 0, 19, 0, 24, 0, 24, 0, 24, 0, 24, 0, 7, 0, 20, 21, 30, 12, 24, 0, 12, 24, 0, 12, 7, 0, 20, 21, 30, 12, 24, 0, 12, 24, 0, 12, 7, 0, 19, 8, 30, 12, 16, 30, 20, 21, 0, 12, 7, 0, 20, 12, 0, 12, 17, 0, 20, 21, 30, 12, 5, 0, 20, 21, 30, 12, 24, 0, 12, 24, 0, 12, 7, 0, 20, 12, 0, 12, 17, 0, 20, 21, 30, 12, 7, 0, 12, 24, 0, 12, 24, 0, 12, 24, 0, 12, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0]
 
     self.func = hmController(None, self.settings)
     self.func.autocorrectime = False
-    self.func.lastreadtime = 6 * 86400 + 53376.0 + time.timezone
+    basetime = (6 - 2) * 86400 + 53376.0 + year2000
+    self.func.lastreadtime = basetime - get_offset(basetime) 
     self.func._procpayload(goodmessage)
 
   def test_procpartpayload(self):
@@ -89,14 +90,16 @@ class test_other_functions(unittest.TestCase):
     expected = [[0,0],[25,25],[26,None],[31,None],[32,26],[186,147],[187,None],[298,None]]
     for u,d in expected:
         self.assertEqual(d,self.func._uniquetodcb[u])
-  
+
+def get_offset(timenum):
+    #gettime zone offset for that date
+    is_dst = time.daylight and time.localtime(timenum).tm_isdst > 0
+    utc_offset = - (time.altzone if is_dst else time.timezone)
+    return utc_offset
+year2000 = (30 * 365 + 7) * 86400 #get some funny effects if you use times from 1970
+    
 class test_time_functions(unittest.TestCase):
   def setUp(self):
-    #gettimezone offset
-    #is_dst = time.daylight and time.localtime().tm_isdst > 0
-    #self.utc_offset = - (time.altzone if is_dst else time.timezone)
-    self.utc_offset = - time.timezone
-    #print "utc_offset", self.utc_offset
     self.settings = {'address':1,'protocol':HMV3_ID,'long_name':'test controller','expected_model':'prt_hw_model','expected_prog_mode':PROG_MODE_DAY}
     self.func = hmController(None, self.settings)
     
@@ -105,19 +108,24 @@ class test_time_functions(unittest.TestCase):
       self.func._comparecontrollertime()
       
   def test_comparecontrollertime_bad(self):
-    self.func.datareadtime['currenttime'] = ( 1 + 3) * 86400 + 9 * 3600 + 33 * 60 + 0 - self.utc_offset #has been read 
+    basetime = ( 1 + 1) * 86400 + 9 * 3600 + 33 * 60 + 0 + year2000
+    self.func.datareadtime['currenttime'] = basetime - get_offset(basetime) #has been read 
     self.func.data['currenttime'] = self.func.currenttime = [1, 0, 0, 0]
     with self.assertRaises(hmControllerTimeError):
       self.func._comparecontrollertime()
     
   def test_comparecontrollertime_1(self):
-    self.func.datareadtime['currenttime'] = ( 4 + 3) * 86400 + 9 * 3600 + 33 * 60 + 5 - self.utc_offset #has been read 
+    basetime = ( 4 + 1) * 86400 + 9 * 3600 + 33 * 60 + 5 + year2000
+    self.func.datareadtime['currenttime'] = basetime - get_offset(basetime) #has been read 
     self.func.data['currenttime'] = self.func.currenttime = [4, 9, 33, 0]
+    #print "s ", self.func._localtimearray(self.func.datareadtime['currenttime']), self.func.data['currenttime'], self.func.datareadtime['currenttime'], time.localtime(self.func.datareadtime['currenttime']).tm_hour, time.localtime(self.func.datareadtime['currenttime']), "e"
     self.func._comparecontrollertime()
     self.assertEqual(5, self.func.timeerr)
     
   def test_comparecontrollertime_2(self):
-    self.func.datareadtime['currenttime'] = ( 7 + 3) * 86400 + 23 * 3600 + 59 * 60 + 55 - self.utc_offset #has been read 
+    #self.func.datareadtime['currenttime'] = ( 7 + 3) * 86400 + 23 * 3600 + 59 * 60 + 55 - self.utc_offset #has been read 
+    basetime = ( 7 + 1) * 86400 + 23 * 3600 + 59 * 60 + 55 + year2000
+    self.func.datareadtime['currenttime'] = basetime - get_offset(basetime) #has been read 
     self.func.data['currenttime'] = self.func.currenttime = [1, 0, 0, 0]
     self.func._comparecontrollertime()
     self.assertEqual(5, self.func.timeerr)
