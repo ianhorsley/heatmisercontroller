@@ -38,12 +38,12 @@ class test_reading_data(unittest.TestCase):
     
   def test_procpayload(self):
     import time
-    print -time.timezone
+    print "tz", -time.timezone
     goodmessage = [1, 37, 0, 22, 4, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 38, 1, 9, 12, 28, 1, 1, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 220, 0, 0, 0, 3, 14, 49, 36, 7, 0, 19, 9, 30, 10, 17, 0, 19, 21, 30, 10, 7, 0, 19, 21, 30, 10, 24, 0, 5, 24, 0, 5, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 8, 0, 9, 0, 18, 0, 19, 0, 24, 0, 24, 0, 24, 0, 24, 0, 7, 0, 20, 21, 30, 12, 24, 0, 12, 24, 0, 12, 7, 0, 20, 21, 30, 12, 24, 0, 12, 24, 0, 12, 7, 0, 19, 8, 30, 12, 16, 30, 20, 21, 0, 12, 7, 0, 20, 12, 0, 12, 17, 0, 20, 21, 30, 12, 5, 0, 20, 21, 30, 12, 24, 0, 12, 24, 0, 12, 7, 0, 20, 12, 0, 12, 17, 0, 20, 21, 30, 12, 7, 0, 12, 24, 0, 12, 24, 0, 12, 24, 0, 12, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0]
 
     self.func = hmController(None, self.settings)
     self.func.autocorrectime = False
-    self.func.lastreadtime = 6 * 86400 + 53376.0 - 3600
+    self.func.lastreadtime = 6 * 86400 + 53376.0 + time.timezone
     self.func._procpayload(goodmessage)
 
   def test_procpartpayload(self):
@@ -93,8 +93,10 @@ class test_other_functions(unittest.TestCase):
 class test_time_functions(unittest.TestCase):
   def setUp(self):
     #gettimezone offset
-    is_dst = time.daylight and time.localtime().tm_isdst > 0
-    self.utc_offset = - (time.altzone if is_dst else time.timezone)
+    #is_dst = time.daylight and time.localtime().tm_isdst > 0
+    #self.utc_offset = - (time.altzone if is_dst else time.timezone)
+    self.utc_offset = - time.timezone
+    #print "utc_offset", self.utc_offset
     self.settings = {'address':1,'protocol':HMV3_ID,'long_name':'test controller','expected_model':'prt_hw_model','expected_prog_mode':PROG_MODE_DAY}
     self.func = hmController(None, self.settings)
     
@@ -121,8 +123,9 @@ class test_time_functions(unittest.TestCase):
     self.assertEqual(5, self.func.timeerr)
 
   def test_localtimearray(self):
-    self.assertEqual([4, 6, 48, 47], self.func._localtimearray(1528350527))
-    self.assertEqual([7, 6, 48, 47], self.func._localtimearray(1528350527-86400*4))
+    hour = time.localtime(1528350527).tm_hour
+    self.assertEqual([4, hour, 48, 47], self.func._localtimearray(1528350527))
+    self.assertEqual([7, hour, 48, 47], self.func._localtimearray(1528350527-86400*4))
 
 class test_protocol(unittest.TestCase):
   def setUp(self):
