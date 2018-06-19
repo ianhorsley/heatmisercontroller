@@ -91,64 +91,66 @@ UNIQUE_ADD_MODEL = 4
 FIELD_NAME_LENGTH = 13
 MAX_UNIQUE_ADDRESS = 298
 #name, unique_address,length,divisor, valid range, writeable]
-UNIADD_ADD = 0
-UNIADD_LEN = 1
-UNIADD_DIV = 2
-UNIADD_RANGE = 3
-UNIADD_WRITE = 4
-uniadd = {'DCBlen':[0,2,1,[]],
-'vendor':[2,1,1,[0,1]], #00 heatmiser, 01 OEM
-'version':[3,1,1,[]],
-'model': [4,1,1,[0,5]], # DT/DT-E/PRT/PRT-E 00/01/02/03
-'tempformat': [5,1,1,[0,1]], # 00 C, 01 F
-'switchdiff': [6,1,1,[1,3]],
-'frostprot': [7,1,1,[0,1]], #0=enable frost prot when display off, (opposite in protocol manual, but tested and user guide is correct)  (default should be enabled)
-'caloffset': [8,2,1,[]],
-'outputdelay': [10,1,1,[0,15]], # minutes (to prevent rapid switching)
-'address': [11,1,1,[SLAVE_ADDR_MIN,SLAVE_ADDR_MAX]],
-'updwnkeylimit': [12,1,1,[0,10]],  #limits use of up and down keys
-'sensorsavaliable': [13,1,1,[0,4]], #00 built in only, 01 remote air only, 02 floor only, 03 built in + floor, 04 remote + floor
-'optimstart': [14,1,1,[0,3]], # 0 to 3 hours, default 0
-'rateofchange': [15,1,1,[]], #number of minutes per degree to raise the temperature, default 20. Applies to the Wake and Return comfort levels (1st and 3rd)
-'programmode': [16,1,1,[0,1]], #0=5/2, 1= 7day
-'frosttemp': [17,1,1,[7,17],'W'], #default is 12, frost protection temperature
-'setroomtemp': [18,1,1,[5,35],'W'],
-'floormaxlimit': [19,1,1,[20,45],'W'],
-'floormaxlimitenable': [20,1,1,[0,1]], #1=enable
-'onoff': [21,1,1,[0,1],'W'], #1 = on
-'keylock': [22,1,1,[0,1],'W'], #1 = on
-'runmode': [23,1,1,[0,1],'W'],  #0 = heating mode, 1 = frost protection mode
-'holidayhours': [24,2,1,[0,720],'W'], #range guessed and tested, setting to 0 cancels hold and puts back to program gap from 26 to 31
-###DCB BREAK
-'tempholdmins': [32,2,1,[0,5760],'W'], #range guessed and tested, setting to 0 cancels hold and puts setroomtemp back to program
-'remoteairtemp': [34,2,10,[]], #ffff if no sensor
-'floortemp': [36,2,10,[]], #ffff if no sensor
-'airtemp': [38,2,10,[]], #ffff if no sensor
-'errorcode': [40,1,1,[0,3]], #0 built in, 1, floor, 2 remote
-'heatingdemand': [41,1,1,[0,1]], #0 none, 1 heating currently
-'hotwaterdemand': [42,1,1,[0,3],'W'], # read [0=off,1=on], write [0=as prog,1=override on,2=overide off]
-'currenttime': [43,4,1,[[1,7],[0,23],[0,59],[0,59]],'W'], #day (Mon - Sun), hour, min, sec.
+FIELD_NAME = 0
+FIELD_ADD = 1
+FIELD_LEN = 2
+FIELD_DIV = 3
+FIELD_RANGE = 4
+FIELD_WRITE = 5
+fields = [
+['DCBlen',0,2,1,[]],
+['vendor',2,1,1,[0,1]], #00 heatmiser, 01 OEM
+['version',3,1,1,[]],
+['model',4,1,1,[0,5]], # DT/DT-E/PRT/PRT-E 00/01/02/03
+['tempformat',5,1,1,[0,1]], # 00 C, 01 F
+['switchdiff',6,1,1,[1,3]],
+['frostprot',7,1,1,[0,1]], #0=enable frost prot when display off, (opposite in protocol manual, but tested and user guide is correct)  (default should be enabled)
+['caloffset',8,2,1,[]],
+['outputdelay',10,1,1,[0,15]], # minutes (to prevent rapid switching)
+['address',11,1,1,[SLAVE_ADDR_MIN,SLAVE_ADDR_MAX]],
+['updwnkeylimit',12,1,1,[0,10]],  #limits use of up and down keys
+['sensorsavaliable',13,1,1,[0,4]], #00 built in only, 01 remote air only, 02 floor only, 03 built in + floor, 04 remote + floor
+['optimstart',14,1,1,[0,3]], # 0 to 3 hours, default 0
+['rateofchange',15,1,1,[]], #number of minutes per degree to raise the temperature, default 20. Applies to the Wake and Return comfort levels (1st and 3rd)
+['programmode',16,1,1,[0,1]], #0=5/2, 1= 7day
+['frosttemp',17,1,1,[7,17],'W'], #default is 12, frost protection temperature
+['setroomtemp',18,1,1,[5,35],'W'],
+['floormaxlimit',19,1,1,[20,45],'W'],
+['floormaxlimitenable',20,1,1,[0,1]], #1=enable
+['onoff',21,1,1,[0,1],'W'], #1 = on
+['keylock',22,1,1,[0,1],'W'], #1 = on
+['runmode',23,1,1,[0,1],'W'],  #0 = heating mode, 1 = frost protection mode
+['holidayhours',24,2,1,[0,720],'W'], #range guessed and tested, setting to 0 cancels hold and puts back to program 
+['unknown',26,6,1,[]], # gap from 26 to 31
+['tempholdmins',32,2,1,[0,5760],'W'], #range guessed and tested, setting to 0 cancels hold and puts setroomtemp back to program
+['remoteairtemp',34,2,10,[]], #ffff if no sensor
+['floortemp',36,2,10,[]], #ffff if no sensor
+['airtemp',38,2,10,[]], #ffff if no sensor
+['errorcode',40,1,1,[0,3]], #0 built in, 1, floor, 2 remote
+['heatingdemand',41,1,1,[0,1]], #0 none, 1 heating currently
+['hotwaterdemand',42,1,1,[0,3],'W'], # read [0=off,1=on], write [0=as prog,1=override on,2=overide off]
+['currenttime',43,4,1,[[1,7],[0,23],[0,59],[0,59]],'W'], #day (Mon - Sun), hour, min, sec.
 #5/2 progamming #if hour = 24 entry not used
-'wday_heat':[47,12,1,[[0,24],[0,59],[5,35]],"W"], #hour, min, temp  (should minutes be only 0 and 30?)
-'wend_heat':[59,12,1,[[0,24],[0,59],[5,35]],"W"],
-'wday_water':[71,16,1,[[0,24],[0,59]],"W"], # pairs, on then off repeated, hour, min
-'wend_water':[87,16,1,[[0,24],[0,59]],"W"],
+['wday_heat',47,12,1,[[0,24],[0,59],[5,35]],"W"], #hour, min, temp  (should minutes be only 0 and 30?)
+['wend_heat',59,12,1,[[0,24],[0,59],[5,35]],"W"],
+['wday_water',71,16,1,[[0,24],[0,59]],"W"], # pairs, on then off repeated, hour, min
+['wend_water',87,16,1,[[0,24],[0,59]],"W"],
 #7day progamming
-'mon_heat':[103,12,1,[[0,24],[0,59],[5,35]],"W"],
-'tues_heat':[115,12,1,[[0,24],[0,59],[5,35]],"W"],
-'wed_heat':[127,12,1,[[0,24],[0,59],[5,35]],"W"],
-'thurs_heat':[139,12,1,[[0,24],[0,59],[5,35]],"W"],
-'fri_heat':[151,12,1,[[0,24],[0,59],[5,35]],"W"],
-'sat_heat':[163,12,1,[[0,24],[0,59],[5,35]],"W"],
-'sun_heat':[175,12,1,[[0,24],[0,59],[5,35]],"W"],
-'mon_water':[187,16,1,[[0,24],[0,59]],"W"],
-'tues_water':[203,16,1,[[0,24],[0,59]],"W"],
-'wed_water':[219,16,1,[[0,24],[0,59]],"W"],
-'thurs_water':[235,16,1,[[0,24],[0,59]],"W"],
-'fri_water':[251,16,1,[[0,24],[0,59]],"W"],
-'sat_water':[267,16,1,[[0,24],[0,59]],"W"],
-'sun_water':[283,16,1,[[0,24],[0,59]],"W"],
-}
+['mon_heat',103,12,1,[[0,24],[0,59],[5,35]],"W"],
+['tues_heat',115,12,1,[[0,24],[0,59],[5,35]],"W"],
+['wed_heat',127,12,1,[[0,24],[0,59],[5,35]],"W"],
+['thurs_heat',139,12,1,[[0,24],[0,59],[5,35]],"W"],
+['fri_heat',151,12,1,[[0,24],[0,59],[5,35]],"W"],
+['sat_heat',163,12,1,[[0,24],[0,59],[5,35]],"W"],
+['sun_heat',175,12,1,[[0,24],[0,59],[5,35]],"W"],
+['mon_water',187,16,1,[[0,24],[0,59]],"W"],
+['tues_water',203,16,1,[[0,24],[0,59]],"W"],
+['wed_water',219,16,1,[[0,24],[0,59]],"W"],
+['thurs_water',235,16,1,[[0,24],[0,59]],"W"],
+['fri_water',251,16,1,[[0,24],[0,59]],"W"],
+['sat_water',267,16,1,[[0,24],[0,59]],"W"],
+['sun_water',283,16,1,[[0,24],[0,59]],"W"]
+]
 
 CURRENT_TIME_DAY = 0
 CURRENT_TIME_HOUR = 1
@@ -198,3 +200,16 @@ PRTHWmap = {}
 PRTHWmap[PROG_MODE_WEEK] = list(reversed([(25,0),(31,DCB_INVALID),(102,6),(MAX_UNIQUE_ADDRESS,DCB_INVALID)]))
 PRTHWmap[PROG_MODE_DAY] = list(reversed([(25,0),(31,DCB_INVALID),(MAX_UNIQUE_ADDRESS,6)]))
 STRAIGHTmap = list([(MAX_UNIQUE_ADDRESS,0)])
+
+#Fields for each stat type and mode, list of ranges.
+#PRT-E fields
+FIELDRANGES = {}
+FIELDRANGES['prt_e_model'] = {}
+FIELDRANGES['prt_e_model'][PROG_MODE_WEEK] = [['DCBlen','holidayhours'],['tempholdmins','heatingdemand'],['currenttime','wend_heat']]
+FIELDRANGES['prt_e_model'][PROG_MODE_DAY] = [['DCBlen','holidayhours'],['tempholdmins','heatingdemand'],['currenttime','wend_heat'],['mon_heat','sun_heat']]
+#PRT-HW fields
+FIELDRANGES['prt_hw_model'] = {}
+FIELDRANGES['prt_hw_model'][PROG_MODE_WEEK] = [['DCBlen','holidayhours'],['tempholdmins','wend_water']]
+FIELDRANGES['prt_hw_model'][PROG_MODE_DAY] = [['DCBlen','holidayhours'],['tempholdmins','sun_water']]
+#Full map
+FIELDRANGES[False] = {PROG_MODE_WEEK: [['DCBlen','sun_water']],PROG_MODE_DAY: [['DCBlen','sun_water']]}
