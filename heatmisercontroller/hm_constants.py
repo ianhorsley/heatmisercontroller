@@ -126,7 +126,7 @@ fields = [
 ['remoteairtemp',34,2,10,[]], #ffff if no sensor
 ['floortemp',36,2,10,[]], #ffff if no sensor
 ['airtemp',38,2,10,[]], #ffff if no sensor
-['errorcode',40,1,1,[0,3]], #0 built in, 1, floor, 2 remote
+['errorcode',40,1,1,[0,3]], # 0 is no error # errors, 0 built in, 1, floor, 2 remote
 ['heatingdemand',41,1,1,[0,1]], #0 none, 1 heating currently
 ['hotwaterdemand',42,1,1,[0,3],'W'], # read [0=off,1=on], write [0=as prog,1=override on,2=overide off]
 ['currenttime',43,4,1,[[1,7],[0,23],[0,59],[0,59]],'W'], #day (Mon - Sun), hour, min, sec.

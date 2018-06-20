@@ -16,7 +16,13 @@
 	COM_SEND_MIN_TIME = float(default=1)  #minimum time between sending commands to a device (broadcast only??)
 	COM_BUS_RESET_TIME = float(default=0.1)
 
-
+[ devicesgeneral ]
+  autoreadall = boolean(default = True)
+  autocorrectime = boolean(default = True)
+  max_age_variables = integer(default = 60) #variables like holidaymins, etc.
+  max_age_time = integer(default = 86400) #time tends to drift very slowly, so it shouldn't need checking very often
+  max_age_temp = integer(default = 10) #temperature is something that might be sampled very regularly
+  
 [ devices ]
   [[ __many__ ]]
     address = integer(0, 32)

@@ -23,15 +23,8 @@ from schedule_functions import schedulerdayheat, schedulerweekheat, schedulerday
 class hmController(object):
   ##Variables used by code
   lastreadtime = 0 #records last time of a successful read
-  ##Control parameters and default settings
-  autoreadall = True
-  autocorrectime = True
-  #max times for age of data
-  max_age_variables = 60 #variables like holidaymins, etc.
-  max_age_time = 60 * 60 * 24 #time tends to drift very slowly, so it shouldn't need checking very often
-  max_age_temp = 10 #temperature is something that might be sampled very regularly
 
-  def __init__(self, adaptor, devicesettings):
+  def __init__(self, adaptor, devicesettings, generalsettings = None):
     #address, protocol, short_name, long_name, model, mode
     self._adaptor = adaptor
     
@@ -42,12 +35,16 @@ class hmController(object):
     self.data = dict.fromkeys(self._fieldnametonum.keys(),None)
     self.datareadtime = dict.fromkeys(self._fieldnametonum.keys(),None)
     
-    self._update_settings(devicesettings)
+    self._update_settings(devicesettings, generalsettings)
 
     self.rawdata = [None] * self.DCBlength
   
-  def _update_settings(self, settings):
+  def _update_settings(self, settings, generalsettings):
     """Check settings and update if needed."""   
+    
+    if not generalsettings is None:
+        for name, value in generalsettings.iteritems():
+            setattr(self, '_' + name, value)
     
     for name, value in settings.iteritems():
       setattr(self, '_' + name, value)
@@ -122,8 +119,9 @@ class hmController(object):
     #build list of valid fields for this stat
     self._fieldsvalid = [False] * len(fields)
     for first, last in self._fieldranges:
-      self._fieldsvalid[self._fieldnametonum[first]: self._fieldnametonum[last] + 1] = [True] * (self._fieldnametonum[last] - self._fieldnametonum[first])
+      self._fieldsvalid[self._fieldnametonum[first]: self._fieldnametonum[last] + 1] = [True] * (self._fieldnametonum[last] - self._fieldnametonum[first] + 1)
     #self._fullDCB = sum(x is not None for x in self._uniquetodcb))
+    logging.debug("C%i Fieldsvalid %s"%(self._address,','.join(str(int(x)) for x in self._fieldsvalid)))
     
   def getRawData(self, startfieldname = None, endfieldname = None):
     if startfieldname == None or endfieldname == None:
@@ -160,8 +158,8 @@ class hmController(object):
     # no maxage in request (maxage = 0)
     # maxage is valid and data too old
     # or not be read before (maxage = None)
-    if maxage == 0 or (maxage is not None and self._check_data_age(maxage, fieldname)) or not self._check_data_present(fieldname):
-      if self.autoreadall is True:
+    if maxage == 0 or (maxage is not None and not self._check_data_age(maxage, fieldname)) or not self._check_data_present(fieldname):
+      if self._autoreadall is True:
         self.readFields(fieldname)
       else:
         raise ValueError("Need to read %s first"%fieldname)
@@ -170,7 +168,8 @@ class hmController(object):
   def _getFieldBlocks(self, firstfieldname, lastfieldname):
     #data can only be requested from the controller in contiguous blocks
     #functions takes a first and last field and seperates out the individual blocks avaliable for the controller type
-    #return, uniquestart, uniqueend, length of read
+    ###return, uniquestart, uniqueend, length of read
+    #return, fieldstart, fieldend, length of read in bytes
     
     firstfieldid = self._fieldnametonum[firstfieldname]
     lastfieldid = self._fieldnametonum[lastfieldname]
@@ -180,14 +179,17 @@ class hmController(object):
 
     for fieldnum, fieldvalid in enumerate(self._fieldsvalid[firstfieldid:lastfieldid + 1],firstfieldid):
         if previousfieldvalid is False and not fieldvalid is False:
-            start = fields[fieldnum][FIELD_ADD]
+            #start = fields[fieldnum][FIELD_ADD]
+            start = fieldnum
         elif not previousfieldvalid is False and fieldvalid is False:
-            blocks.append([start,fields[fieldnum][FIELD_ADD],fields[fieldnum][FIELD_ADD] + fields[fieldnum][FIELD_LEN] - start])
+            #blocks.append([start,fields[fieldnum][FIELD_ADD],fields[fieldnum][FIELD_ADD] + fields[fieldnum][FIELD_LEN] - start])
+            blocks.append([start,fieldnum - 1,fields[fieldnum - 1][FIELD_ADD] + fields[fieldnum - 1][FIELD_LEN] - fields[start][FIELD_ADD]])
         
         previousfieldvalid = fieldvalid
 
     if not previousfieldvalid is False:
-        blocks.append([start,fields[lastfieldid][FIELD_ADD],fields[lastfieldid][FIELD_ADD] + fields[lastfieldid][FIELD_LEN] - start])
+        #blocks.append([start,fields[lastfieldid][FIELD_ADD],fields[lastfieldid][FIELD_ADD] + fields[lastfieldid][FIELD_LEN] - start])
+        blocks.append([start,lastfieldid,fields[lastfieldid][FIELD_ADD] + fields[lastfieldid][FIELD_LEN] - fields[start][FIELD_ADD]])
     return blocks
   
   def _estimateBlocksReadTime(self,blocks):
@@ -201,7 +203,7 @@ class hmController(object):
     #based on empirical measurements of one prt_hw_model and 5 prt_e_model
     return length * 0.002075 + 0.070727
   
-  def readFields(self,firstfieldname, lastfieldname = None):
+  def readFields(self, firstfieldname, lastfieldname = None):
     #reads fields from controller, safe for blocks crossing gaps in dcb
     if lastfieldname == None:
         lastfieldname = firstfieldname
@@ -212,11 +214,11 @@ class hmController(object):
     
     if estimatedreadtime < self.fullreadtime - 0.02: #if to close to full read time, then read all
         try:
-            for firstfieldaddress, lastfieldaddress, blocklength in blockstoread:
-                logging.debug("Reading ui %i to %i len %i, proc %s to %s"%(firstfieldaddress,lastfieldaddress,blocklength,self._uniquetoname[firstfieldaddress], self._uniquetoname[lastfieldaddress]))
-                rawdata = self._adaptor.hmReadFromController(self._address, self._protocol, firstfieldaddress, blocklength)
+            for firstfieldid, lastfieldid, blocklength in blockstoread:
+                logging.debug("C%i Reading ui %i to %i len %i, proc %s to %s"%(self._address, fields[firstfieldid][FIELD_ADD],fields[lastfieldid][FIELD_ADD],blocklength,fields[firstfieldid][FIELD_NAME], fields[lastfieldid][FIELD_NAME]))
+                rawdata = self._adaptor.hmReadFromController(self._address, self._protocol, fields[firstfieldid][FIELD_ADD], blocklength)
                 self.lastreadtime = time.time()
-                self._procpartpayload(rawdata, self._uniquetoname[firstfieldaddress], self._uniquetoname[lastfieldaddress])
+                self._procpartpayload(rawdata, fields[firstfieldid][FIELD_NAME], fields[lastfieldid][FIELD_NAME])
         except serial.SerialException as e:
             logging.warn("C%i Read failed of fields %s to %s, Serial Port error %s"%(self._address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH), str(e)))
             raise
@@ -231,7 +233,7 @@ class hmController(object):
     length = fieldinfo[FIELD_LEN]
     factor = fieldinfo[FIELD_DIV]
     range = fieldinfo[FIELD_RANGE]
-  
+    #logging.debug("Processing %s %s"%(fieldinfo[FIELD_NAME],', '.join(str(x) for x in data)))
     if length == 1:
       value = data[0]/factor
     elif length == 2:
@@ -279,12 +281,13 @@ class hmController(object):
   def _procpartpayload(self, rawdata, firstfieldname, lastfieldname):
     #rawdata must be a list
     #converts field names to unique addresses to allow process of shortened raw data
+    logging.debug("C%i Processing Payload from field %s to %s"%(self._address,firstfieldname,lastfieldname) )
     firstfieldid = self._fieldnametonum[firstfieldname]
     lastfieldid = self._fieldnametonum[lastfieldname]
     self._procpayload(rawdata, firstfieldid, lastfieldid)
     
   def _procpayload(self, rawdata, firstfieldid = 0, lastfieldid = len(fields)):
-    logging.debug("C%i Processing Payload"%(self._address) )
+    logging.debug("C%i Processing Payload from field %i to %i"%(self._address,firstfieldid,lastfieldid) )
 
     fullfirstdcbadd = self._getDCBaddress(fields[firstfieldid][FIELD_ADD])
     
@@ -303,16 +306,16 @@ class hmController(object):
         try:
           self._procfield(rawdata[dcbadd:dcbadd+length], fieldinfo)
         except hmResponseError as e:
-          logging.warn("C%i Field %s process failed due to %s"%(self._address, attrname, str(e)))
+          logging.warn("C%i Field %s process failed due to %s"%(self._address, fieldinfo[FIELD_NAME], str(e)))
 
     self.rawdata[fullfirstdcbadd:fullfirstdcbadd+len(rawdata)] = rawdata
 
   def _checkcontrollertime(self):
-    #run compare of times, and try to fix if autocorrectime
+    #run compare of times, and try to fix if _autocorrectime
     try:
       self._comparecontrollertime()
     except hmControllerTimeError:
-      if self.autocorrectime is True:
+      if self._autocorrectime is True:
         self.setTime()
       else:
         raise
@@ -389,6 +392,7 @@ class hmController(object):
     
   def _check_data_age(self, maxage, *fieldnames):
     #field data age is not more than maxage (in seconds)
+    #return False if old, True if recent
     if len(fieldnames) == 0:
       raise ValueError("Must list at least one field")
     
@@ -426,13 +430,13 @@ class hmController(object):
   
   def getTempState(self):
     if not self._check_data_present('onoff','frostprot','holidayhours','runmode','tempholdmins','setroomtemp'):
-      if self.autoreadall is True:
+      if self._autoreadall is True:
         self.hmReadAll()
       else:
         raise ValueError("Need to read all before getting temp state")
         
-    if not self._check_data_age(self.max_age_variables, 'onoff','holidayhours','runmode','tempholdmins','setroomtemp'):
-      if self.autoreadall is True:
+    if not self._check_data_age(self._max_age_variables, 'onoff','holidayhours','runmode','tempholdmins','setroomtemp'):
+      if self._autoreadall is True:
         self.hmReadVariables()
       else:
         raise ValueError("Vars to old to get temp state")
@@ -449,7 +453,7 @@ class hmController(object):
       return self.TEMP_STATE_HELD
     else:
     
-      if not self._check_data_age(self.max_age_time, 'currenttime'):
+      if not self._check_data_age(self._max_age_time, 'currenttime'):
         currenttime = self.readTime()
       
       locatimenow = self._localtimearray()
@@ -464,13 +468,13 @@ class hmController(object):
   def getWaterState(self):
     #does runmode affect hot water state?
     if not self._check_data_present('onoff','holidayhours','hotwaterdemand'):
-      if self.autoreadall is True:
+      if self._autoreadall is True:
         self.hmReadAll()
       else:
         raise ValueError("Need to read all before getting temp state")
         
-    if not self._check_data_age(self.max_age_variables, 'onoff','holidayhours','hotwaterdemand'):
-      if self.autoreadall is True:
+    if not self._check_data_age(self._max_age_variables, 'onoff','holidayhours','hotwaterdemand'):
+      if self._autoreadall is True:
         self.hmReadVariables()
       else:
         raise ValueError("Vars to old to get temp state")
@@ -481,7 +485,7 @@ class hmController(object):
       return self.TEMP_STATE_HOLIDAY
     else:
     
-      if not self._check_data_age(self.max_age_time, 'currenttime'):
+      if not self._check_data_age(self._max_age_time, 'currenttime'):
         currenttime = self.readTime()
       
       locatimenow = self._localtimearray()
@@ -504,19 +508,15 @@ class hmController(object):
       return 0
       
   def getAirTemp(self):
-    if not self._check_data_present('sensorsavaliable'):
-      return False
+    #if not read before read sensorsavaliable field
+    self.readField('sensorsavaliable',None) 
     
     if self.sensorsavaliable == READ_SENSORS_AVALIABLE_INT_ONLY or self.sensorsavaliable == READ_SENSORS_AVALIABLE_INT_FLOOR:
-      if not self._check_data_age(self.max_age_temp, 'airtemp'):
-        return False
-      return self.airtemp
+      return self.readField('airtemp', self._max_age_temp)
     elif self.sensorsavaliable == READ_SENSORS_AVALIABLE_EXT_ONLY or self.sensorsavaliable == READ_SENSORS_AVALIABLE_EXT_FLOOR:
-      if not self._check_data_age(self.max_age_temp, 'remoteairtemp'):
-        return False
-      return self.remoteairtemp
+      return self.readField('remoteairtemp', self._max_age_temp)
     else:
-      return False
+      raise ValueError("sensorsavaliable field invalid")
      
 #### External functions for setting data
 
