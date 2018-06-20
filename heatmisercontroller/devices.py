@@ -170,7 +170,8 @@ class hmController(object):
   def _getFieldBlocks(self, firstfieldname, lastfieldname):
     #data can only be requested from the controller in contiguous blocks
     #functions takes a first and last field and seperates out the individual blocks avaliable for the controller type
-    #return, uniquestart, uniqueend, length of read
+    ###return, uniquestart, uniqueend, length of read
+    #return, fieldstart, fieldend, length of read in bytes
     
     firstfieldid = self._fieldnametonum[firstfieldname]
     lastfieldid = self._fieldnametonum[lastfieldname]
@@ -180,14 +181,17 @@ class hmController(object):
 
     for fieldnum, fieldvalid in enumerate(self._fieldsvalid[firstfieldid:lastfieldid + 1],firstfieldid):
         if previousfieldvalid is False and not fieldvalid is False:
-            start = fields[fieldnum][FIELD_ADD]
+            #start = fields[fieldnum][FIELD_ADD]
+            start = fieldnum
         elif not previousfieldvalid is False and fieldvalid is False:
-            blocks.append([start,fields[fieldnum][FIELD_ADD],fields[fieldnum][FIELD_ADD] + fields[fieldnum][FIELD_LEN] - start])
+            #blocks.append([start,fields[fieldnum][FIELD_ADD],fields[fieldnum][FIELD_ADD] + fields[fieldnum][FIELD_LEN] - start])
+            blocks.append([start,fieldnum,fields[fieldnum][FIELD_ADD] + fields[fieldnum][FIELD_LEN] - fields[start][FIELD_ADD]])
         
         previousfieldvalid = fieldvalid
 
     if not previousfieldvalid is False:
-        blocks.append([start,fields[lastfieldid][FIELD_ADD],fields[lastfieldid][FIELD_ADD] + fields[lastfieldid][FIELD_LEN] - start])
+        #blocks.append([start,fields[lastfieldid][FIELD_ADD],fields[lastfieldid][FIELD_ADD] + fields[lastfieldid][FIELD_LEN] - start])
+        blocks.append([start,lastfieldid,fields[lastfieldid][FIELD_ADD] + fields[lastfieldid][FIELD_LEN] - fields[start][FIELD_ADD]])
     return blocks
   
   def _estimateBlocksReadTime(self,blocks):
@@ -201,7 +205,7 @@ class hmController(object):
     #based on empirical measurements of one prt_hw_model and 5 prt_e_model
     return length * 0.002075 + 0.070727
   
-  def readFields(self,firstfieldname, lastfieldname = None):
+  def readFields(self, firstfieldname, lastfieldname = None):
     #reads fields from controller, safe for blocks crossing gaps in dcb
     if lastfieldname == None:
         lastfieldname = firstfieldname
@@ -212,11 +216,11 @@ class hmController(object):
     
     if estimatedreadtime < self.fullreadtime - 0.02: #if to close to full read time, then read all
         try:
-            for firstfieldaddress, lastfieldaddress, blocklength in blockstoread:
-                logging.debug("Reading ui %i to %i len %i, proc %s to %s"%(firstfieldaddress,lastfieldaddress,blocklength,self._uniquetoname[firstfieldaddress], self._uniquetoname[lastfieldaddress]))
-                rawdata = self._adaptor.hmReadFromController(self._address, self._protocol, firstfieldaddress, blocklength)
+            for firstfieldid, lastfieldid, blocklength in blockstoread:
+                logging.debug("Reading ui %i to %i len %i, proc %s to %s"%(fields[firstfieldid][FIELD_ADD],fields[lastfieldid][FIELD_ADD],blocklength,fields[firstfieldid][FIELD_NAME], fields[lastfieldid][FIELD_NAME]))
+                rawdata = self._adaptor.hmReadFromController(self._address, self._protocol, fields[firstfieldid][FIELD_ADD], blocklength)
                 self.lastreadtime = time.time()
-                self._procpartpayload(rawdata, self._uniquetoname[firstfieldaddress], self._uniquetoname[lastfieldaddress])
+                self._procpartpayload(rawdata, fields[firstfieldid][FIELD_NAME], fields[lastfieldid][FIELD_NAME])
         except serial.SerialException as e:
             logging.warn("C%i Read failed of fields %s to %s, Serial Port error %s"%(self._address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH), str(e)))
             raise
@@ -231,7 +235,7 @@ class hmController(object):
     length = fieldinfo[FIELD_LEN]
     factor = fieldinfo[FIELD_DIV]
     range = fieldinfo[FIELD_RANGE]
-  
+    logging.debug("Processing %s %s"%(fieldinfo[FIELD_NAME],', '.join(str(x) for x in data)))
     if length == 1:
       value = data[0]/factor
     elif length == 2:
@@ -279,12 +283,13 @@ class hmController(object):
   def _procpartpayload(self, rawdata, firstfieldname, lastfieldname):
     #rawdata must be a list
     #converts field names to unique addresses to allow process of shortened raw data
+    logging.debug("C%i Processing Payload from field %s to %s"%(self._address,firstfieldname,lastfieldname) )
     firstfieldid = self._fieldnametonum[firstfieldname]
     lastfieldid = self._fieldnametonum[lastfieldname]
     self._procpayload(rawdata, firstfieldid, lastfieldid)
     
   def _procpayload(self, rawdata, firstfieldid = 0, lastfieldid = len(fields)):
-    logging.debug("C%i Processing Payload"%(self._address) )
+    logging.debug("C%i Processing Payload from field %i to %i"%(self._address,firstfieldid,lastfieldid) )
 
     fullfirstdcbadd = self._getDCBaddress(fields[firstfieldid][FIELD_ADD])
     
@@ -303,7 +308,7 @@ class hmController(object):
         try:
           self._procfield(rawdata[dcbadd:dcbadd+length], fieldinfo)
         except hmResponseError as e:
-          logging.warn("C%i Field %s process failed due to %s"%(self._address, attrname, str(e)))
+          logging.warn("C%i Field %s process failed due to %s"%(self._address, fieldinfo[FIELD_NAME], str(e)))
 
     self.rawdata[fullfirstdcbadd:fullfirstdcbadd+len(rawdata)] = rawdata
 

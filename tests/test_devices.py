@@ -5,14 +5,38 @@ import time
 from heatmisercontroller.devices import hmController
 from heatmisercontroller.hm_constants import HMV3_ID, PROG_MODES, PROG_MODE_DAY, DCB_INVALID
 from heatmisercontroller.exceptions import hmResponseError, hmControllerTimeError
+from heatmisercontroller.adaptor import Heatmiser_Adaptor
+
+from mock_serial import setupTestClass
 
 class argstore(object):
     def store(self, *args):
         self.args = args
 
+    def setresponse(self, input):
+        self.output = input
+        
+    def read(self, *args):
+        return self.output
+
+class Mock_Heatmiser_Adaptor(Heatmiser_Adaptor):
+    def __init__(self, setup):
+        self.args = []
+        super(Mock_Heatmiser_Adaptor, self).__init__(setup)
+    
+    def hmWriteToController(self, *args):
+        self.args.append(args)
+
+    def setresponse(self, inputs):
+        self.outputs = inputs
+        
+    def hmReadFromController(self, *args):
+        self.args.append(args)
+        return self.outputs.pop(0)
+        
 class test_reading_data(unittest.TestCase):
   def setUp(self):
-    logging.basicConfig(level=logging.ERROR)
+    logging.basicConfig(level=logging.WARN)
     #network, address, protocol, short_name, long_name, model, mode
     #self.func = hmController(None, 1, HMV3_ID, 'test', 'test controller', 'prt_hw_model', PROG_MODE_DAY)
     self.settings = {'address':1,'protocol':HMV3_ID,'long_name':'test controller','expected_model':'prt_hw_model','expected_prog_mode':PROG_MODE_DAY}
@@ -56,6 +80,29 @@ class test_reading_data(unittest.TestCase):
     
   def test_readall(self):
     pass
+    # setup = setupTestClass()
+    # self.adaptor = Mock_Heatmiser_Adaptor(setup)
+    # self.func = hmController(self.adaptor, self.settings)
+    # basetime = (6 - 2) * 86400 + 53376.0 + year2000
+    # self.func.lastreadtime = basetime - get_offset(basetime) 
+    # responses = [[1, 37, 0, 22, 4, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 38, 1, 9, 12, 28, 1, 1, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 220, 0, 0, 0, 3, 14, 49, 36, 7, 0, 19, 9, 30, 10, 17, 0, 19, 21, 30, 10, 7, 0, 19, 21, 30, 10, 24, 0, 5, 24, 0, 5, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 8, 0, 9, 0, 18, 0, 19, 0, 24, 0, 24, 0, 24, 0, 24, 0, 7, 0, 20, 21, 30, 12, 24, 0, 12, 24, 0, 12, 7, 0, 20, 21, 30, 12, 24, 0, 12, 24, 0, 12, 7, 0, 19, 8, 30, 12, 16, 30, 20, 21, 0, 12, 7, 0, 20, 12, 0, 12, 17, 0, 20, 21, 30, 12, 5, 0, 20, 21, 30, 12, 24, 0, 12, 24, 0, 12, 7, 0, 20, 12, 0, 12, 17, 0, 20, 21, 30, 12, 7, 0, 12, 24, 0, 12, 24, 0, 12, 24, 0, 12, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0]]
+    # self.adaptor.setresponse(responses)
+    # self.func.hmReadAll()
+    # self.assertEqual([(1, 3, 18, 0, True)],self.adaptor.args)
+    
+  def test_readvariables(self):
+    setup = setupTestClass()
+    self.adaptor = Mock_Heatmiser_Adaptor(setup)
+    self.func = hmController(self.adaptor, self.settings)
+    
+    #queue some data to recieve
+    responses = [[17, 30, 1, 1, 1, 1, 0, 0],[0, 0, 17, 0, 17, 0, 17, 0, 0, 0, 0]]
+    self.adaptor.setresponse(responses)
+    #run command
+    self.func.hmReadVariables()
+    self.assertEqual([(1, 3, 18, 8), (1, 3, 32, 11)],self.adaptor.args)
+    self.assertEqual(17,self.func.setroomtemp)
+    self.assertEqual(0,self.func.hotwaterdemand)
 
 class test_other_functions(unittest.TestCase):
   def test_getDCBaddress(self):
@@ -68,10 +115,10 @@ class test_other_functions(unittest.TestCase):
   def test_getFieldBlocks(self):
     self.settings = {'address':1,'protocol':HMV3_ID,'long_name':'test controller','expected_model':'prt_e_model','expected_prog_mode':PROG_MODE_DAY}
     self.func = hmController(None, self.settings)
-    self.assertEqual([[34, 41, 8]], self.func._getFieldBlocks('remoteairtemp','hotwaterdemand'))
-    self.assertEqual([[43, 43, 4]], self.func._getFieldBlocks('hotwaterdemand','currenttime'))
-    self.assertEqual([[0, 24, 26], [32, 41, 10], [43, 43, 4]], self.func._getFieldBlocks('DCBlen','currenttime'))
-    self.assertEqual([[0, 24, 26], [32, 41, 10], [43, 59, 28], [103, 175, 84]], self.func._getFieldBlocks('DCBlen','sun_water'))
+    self.assertEqual([[25, 29, 8]], self.func._getFieldBlocks('remoteairtemp','hotwaterdemand'))
+    self.assertEqual([[31, 31, 4]], self.func._getFieldBlocks('hotwaterdemand','currenttime'))
+    self.assertEqual([[0, 22, 26], [24, 29, 10], [31, 31, 4]], self.func._getFieldBlocks('DCBlen','currenttime'))
+    self.assertEqual([[0, 22, 26], [24, 29, 10], [31, 33, 28], [36, 42, 84]], self.func._getFieldBlocks('DCBlen','sun_water'))
     
   def test_checkblock4(self):
     self.settings = {'address':1,'protocol':HMV3_ID,'long_name':'test controller','expected_model':'prt_e_model','expected_prog_mode':PROG_MODE_DAY}
