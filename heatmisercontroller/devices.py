@@ -119,8 +119,9 @@ class hmController(object):
     #build list of valid fields for this stat
     self._fieldsvalid = [False] * len(fields)
     for first, last in self._fieldranges:
-      self._fieldsvalid[self._fieldnametonum[first]: self._fieldnametonum[last] + 1] = [True] * (self._fieldnametonum[last] - self._fieldnametonum[first])
+      self._fieldsvalid[self._fieldnametonum[first]: self._fieldnametonum[last] + 1] = [True] * (self._fieldnametonum[last] - self._fieldnametonum[first] + 1)
     #self._fullDCB = sum(x is not None for x in self._uniquetodcb))
+    logging.debug("C%i Fieldsvalid %s"%(self._address,','.join(str(int(x)) for x in self._fieldsvalid)))
     
   def getRawData(self, startfieldname = None, endfieldname = None):
     if startfieldname == None or endfieldname == None:
@@ -182,7 +183,7 @@ class hmController(object):
             start = fieldnum
         elif not previousfieldvalid is False and fieldvalid is False:
             #blocks.append([start,fields[fieldnum][FIELD_ADD],fields[fieldnum][FIELD_ADD] + fields[fieldnum][FIELD_LEN] - start])
-            blocks.append([start,fieldnum,fields[fieldnum][FIELD_ADD] + fields[fieldnum][FIELD_LEN] - fields[start][FIELD_ADD]])
+            blocks.append([start,fieldnum - 1,fields[fieldnum - 1][FIELD_ADD] + fields[fieldnum - 1][FIELD_LEN] - fields[start][FIELD_ADD]])
         
         previousfieldvalid = fieldvalid
 
@@ -214,7 +215,7 @@ class hmController(object):
     if estimatedreadtime < self.fullreadtime - 0.02: #if to close to full read time, then read all
         try:
             for firstfieldid, lastfieldid, blocklength in blockstoread:
-                logging.debug("Reading ui %i to %i len %i, proc %s to %s"%(fields[firstfieldid][FIELD_ADD],fields[lastfieldid][FIELD_ADD],blocklength,fields[firstfieldid][FIELD_NAME], fields[lastfieldid][FIELD_NAME]))
+                logging.debug("C%i Reading ui %i to %i len %i, proc %s to %s"%(self._address, fields[firstfieldid][FIELD_ADD],fields[lastfieldid][FIELD_ADD],blocklength,fields[firstfieldid][FIELD_NAME], fields[lastfieldid][FIELD_NAME]))
                 rawdata = self._adaptor.hmReadFromController(self._address, self._protocol, fields[firstfieldid][FIELD_ADD], blocklength)
                 self.lastreadtime = time.time()
                 self._procpartpayload(rawdata, fields[firstfieldid][FIELD_NAME], fields[lastfieldid][FIELD_NAME])
