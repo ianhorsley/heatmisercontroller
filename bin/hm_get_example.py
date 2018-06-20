@@ -14,7 +14,7 @@ from heatmisercontroller.network import *
 from heatmisercontroller.exceptions import hmResponseError
 
 #start logging
-initialize_logger('logs', logging.WARN, True)
+initialize_logger('logs', logging.DEBUG, True)
 
 hmn1 = HeatmiserNetwork()
 

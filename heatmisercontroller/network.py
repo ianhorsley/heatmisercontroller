@@ -44,9 +44,9 @@ class HeatmiserNetwork:
     setattr(self,"All",hmBroadcastController(self.adaptor,"Broadcast to All"))
     self._current = self.All
     
-    self.setStatList(settings['devices'])
+    self.setStatList(settings['devices'], settings['devicesgeneral'])
       
-  def setStatList(self, list):
+  def setStatList(self, list, generalsettings):
     # Store list of stats
     self._statlist = list
     self._statnum = len(self._statlist)
@@ -57,7 +57,7 @@ class HeatmiserNetwork:
       if hasattr(self,name):
         print "error duplicate stat name"
       else:
-        setattr(self,name,hmController(self.adaptor,controllersettings))
+        setattr(self,name,hmController(self.adaptor,controllersettings, generalsettings))
         self.controllers[controllersettings['display_order']-1] = getattr(self,name)
 
     self._current = self.controllers[0]

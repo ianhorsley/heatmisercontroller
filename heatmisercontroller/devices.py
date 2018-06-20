@@ -23,15 +23,8 @@ from schedule_functions import schedulerdayheat, schedulerweekheat, schedulerday
 class hmController(object):
   ##Variables used by code
   lastreadtime = 0 #records last time of a successful read
-  ##Control parameters and default settings
-  autoreadall = True
-  autocorrectime = True
-  #max times for age of data
-  max_age_variables = 60 #variables like holidaymins, etc.
-  max_age_time = 60 * 60 * 24 #time tends to drift very slowly, so it shouldn't need checking very often
-  max_age_temp = 10 #temperature is something that might be sampled very regularly
 
-  def __init__(self, adaptor, devicesettings):
+  def __init__(self, adaptor, devicesettings, generalsettings = None):
     #address, protocol, short_name, long_name, model, mode
     self._adaptor = adaptor
     
@@ -42,12 +35,16 @@ class hmController(object):
     self.data = dict.fromkeys(self._fieldnametonum.keys(),None)
     self.datareadtime = dict.fromkeys(self._fieldnametonum.keys(),None)
     
-    self._update_settings(devicesettings)
+    self._update_settings(devicesettings, generalsettings)
 
     self.rawdata = [None] * self.DCBlength
   
-  def _update_settings(self, settings):
+  def _update_settings(self, settings, generalsettings):
     """Check settings and update if needed."""   
+    
+    if not generalsettings is None:
+        for name, value in generalsettings.iteritems():
+            setattr(self, '_' + name, value)
     
     for name, value in settings.iteritems():
       setattr(self, '_' + name, value)
@@ -160,8 +157,8 @@ class hmController(object):
     # no maxage in request (maxage = 0)
     # maxage is valid and data too old
     # or not be read before (maxage = None)
-    if maxage == 0 or (maxage is not None and self._check_data_age(maxage, fieldname)) or not self._check_data_present(fieldname):
-      if self.autoreadall is True:
+    if maxage == 0 or (maxage is not None and not self._check_data_age(maxage, fieldname)) or not self._check_data_present(fieldname):
+      if self._autoreadall is True:
         self.readFields(fieldname)
       else:
         raise ValueError("Need to read %s first"%fieldname)
@@ -235,7 +232,7 @@ class hmController(object):
     length = fieldinfo[FIELD_LEN]
     factor = fieldinfo[FIELD_DIV]
     range = fieldinfo[FIELD_RANGE]
-    logging.debug("Processing %s %s"%(fieldinfo[FIELD_NAME],', '.join(str(x) for x in data)))
+    #logging.debug("Processing %s %s"%(fieldinfo[FIELD_NAME],', '.join(str(x) for x in data)))
     if length == 1:
       value = data[0]/factor
     elif length == 2:
@@ -313,11 +310,11 @@ class hmController(object):
     self.rawdata[fullfirstdcbadd:fullfirstdcbadd+len(rawdata)] = rawdata
 
   def _checkcontrollertime(self):
-    #run compare of times, and try to fix if autocorrectime
+    #run compare of times, and try to fix if _autocorrectime
     try:
       self._comparecontrollertime()
     except hmControllerTimeError:
-      if self.autocorrectime is True:
+      if self._autocorrectime is True:
         self.setTime()
       else:
         raise
@@ -394,6 +391,7 @@ class hmController(object):
     
   def _check_data_age(self, maxage, *fieldnames):
     #field data age is not more than maxage (in seconds)
+    #return False if old, True if recent
     if len(fieldnames) == 0:
       raise ValueError("Must list at least one field")
     
@@ -431,13 +429,13 @@ class hmController(object):
   
   def getTempState(self):
     if not self._check_data_present('onoff','frostprot','holidayhours','runmode','tempholdmins','setroomtemp'):
-      if self.autoreadall is True:
+      if self._autoreadall is True:
         self.hmReadAll()
       else:
         raise ValueError("Need to read all before getting temp state")
         
-    if not self._check_data_age(self.max_age_variables, 'onoff','holidayhours','runmode','tempholdmins','setroomtemp'):
-      if self.autoreadall is True:
+    if not self._check_data_age(self._max_age_variables, 'onoff','holidayhours','runmode','tempholdmins','setroomtemp'):
+      if self._autoreadall is True:
         self.hmReadVariables()
       else:
         raise ValueError("Vars to old to get temp state")
@@ -454,7 +452,7 @@ class hmController(object):
       return self.TEMP_STATE_HELD
     else:
     
-      if not self._check_data_age(self.max_age_time, 'currenttime'):
+      if not self._check_data_age(self._max_age_time, 'currenttime'):
         currenttime = self.readTime()
       
       locatimenow = self._localtimearray()
@@ -469,13 +467,13 @@ class hmController(object):
   def getWaterState(self):
     #does runmode affect hot water state?
     if not self._check_data_present('onoff','holidayhours','hotwaterdemand'):
-      if self.autoreadall is True:
+      if self._autoreadall is True:
         self.hmReadAll()
       else:
         raise ValueError("Need to read all before getting temp state")
         
-    if not self._check_data_age(self.max_age_variables, 'onoff','holidayhours','hotwaterdemand'):
-      if self.autoreadall is True:
+    if not self._check_data_age(self._max_age_variables, 'onoff','holidayhours','hotwaterdemand'):
+      if self._autoreadall is True:
         self.hmReadVariables()
       else:
         raise ValueError("Vars to old to get temp state")
@@ -486,7 +484,7 @@ class hmController(object):
       return self.TEMP_STATE_HOLIDAY
     else:
     
-      if not self._check_data_age(self.max_age_time, 'currenttime'):
+      if not self._check_data_age(self._max_age_time, 'currenttime'):
         currenttime = self.readTime()
       
       locatimenow = self._localtimearray()
@@ -509,19 +507,15 @@ class hmController(object):
       return 0
       
   def getAirTemp(self):
-    if not self._check_data_present('sensorsavaliable'):
-      return False
+    #if not read before read sensorsavaliable field
+    self.readField('sensorsavaliable',None) 
     
     if self.sensorsavaliable == READ_SENSORS_AVALIABLE_INT_ONLY or self.sensorsavaliable == READ_SENSORS_AVALIABLE_INT_FLOOR:
-      if not self._check_data_age(self.max_age_temp, 'airtemp'):
-        return False
-      return self.airtemp
+      return self.readField('airtemp', self._max_age_temp)
     elif self.sensorsavaliable == READ_SENSORS_AVALIABLE_EXT_ONLY or self.sensorsavaliable == READ_SENSORS_AVALIABLE_EXT_FLOOR:
-      if not self._check_data_age(self.max_age_temp, 'remoteairtemp'):
-        return False
-      return self.remoteairtemp
+      return self.readField('remoteairtemp', self._max_age_temp)
     else:
-      return False
+      raise ValueError("sensorsavaliable field invalid")
      
 #### External functions for setting data
 
