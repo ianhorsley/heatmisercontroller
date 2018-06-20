@@ -79,3 +79,9 @@ class HeatmiserNetwork:
     
   def controllerByName(self,name):
     return getattr(self,name)
+    
+  def on_all(self, method, *args, **kwargs):
+    results = []
+    for obj in self.controllers:
+        results.append(getattr(obj, method)(*args, **kwargs))
+    return results
