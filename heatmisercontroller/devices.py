@@ -25,9 +25,10 @@ from schedule_functions import schedulerdayheat, schedulerweekheat, schedulerday
 from decorators import listclass, func_on_all
 
 class hmController(object):
-  ##Variables used by code
+  ## Variables used by code
   lastreadtime = 0 #records last time of a successful read
 
+  ## Intialisation functions and low level functions
   def __init__(self, adaptor, devicesettings, generalsettings = None):
     #address, protocol, short_name, long_name, model, mode
     self._adaptor = adaptor
@@ -92,7 +93,7 @@ class hmController(object):
     
   def _getDCBaddress(self, uniqueaddress):
     #get the DCB address for a controller from the unique address
-        return self._uniquetodcb[uniqueaddress]
+    return self._uniquetodcb[uniqueaddress]
   
   def _buildfieldtables(self):
     self._fieldnametonum = {}
@@ -112,23 +113,34 @@ class hmController(object):
       self._fieldsvalid[self._fieldnametonum[first]: self._fieldnametonum[last] + 1] = [True] * (self._fieldnametonum[last] - self._fieldnametonum[first] + 1)
     #self._fullDCB = sum(x is not None for x in self._uniquetodcb))
     logging.debug("C%i Fieldsvalid %s"%(self._address,','.join(str(int(x)) for x in self._fieldsvalid)))
+  
+  def _check_data_age(self, maxage, *fieldnames):
+    #field data age is not more than maxage (in seconds)
+    #return False if old, True if recent
+    if len(fieldnames) == 0:
+      raise ValueError("Must list at least one field")
     
-  def getRawData(self, startfieldname = None, endfieldname = None):
-    if startfieldname == None or endfieldname == None:
-      return self.rawdata
-    else:
-      return self.rawdata[self._getDCBaddress(uniadd[startfieldname][UNIADD_ADD]):self._getDCBaddress(uniadd[endfieldname][UNIADD_ADD])]
+    for fieldname in fieldnames:
+      if not self._check_data_present(fieldname):
+        return False
+      if time.time() - self.datareadtime[fieldname] > maxage:
+        logging.warning("C%i data item %s too old"%(self._address, fieldname))
+        return False
+    return True
     
-  def hmReadVariables(self):
-    self.readFields('setroomtemp', 'hotwaterdemand')
-    
-  def hmReadTempsandDemand(self):
-    self.readFields('remoteairtemp', 'hotwaterdemand')
-    
-  def readTime(self, maxage = 0):
-    return self.readField('currenttime', maxage)
+  def _check_data_present(self, *fieldnames):
+    if len(fieldnames) == 0:
+      raise ValueError("Must list at least one field")
 
-  def hmReadAll(self):
+    for fieldname in fieldnames:
+      if self.datareadtime[fieldname] == None:
+        logging.warning("C%i data item %s not avaliable"%(self._address, fieldname))
+        return False
+    return True
+  
+  ## Basic reading and getting functions
+  
+  def readAll(self):
     try:
       self.rawdata = self._adaptor.hmReadAllFromController(self._address, self._protocol, self.DCBlength)
     except serial.SerialException as e:
@@ -150,10 +162,41 @@ class hmController(object):
     # or not be read before (and maxage = None)
     if maxage == 0 or (maxage is not None and not self._check_data_age(maxage, fieldname)) or not self._check_data_present(fieldname):
       if self._autoreadall is True:
-        self.readFields(fieldname)
+        self.getFields(fieldname)
       else:
         raise ValueError("Need to read %s first"%fieldname)
     return self.data[fieldname]
+  
+  def getVariables(self):
+    self.getFields('setroomtemp', 'hotwaterdemand')
+    
+  def getTempsandDemand(self):
+    self.getFields('remoteairtemp', 'hotwaterdemand')
+  
+  def getFields(self, firstfieldname, lastfieldname = None):
+    #reads fields from controller, safe for blocks crossing gaps in dcb
+    if lastfieldname == None:
+        lastfieldname = firstfieldname
+
+    blockstoread = self._getFieldBlocks(firstfieldname, lastfieldname)
+    logging.debug(blockstoread)
+    estimatedreadtime = self._estimateBlocksReadTime(blockstoread)
+    
+    if estimatedreadtime < self.fullreadtime - 0.02: #if to close to full read time, then read all
+        try:
+            for firstfieldid, lastfieldid, blocklength in blockstoread:
+                logging.debug("C%i Reading ui %i to %i len %i, proc %s to %s"%(self._address, fields[firstfieldid][FIELD_ADD],fields[lastfieldid][FIELD_ADD],blocklength,fields[firstfieldid][FIELD_NAME], fields[lastfieldid][FIELD_NAME]))
+                rawdata = self._adaptor.hmReadFromController(self._address, self._protocol, fields[firstfieldid][FIELD_ADD], blocklength)
+                self.lastreadtime = time.time()
+                self._procpartpayload(rawdata, fields[firstfieldid][FIELD_NAME], fields[lastfieldid][FIELD_NAME])
+        except serial.SerialException as e:
+            logging.warn("C%i Read failed of fields %s to %s, Serial Port error %s"%(self._address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH), str(e)))
+            raise
+        else:
+            logging.info("C%i Read fields %s to %s, in %i blocks"%(self._address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH),len(blockstoread)))
+    else:
+        logging.debug("C%i Read fields %s to %s by readAll, %0.3f %0.3f"%(self._address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH), estimatedreadtime, self.fullreadtime))
+        self.readAll()
     
   def _getFieldBlocks(self, firstfieldname, lastfieldname):
     #data can only be requested from the controller in contiguous blocks
@@ -192,31 +235,6 @@ class hmController(object):
     #estiamtes the read time for a call to hmReadFromController without COM_BUS_RESET_TIME
     #based on empirical measurements of one prt_hw_model and 5 prt_e_model
     return length * 0.002075 + 0.070727
-  
-  def readFields(self, firstfieldname, lastfieldname = None):
-    #reads fields from controller, safe for blocks crossing gaps in dcb
-    if lastfieldname == None:
-        lastfieldname = firstfieldname
-
-    blockstoread = self._getFieldBlocks(firstfieldname, lastfieldname)
-    logging.debug(blockstoread)
-    estimatedreadtime = self._estimateBlocksReadTime(blockstoread)
-    
-    if estimatedreadtime < self.fullreadtime - 0.02: #if to close to full read time, then read all
-        try:
-            for firstfieldid, lastfieldid, blocklength in blockstoread:
-                logging.debug("C%i Reading ui %i to %i len %i, proc %s to %s"%(self._address, fields[firstfieldid][FIELD_ADD],fields[lastfieldid][FIELD_ADD],blocklength,fields[firstfieldid][FIELD_NAME], fields[lastfieldid][FIELD_NAME]))
-                rawdata = self._adaptor.hmReadFromController(self._address, self._protocol, fields[firstfieldid][FIELD_ADD], blocklength)
-                self.lastreadtime = time.time()
-                self._procpartpayload(rawdata, fields[firstfieldid][FIELD_NAME], fields[lastfieldid][FIELD_NAME])
-        except serial.SerialException as e:
-            logging.warn("C%i Read failed of fields %s to %s, Serial Port error %s"%(self._address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH), str(e)))
-            raise
-        else:
-            logging.info("C%i Read fields %s to %s, in %i blocks"%(self._address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH),len(blockstoread)))
-    else:
-        logging.debug("C%i Read fields %s to %s by readAll, %0.3f %0.3f"%(self._address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH), estimatedreadtime, self.fullreadtime))
-        self.hmReadAll()
   
   def _procfield(self,data,fieldinfo):
     fieldname = fieldinfo[FIELD_NAME]
@@ -349,191 +367,8 @@ class hmController(object):
     #calculates the time from the start of the week in seconds from a heatmiser time array
     return ( localtimearray[CURRENT_TIME_DAY] - 1 ) * self.DAYSECS + localtimearray[CURRENT_TIME_HOUR] * self.HOURSECS + localtimearray[CURRENT_TIME_MIN] * self.MINSECS + localtimearray[CURRENT_TIME_SEC]
   
-#### External functions for printing data
-  def display_heating_schedule(self):
-    self.heat_schedule.display()
-      
-  def display_water_schedule(self):
-    if not self.water_schedule is None:
-      self.water_schedule.display()
-
-  def printTarget(self):
-      
-    current_state = self.getTempState()
-    
-    if current_state == self.TEMP_STATE_OFF:
-      return "controller off without frost protection"
-    elif current_state == self.TEMP_STATE_OFF_FROST:
-      return "controller off"
-    elif current_state == self.TEMP_STATE_HOLIDAY:
-      return "controller on holiday for %i hours" % self.holidayhours
-    elif current_state == self.TEMP_STATE_FROST:
-      return "controller in frost mode"
-    elif current_state == self.TEMP_STATE_HELD:
-      return "temp held for %i mins at %i"%(self.tempholdmins, self.setroomtemp)
-    elif current_state == self.TEMP_STATE_OVERRIDDEN:
-      locatimenow = self._localtimearray()
-      nexttarget = self.heat_schedule.getNextScheduleItem(locatimenow)
-      return "temp overridden to %0.1f until %02d:%02d" % (self.setroomtemp, nexttarget[1], nexttarget[2])
-    elif current_state == self.TEMP_STATE_PROGRAM:
-      locatimenow = self._localtimearray()
-      nexttarget = self.heat_schedule.getNextScheduleItem(locatimenow)
-      return "temp set to %0.1f until %02d:%02d" % (self.setroomtemp, nexttarget[1], nexttarget[2])
-    
-  def _check_data_age(self, maxage, *fieldnames):
-    #field data age is not more than maxage (in seconds)
-    #return False if old, True if recent
-    if len(fieldnames) == 0:
-      raise ValueError("Must list at least one field")
-    
-    for fieldname in fieldnames:
-      if not self._check_data_present(fieldname):
-        return False
-      if time.time() - self.datareadtime[fieldname] > maxage:
-        logging.warning("C%i data item %s too old"%(self._address, fieldname))
-        return False
-    return True
-    
-  def _check_data_present(self, *fieldnames):
-    if len(fieldnames) == 0:
-      raise ValueError("Must list at least one field")
-
-    for fieldname in fieldnames:
-      if self.datareadtime[fieldname] == None:
-        logging.warning("C%i data item %s not avaliable"%(self._address, fieldname))
-        return False
-    return True
-        
-#### External functions for getting data
-
-  def isHotWater(self):
-    #returns True if stat is a model with hotwater control, False otherwise
-    return self._expected_model == 'prt_hw_model'
-
-  TEMP_STATE_OFF = 0  #thermostat display is off and frost protection disabled
-  TEMP_STATE_OFF_FROST = 1 #thermostat display is off and frost protection enabled
-  TEMP_STATE_FROST = 2 #frost protection enabled indefinitely
-  TEMP_STATE_HOLIDAY = 3 #holiday mode, frost protection for a period
-  TEMP_STATE_HELD = 4 #temperature held for a number of hours
-  TEMP_STATE_OVERRIDDEN = 5 #temperature overridden until next program time
-  TEMP_STATE_PROGRAM = 6 #following program
+  ## Basic set field functions
   
-  def getTempState(self):
-    if not self._check_data_present('onoff','frostprot','holidayhours','runmode','tempholdmins','setroomtemp'):
-      if self._autoreadall is True:
-        self.hmReadAll()
-      else:
-        raise ValueError("Need to read all before getting temp state")
-        
-    if not self._check_data_age(self._max_age_variables, 'onoff','holidayhours','runmode','tempholdmins','setroomtemp'):
-      if self._autoreadall is True:
-        self.hmReadVariables()
-      else:
-        raise ValueError("Vars to old to get temp state")
-    
-    if self.onoff == WRITE_ONOFF_OFF and self.frostprot == READ_FROST_PROT_OFF:
-      return self.TEMP_STATE_OFF
-    elif self.onoff == WRITE_ONOFF_OFF and self.frostprot == READ_FROST_PROT_ON:
-      return self.TEMP_STATE_OFF_FROST
-    elif self.holidayhours != 0:
-      return self.TEMP_STATE_HOLIDAY
-    elif self.runmode == WRITE_RUNMODE_FROST:
-      return self.TEMP_STATE_FROST
-    elif self.tempholdmins != 0:
-      return self.TEMP_STATE_HELD
-    else:
-    
-      if not self._check_data_age(self._max_age_time, 'currenttime'):
-        currenttime = self.readTime()
-      
-      locatimenow = self._localtimearray()
-      scheduletarget = self.heat_schedule.getCurrentScheduleItem(locatimenow)
-
-      if scheduletarget[SCH_ENT_TEMP] != self.setroomtemp:
-        return self.TEMP_STATE_OVERRIDDEN
-      else:
-        return self.TEMP_STATE_PROGRAM
-
-  ### UNTESTED OR EVEN CHECKED
-  def getWaterState(self):
-    #does runmode affect hot water state?
-    if not self._check_data_present('onoff','holidayhours','hotwaterdemand'):
-      if self._autoreadall is True:
-        self.hmReadAll()
-      else:
-        raise ValueError("Need to read all before getting temp state")
-        
-    if not self._check_data_age(self._max_age_variables, 'onoff','holidayhours','hotwaterdemand'):
-      if self._autoreadall is True:
-        self.hmReadVariables()
-      else:
-        raise ValueError("Vars to old to get temp state")
-    
-    if self.onoff == WRITE_ONOFF_OFF:
-      return self.TEMP_STATE_OFF
-    elif self.holidayhours != 0:
-      return self.TEMP_STATE_HOLIDAY
-    else:
-    
-      if not self._check_data_age(self._max_age_time, 'currenttime'):
-        currenttime = self.readTime()
-      
-      locatimenow = self._localtimearray()
-      scheduletarget = self.water_schedule.getCurrentScheduleItem(locatimenow)
-
-      if scheduletarget[SCH_ENT_TEMP] != self.hotwaterdemand:
-        return self.TEMP_STATE_OVERRIDDEN
-      else:
-        return self.TEMP_STATE_PROGRAM
-        
-  def getAirSensorType(self):
-    if not self._check_data_present('sensorsavaliable'):
-      return False
-
-    if self.sensorsavaliable == READ_SENSORS_AVALIABLE_INT_ONLY or self.sensorsavaliable == READ_SENSORS_AVALIABLE_INT_FLOOR:
-      return 1
-    elif self.sensorsavaliable == READ_SENSORS_AVALIABLE_EXT_ONLY or self.sensorsavaliable == READ_SENSORS_AVALIABLE_EXT_FLOOR:
-      return 2
-    else:
-      return 0
-      
-  def getAirTemp(self):
-    #if not read before read sensorsavaliable field
-    self.readField('sensorsavaliable',None) 
-    
-    if self.sensorsavaliable == READ_SENSORS_AVALIABLE_INT_ONLY or self.sensorsavaliable == READ_SENSORS_AVALIABLE_INT_FLOOR:
-      return self.readField('airtemp', self._max_age_temp)
-    elif self.sensorsavaliable == READ_SENSORS_AVALIABLE_EXT_ONLY or self.sensorsavaliable == READ_SENSORS_AVALIABLE_EXT_FLOOR:
-      return self.readField('remoteairtemp', self._max_age_temp)
-    else:
-      raise ValueError("sensorsavaliable field invalid")
-     
-#### External functions for setting data
-
-  def setHeatingSchedule(self, day, schedule):
-    padschedule = self.heat_schedule.pad_schedule(schedule)
-    self.setField(self._address,self._protocol,day,padschedule)
-    
-  def setWaterSchedule(self, day, schedule):
-    padschedule = self.water_schedule.pad_schedule(schedule)
-    if day == 'all':
-      self.setField('mon_water',padschedule)
-      self.setField('tues_water',padschedule)
-      self.setField('wed_water',padschedule)
-      self.setField('thurs_water',padschedule)
-      self.setField('fri_water',padschedule)
-      self.setField('sat_water',padschedule)
-      self.setField('sun_water',padschedule)
-    else:
-      self.setField(day,padschedule)
-
-  def setTime(self) :
-      """set time on controller to match current localtime on server"""
-      timenow = time.time() + 0.5 #allow a little time for any delay in setting
-      return self.setField('currenttime',self._localtimearray(timenow))
-      
-#general field setting
-
   def setField(self,fieldname,payload):
     #set a field (single member of fields) to a state or payload. Defined for all field lengths.
     fieldinfo = fields[self._fieldnametonum[fieldname]]
@@ -594,7 +429,175 @@ class hmController(object):
                   if item < range[0] or item > range[1]:
                       raise ValueError("setField: payload out of range")
   
-#overriding      
+  ## External functions for printing data
+  def display_heating_schedule(self):
+    self.heat_schedule.display()
+      
+  def display_water_schedule(self):
+    if not self.water_schedule is None:
+      self.water_schedule.display()
+
+  def printTarget(self):
+      
+    current_state = self.readTempState()
+    
+    if current_state == self.TEMP_STATE_OFF:
+      return "controller off without frost protection"
+    elif current_state == self.TEMP_STATE_OFF_FROST:
+      return "controller off"
+    elif current_state == self.TEMP_STATE_HOLIDAY:
+      return "controller on holiday for %i hours" % self.holidayhours
+    elif current_state == self.TEMP_STATE_FROST:
+      return "controller in frost mode"
+    elif current_state == self.TEMP_STATE_HELD:
+      return "temp held for %i mins at %i"%(self.tempholdmins, self.setroomtemp)
+    elif current_state == self.TEMP_STATE_OVERRIDDEN:
+      locatimenow = self._localtimearray()
+      nexttarget = self.heat_schedule.getNextScheduleItem(locatimenow)
+      return "temp overridden to %0.1f until %02d:%02d" % (self.setroomtemp, nexttarget[1], nexttarget[2])
+    elif current_state == self.TEMP_STATE_PROGRAM:
+      locatimenow = self._localtimearray()
+      nexttarget = self.heat_schedule.getNextScheduleItem(locatimenow)
+      return "temp set to %0.1f until %02d:%02d" % (self.setroomtemp, nexttarget[1], nexttarget[2])
+  
+  ## External functions for reading data
+
+  def isHotWater(self):
+    #returns True if stat is a model with hotwater control, False otherwise
+    return self._expected_model == 'prt_hw_model'
+
+  TEMP_STATE_OFF = 0  #thermostat display is off and frost protection disabled
+  TEMP_STATE_OFF_FROST = 1 #thermostat display is off and frost protection enabled
+  TEMP_STATE_FROST = 2 #frost protection enabled indefinitely
+  TEMP_STATE_HOLIDAY = 3 #holiday mode, frost protection for a period
+  TEMP_STATE_HELD = 4 #temperature held for a number of hours
+  TEMP_STATE_OVERRIDDEN = 5 #temperature overridden until next program time
+  TEMP_STATE_PROGRAM = 6 #following program
+  
+  def readTempState(self):
+    if not self._check_data_present('onoff','frostprot','holidayhours','runmode','tempholdmins','setroomtemp'):
+      if self._autoreadall is True:
+        self.readAll()
+      else:
+        raise ValueError("Need to read all before getting temp state")
+        
+    if not self._check_data_age(self._max_age_variables, 'onoff','holidayhours','runmode','tempholdmins','setroomtemp'):
+      if self._autoreadall is True:
+        self.hmReadVariables()
+      else:
+        raise ValueError("Vars to old to get temp state")
+    
+    if self.onoff == WRITE_ONOFF_OFF and self.frostprot == READ_FROST_PROT_OFF:
+      return self.TEMP_STATE_OFF
+    elif self.onoff == WRITE_ONOFF_OFF and self.frostprot == READ_FROST_PROT_ON:
+      return self.TEMP_STATE_OFF_FROST
+    elif self.holidayhours != 0:
+      return self.TEMP_STATE_HOLIDAY
+    elif self.runmode == WRITE_RUNMODE_FROST:
+      return self.TEMP_STATE_FROST
+    elif self.tempholdmins != 0:
+      return self.TEMP_STATE_HELD
+    else:
+    
+      if not self._check_data_age(self._max_age_time, 'currenttime'):
+        currenttime = self.readTime()
+      
+      locatimenow = self._localtimearray()
+      scheduletarget = self.heat_schedule.getCurrentScheduleItem(locatimenow)
+
+      if scheduletarget[SCH_ENT_TEMP] != self.setroomtemp:
+        return self.TEMP_STATE_OVERRIDDEN
+      else:
+        return self.TEMP_STATE_PROGRAM
+
+  ### UNTESTED OR EVEN CHECKED
+  def readWaterState(self):
+    #does runmode affect hot water state?
+    if not self._check_data_present('onoff','holidayhours','hotwaterdemand'):
+      if self._autoreadall is True:
+        self.readAll()
+      else:
+        raise ValueError("Need to read all before getting temp state")
+        
+    if not self._check_data_age(self._max_age_variables, 'onoff','holidayhours','hotwaterdemand'):
+      if self._autoreadall is True:
+        self.hmReadVariables()
+      else:
+        raise ValueError("Vars to old to get temp state")
+    
+    if self.onoff == WRITE_ONOFF_OFF:
+      return self.TEMP_STATE_OFF
+    elif self.holidayhours != 0:
+      return self.TEMP_STATE_HOLIDAY
+    else:
+    
+      if not self._check_data_age(self._max_age_time, 'currenttime'):
+        currenttime = self.readTime()
+      
+      locatimenow = self._localtimearray()
+      scheduletarget = self.water_schedule.getCurrentScheduleItem(locatimenow)
+
+      if scheduletarget[SCH_ENT_TEMP] != self.hotwaterdemand:
+        return self.TEMP_STATE_OVERRIDDEN
+      else:
+        return self.TEMP_STATE_PROGRAM
+        
+  def readAirSensorType(self):
+    if not self._check_data_present('sensorsavaliable'):
+      return False
+
+    if self.sensorsavaliable == READ_SENSORS_AVALIABLE_INT_ONLY or self.sensorsavaliable == READ_SENSORS_AVALIABLE_INT_FLOOR:
+      return 1
+    elif self.sensorsavaliable == READ_SENSORS_AVALIABLE_EXT_ONLY or self.sensorsavaliable == READ_SENSORS_AVALIABLE_EXT_FLOOR:
+      return 2
+    else:
+      return 0
+      
+  def readAirTemp(self):
+    #if not read before read sensorsavaliable field
+    self.readField('sensorsavaliable',None) 
+    
+    if self.sensorsavaliable == READ_SENSORS_AVALIABLE_INT_ONLY or self.sensorsavaliable == READ_SENSORS_AVALIABLE_INT_FLOOR:
+      return self.readField('airtemp', self._max_age_temp)
+    elif self.sensorsavaliable == READ_SENSORS_AVALIABLE_EXT_ONLY or self.sensorsavaliable == READ_SENSORS_AVALIABLE_EXT_FLOOR:
+      return self.readField('remoteairtemp', self._max_age_temp)
+    else:
+      raise ValueError("sensorsavaliable field invalid")
+  
+  def readRawData(self, startfieldname = None, endfieldname = None):
+    if startfieldname == None or endfieldname == None:
+      return self.rawdata
+    else:
+      return self.rawdata[self._getDCBaddress(uniadd[startfieldname][UNIADD_ADD]):self._getDCBaddress(uniadd[endfieldname][UNIADD_ADD])]
+    
+  def readTime(self, maxage = 0):
+    return self.readField('currenttime', maxage)
+    
+  ## External functions for setting data
+
+  def setHeatingSchedule(self, day, schedule):
+    padschedule = self.heat_schedule.pad_schedule(schedule)
+    self.setField(self._address,self._protocol,day,padschedule)
+    
+  def setWaterSchedule(self, day, schedule):
+    padschedule = self.water_schedule.pad_schedule(schedule)
+    if day == 'all':
+      self.setField('mon_water',padschedule)
+      self.setField('tues_water',padschedule)
+      self.setField('wed_water',padschedule)
+      self.setField('thurs_water',padschedule)
+      self.setField('fri_water',padschedule)
+      self.setField('sat_water',padschedule)
+      self.setField('sun_water',padschedule)
+    else:
+      self.setField(day,padschedule)
+
+  def setTime(self) :
+      """set time on controller to match current localtime on server"""
+      timenow = time.time() + 0.5 #allow a little time for any delay in setting
+      return self.setField('currenttime',self._localtimearray(timenow))
+
+  #overriding      
       
   def setTemp(self, temp) :
     #sets the temperature demand overriding the program. Believe it returns at next prog change.
@@ -628,7 +631,7 @@ class hmController(object):
     #cancels holiday mode
     return self.setField(self._address,self._protocol,'holidayhours',0)
 
-#onoffs
+  #onoffs
 
   def setOn(self):
     return self.setField(self._address,self._protocol,'onoff',WRITE_ONOFF_ON)
@@ -671,15 +674,31 @@ class hmBroadcastController(hmController):
         logging.info("All reading %s from %i controllers"%(fieldname, len(self._controllerlist.list)))
       
     @func_on_all(_controllerlist)
-    def getAirTemp(self):
-        logging.info("All reading AirTemp from %i controllers"%(len(self._controllerlist.list)))
-     
+    def readAirTemp(self):
+        logging.info("All reading AirTemps from %i controllers"%(len(self._controllerlist.list)))
+    
+    @func_on_all(_controllerlist)
+    def readTempState(self):
+        logging.info("All reading TempStates from %i controllers"%(len(self._controllerlist.list)))
+    
+    @func_on_all(_controllerlist)
+    def readWaterState(self):
+        logging.info("All reading WaterStates from %i controllers"%(len(self._controllerlist.list)))
+    
+    @func_on_all(_controllerlist)
+    def readAirSensorType(self):
+        logging.info("All reading AirSensorTypes from %i controllers"%(len(self._controllerlist.list)))
+    
+    @func_on_all(_controllerlist)
+    def readTime(self, maxage = 0):
+        logging.info("All reading Times from %i controllers"%(len(self._controllerlist.list)))
+        
     #run set functions which require a read on all stats
     @func_on_all(_controllerlist)
     def setTemp(self, temp) :
-        logging.info("All set setTemp on %i controllers"%(len(self._controllerlist.list)))
+        logging.info("All set Temp on %i controllers"%(len(self._controllerlist.list)))
     
     @func_on_all(_controllerlist)
     def releaseTemp(self) :
-        logging.info("All set releaseTemp on %i controllers"%(len(self._controllerlist.list)))
+        logging.info("All release Temp on %i controllers"%(len(self._controllerlist.list)))
 
