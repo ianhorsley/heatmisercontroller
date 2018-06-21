@@ -86,20 +86,6 @@ class hmController(object):
 
     self.fullreadtime = self._estimateReadTime(self.DCBlength)
     
-  def _getDCBaddressold(self, uniqueaddress):
-
-    #get the DCB address for a controller from the unique address
-
-    offset = DCB_INVALID
-    for uniquemax, offsetsel in self.DCBmap:
-      if uniqueaddress <= uniquemax:
-        offset = offsetsel
-    
-    if offset != DCB_INVALID:
-      return uniqueaddress-offset
-    else:
-      return DCB_INVALID
-
   def _getDCBaddress(self, uniqueaddress):
     #get the DCB address for a controller from the unique address
         return self._uniquetodcb[uniqueaddress]
