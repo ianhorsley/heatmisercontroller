@@ -19,6 +19,7 @@ from datetime import datetime
 from hm_constants import *
 from .exceptions import hmResponseError, hmControllerTimeError
 from schedule_functions import schedulerdayheat, schedulerweekheat, schedulerdaywater, schedulerweekwater, SCH_ENT_TEMP
+from decorators import listclass, func_on_all
 
 class hmController(object):
   ##Variables used by code
@@ -143,7 +144,7 @@ class hmController(object):
     #read field from network if
     # no maxage in request (maxage = 0)
     # maxage is valid and data too old
-    # or not be read before (maxage = None)
+    # or not be read before (and maxage = None)
     if maxage == 0 or (maxage is not None and not self._check_data_age(maxage, fieldname)) or not self._check_data_present(fieldname):
       if self._autoreadall is True:
         self.readFields(fieldname)
@@ -594,16 +595,14 @@ class hmController(object):
       
   def setTemp(self, temp) :
     #sets the temperature demand overriding the program. Believe it returns at next prog change.
-  
-    #check hold temp not applied
-    if self.readField('tempholdmins') == 0:
+    if self.readField('tempholdmins') == 0: #check hold temp not applied
       return self._adaptor.setField(self._address,self._protocol,'setroomtemp',temp)
     else:
       logging.warn("%i address, temp hold applied so won't set temp"%(self._address))
 
   def releaseTemp(self) :
     #release SetTemp back to the program, but only if temp isn't held
-    if self.readField('tempholdmins') == 0:
+    if self.readField('tempholdmins') == 0: #check hold temp not applied
       return self._adaptor.setField(self._address,self._protocol,'tempholdmins',0)
     else:
       logging.warn("%i address, temp hold applied so won't remove set temp"%(self._address))     
@@ -647,10 +646,38 @@ class hmController(object):
 #set floor limit
 #set holiday
 
+
+#create a controller that broadcasts or reads from multiple stats
 class hmBroadcastController(hmController):
-  #create a controller that only broadcasts
-  def __init__(self, network, long_name):
-    settings = {'address':BROADCAST_ADDR,'display_order': 0, 'long_name': long_name,'protocol':DEFAULT_PROTOCOL,'expected_model':False,'expected_prog_mode':DEFAULT_PROG_MODE}
-    super(hmBroadcastController, self).__init__(network, settings)
+    _controllerlist = listclass()
   
-  ##add methods to block or remove get functions
+    def __init__(self, network, long_name, controllerlist=None):
+        self._controllerlist.list = controllerlist
+        settings = {
+            'address':BROADCAST_ADDR,
+            'display_order': 0,
+            'long_name': long_name,
+            'protocol':DEFAULT_PROTOCOL,
+            'expected_model':False,
+            'expected_prog_mode':DEFAULT_PROG_MODE
+            }
+        super(hmBroadcastController, self).__init__(network, settings)
+    
+    #run read functions on all stats
+    @func_on_all(_controllerlist)
+    def readField(self, fieldname, maxage = 0):
+        logging.info("All reading %s from %i controllers"%(fieldname, len(self._controllerlist.list)))
+      
+    @func_on_all(_controllerlist)
+    def getAirTemp(self):
+        logging.info("All reading AirTemp from %i controllers"%(len(self._controllerlist.list)))
+     
+    #run set functions which require a read on all stats
+    @func_on_all(_controllerlist)
+    def setTemp(self, temp) :
+        logging.info("All set setTemp on %i controllers"%(len(self._controllerlist.list)))
+    
+    @func_on_all(_controllerlist)
+    def releaseTemp(self) :
+        logging.info("All set releaseTemp on %i controllers"%(len(self._controllerlist.list)))
+

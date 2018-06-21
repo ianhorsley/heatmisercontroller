@@ -40,11 +40,11 @@ class HeatmiserNetwork:
     self.adaptor = Heatmiser_Adaptor(self._setup)
     self.adaptor.connect()
     
-    # Create a broadcast device
-    setattr(self,"All",hmBroadcastController(self.adaptor,"Broadcast to All"))
-    self._current = self.All
-    
     self.setStatList(settings['devices'], settings['devicesgeneral'])
+    
+    # Create a broadcast device
+    setattr(self,"All",hmBroadcastController(self.adaptor,"Broadcast to All", self.controllers))
+    self._current = self.All
       
   def setStatList(self, list, generalsettings):
     # Store list of stats
