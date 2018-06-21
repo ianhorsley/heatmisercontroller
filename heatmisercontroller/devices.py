@@ -168,7 +168,7 @@ class hmController(object):
   def readFields(self, fieldnames, maxage = 0):
   
     #find which fields need getting because to old
-    fieldids = [self._fieldnametonum[fieldname] for fieldname in fieldnames if maxage == 0 or (maxage is not None and not self._check_data_age(maxage, fieldname)) or not self._check_data_present(fieldname)]
+    fieldids = [self._fieldnametonum[fieldname] for fieldname in fieldnames if self._fieldsvalid[self._fieldnametonum[fieldname]] and (maxage == 0 or (maxage is not None and not self._check_data_age(maxage, fieldname)) or not self._check_data_present(fieldname))]
     
     if len(fieldids) > 0 and self._autoreadall is True:
         self._getFields(fieldids)
@@ -722,6 +722,10 @@ class hmBroadcastController(hmController):
     @func_on_all(_controllerlist)
     def readField(self, fieldname, maxage = 0):
         logging.info("All reading %s from %i controllers"%(fieldname, len(self._controllerlist.list)))
+        
+    @func_on_all(_controllerlist)
+    def readFields(self, fieldnames, maxage = 0):
+        logging.info("All reading %s from %i controllers"%(', '.join([fieldname for fieldname in fieldnames]), len(self._controllerlist.list)))
       
     @func_on_all(_controllerlist)
     def readAirTemp(self):
