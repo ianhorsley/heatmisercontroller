@@ -22,6 +22,7 @@ class argstore(object):
 class Mock_Heatmiser_Adaptor(Heatmiser_Adaptor):
     def __init__(self, setup):
         self.args = []
+        self.outputs = []
         super(Mock_Heatmiser_Adaptor, self).__init__(setup)
     
     def hmWriteToController(self, *args):
@@ -40,6 +41,7 @@ class test_reading_data(unittest.TestCase):
     #network, address, protocol, short_name, long_name, model, mode
     #self.func = hmController(None, 1, HMV3_ID, 'test', 'test controller', 'prt_hw_model', PROG_MODE_DAY)
     self.settings = {'address':1,'protocol':HMV3_ID,'long_name':'test controller','expected_model':'prt_hw_model','expected_prog_mode':PROG_MODE_DAY}
+    self.settings2 = {'address':1,'protocol':HMV3_ID,'long_name':'test controller','expected_model':'prt_e_model','expected_prog_mode':PROG_MODE_DAY,'autoreadall':True}
       
   def test_procfield(self):
     #unique_address,length,divisor, valid range
@@ -104,6 +106,33 @@ class test_reading_data(unittest.TestCase):
     self.assertEqual(17,self.func.setroomtemp)
     self.assertEqual(0,self.func.hotwaterdemand)
 
+  def test_readFields(self):
+    setup = setupTestClass()
+    self.adaptor = Mock_Heatmiser_Adaptor(setup)
+    self.func = hmController(self.adaptor, self.settings2)
+    print
+    responses = [[0, 0, 0, 0, 0, 0, 0, 170]]
+    self.adaptor.setresponse(responses)
+    self.assertEqual([0, 17], self.func.readFields(['tempholdmins','airtemp']))
+    responses = [[3],[0,100]]
+    self.adaptor.setresponse(responses)
+    self.assertEqual([3, 10], self.func.readFields(['model','airtemp']))
+    responses = [[3],[0,100,0,1]]
+    self.adaptor.setresponse(responses)
+    print self.func.readFields(['model','airtemp','heatingdemand'])
+    responses = [[3],[0,100,0,1]]
+    self.adaptor.setresponse(responses)
+    print self.func.readFields(['model','airtemp','hotwaterdemand'])
+    responses = [[3, 0, 1, 0, 0, 0, 0, 4, 0, 0, 0, 0, 1, 7, 5, 20, 0, 0, 0],[0,100,0,1]]
+    self.adaptor.setresponse(responses)
+    print self.func.readFields(['model','airtemp','hotwaterdemand','keylock'])
+    responses = [[0, 3, 0, 1, 0, 0, 0, 0, 4, 0, 0, 0, 0, 1, 7, 5, 20, 0, 0, 0, 0, 0, 0, 0]]
+    self.adaptor.setresponse(responses)
+    print self.func.readFields(['holidayhours','version'])
+    responses = [[0, 3, 0, 1, 0, 0, 0, 0, 4, 0, 0, 0],[0, 3, 0, 1, 0, 0, 0, 0, 4, 0, 0, 0]]
+    self.adaptor.setresponse(responses)
+    print self.func.readFields(['mon_heat','sun_heat'])
+    
 class test_other_functions(unittest.TestCase):
   def test_getDCBaddress(self):
     self.settings = {'address':1,'protocol':HMV3_ID,'long_name':'test controller','expected_model':'prt_e_model','expected_prog_mode':PROG_MODE_DAY}

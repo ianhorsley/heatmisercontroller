@@ -160,23 +160,34 @@ class hmController(object):
     # or not be read before (and maxage = None)
     if maxage == 0 or (maxage is not None and not self._check_data_age(maxage, fieldname)) or not self._check_data_present(fieldname):
       if self._autoreadall is True:
-        self.getFields(fieldname)
+        self.getFieldRange(fieldname)
       else:
         raise ValueError("Need to read %s first"%fieldname)
     return self.data[fieldname]
   
+  def readFields(self, fieldnames, maxage = 0):
+  
+    #find which fields need getting because to old
+    fieldids = [self._fieldnametonum[fieldname] for fieldname in fieldnames if maxage == 0 or (maxage is not None and not self._check_data_age(maxage, fieldname)) or not self._check_data_present(fieldname)]
+    
+    if len(fieldids) > 0 and self._autoreadall is True:
+        self._getFields(fieldids)
+    elif len(fieldids) > 0:
+        raise ValueError("Need to read fields first")
+    return [self.data[fieldname] for fieldname in fieldnames]
+  
   def getVariables(self):
-    self.getFields('setroomtemp', 'hotwaterdemand')
+    self.getFieldRange('setroomtemp', 'hotwaterdemand')
     
   def getTempsandDemand(self):
-    self.getFields('remoteairtemp', 'hotwaterdemand')
+    self.getFieldRange('remoteairtemp', 'hotwaterdemand')
   
-  def getFields(self, firstfieldname, lastfieldname = None):
-    #reads fields from controller, safe for blocks crossing gaps in dcb
+  def getFieldRange(self, firstfieldname, lastfieldname = None):
+    #reads fieldrange from controller, safe for blocks crossing gaps in dcb
     if lastfieldname == None:
         lastfieldname = firstfieldname
 
-    blockstoread = self._getFieldBlocks(firstfieldname, lastfieldname)
+    blockstoread = self._getFieldBlocksFromRange(firstfieldname, lastfieldname)
     logging.debug(blockstoread)
     estimatedreadtime = self._estimateBlocksReadTime(blockstoread)
     
@@ -195,16 +206,40 @@ class hmController(object):
     else:
         logging.debug("C%i Read fields %s to %s by readAll, %0.3f %0.3f"%(self._address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH), estimatedreadtime, self.fullreadtime))
         self.readAll()
+
+  def _getFields(self, fieldids):
+    #reads fields from controller, safe for blocks crossing gaps in dcb
     
-  def _getFieldBlocks(self, firstfieldname, lastfieldname):
+    blockstoread = self._getFieldBlocksFromListById(fieldids)
+    logging.debug(blockstoread)
+    estimatedreadtime = self._estimateBlocksReadTime(blockstoread)
+    
+    if estimatedreadtime < self.fullreadtime - 0.02: #if to close to full read time, then read all
+        try:
+            for firstfieldid, lastfieldid, blocklength in blockstoread:
+                logging.debug("C%i Reading ui %i to %i len %i, proc %s to %s"%(self._address, fields[firstfieldid][FIELD_ADD],fields[lastfieldid][FIELD_ADD],blocklength,fields[firstfieldid][FIELD_NAME], fields[lastfieldid][FIELD_NAME]))
+                rawdata = self._adaptor.hmReadFromController(self._address, self._protocol, fields[firstfieldid][FIELD_ADD], blocklength)
+                self.lastreadtime = time.time()
+                self._procpartpayload(rawdata, fields[firstfieldid][FIELD_NAME], fields[lastfieldid][FIELD_NAME])
+        except serial.SerialException as e:
+            logging.warn("C%i Read failed of fields %s, Serial Port error %s"%(self._address, ', '.join(fields[id][FIELD_NAME] for id in fieldids), str(e)))
+            raise
+        else:
+            logging.info("C%i Read fields %s in %i blocks"%(self._address, ', '.join(fields[id][FIELD_NAME] for id in fieldids),len(blockstoread)))
+            
+    else:
+        logging.debug("C%i Read fields %s by readAll, %0.3f %0.3f"%(self._address, ', '.join(fields[id][FIELD_NAME] for id in fieldids), estimatedreadtime, self.fullreadtime))
+        self.readAll()
+        
     #data can only be requested from the controller in contiguous blocks
-    #functions takes a first and last field and seperates out the individual blocks avaliable for the controller type
-    ###return, uniquestart, uniqueend, length of read
+    #functions takes a first and last field and separates out the individual blocks available for the controller type
     #return, fieldstart, fieldend, length of read in bytes
-    
+  def _getFieldBlocksFromRange(self, firstfieldname, lastfieldname):
     firstfieldid = self._fieldnametonum[firstfieldname]
     lastfieldid = self._fieldnametonum[lastfieldname]
+    return self._getFieldBlocksFromRangeById(firstfieldid,lastfieldid)
     
+  def _getFieldBlocksFromRangeById(self,firstfieldid,lastfieldid):
     blocks = []
     previousfieldvalid = False
 
@@ -222,6 +257,24 @@ class hmController(object):
         #blocks.append([start,fields[lastfieldid][FIELD_ADD],fields[lastfieldid][FIELD_ADD] + fields[lastfieldid][FIELD_LEN] - start])
         blocks.append([start,lastfieldid,fields[lastfieldid][FIELD_ADD] + fields[lastfieldid][FIELD_LEN] - fields[start][FIELD_ADD]])
     return blocks
+  
+  def _getFieldBlocksFromListById(self,fieldids):
+    #find blocks between lowest and highest field
+    fieldblocks = self._getFieldBlocksFromRangeById(min(fieldids),max(fieldids))
+    
+    readblocks = []
+    for block in fieldblocks:
+      #find fields in that block
+      inblock = [id for id in fieldids if block[0] <= id <= block[1]]
+      if len(inblock) > 0:
+        #if single read is shorter than individual
+        readlen = fields[max(inblock)][FIELD_LEN] + fields[max(inblock)][FIELD_ADD] - fields[min(inblock)][FIELD_ADD] 
+        if self._estimateReadTime(readlen) < sum([ self._estimateReadTime(fields[id][FIELD_LEN]) for id in inblock]):
+          readblocks.append([min(inblock),max(inblock),readlen])
+        else:
+          for id in inblock:
+            readblocks.append([id,id,fields[id][FIELD_LEN]])
+    return readblocks
   
   def _estimateBlocksReadTime(self,blocks):
     #estimates read time for a set of blocks, including the COM_BUS_RESET_TIME between blocks 
