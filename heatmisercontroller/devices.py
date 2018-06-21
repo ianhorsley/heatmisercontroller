@@ -8,8 +8,6 @@
 # Assume Python 2.7.x
 #
 
-#relook at the setfield and setfields. Should they be in adaptor. Payload length checking should happen on all results.
-#could clean up class setup. basic controller could be write only or read only. two classes that inherite. General, gets both, and broadcast, takes write only.
 #read = return local if not to old, otherwise gets
 #get = goes to network to get
 #each field should it's own maximum age
@@ -369,7 +367,7 @@ class hmController(object):
   
   ## Basic set field functions
   
-  def setField(self,fieldname,payload):
+  def setField(self, fieldname, payload):
     #set a field (single member of fields) to a state or payload. Defined for all field lengths.
     fieldinfo = fields[self._fieldnametonum[fieldname]]
     
@@ -386,7 +384,6 @@ class hmController(object):
         pay_hi = (payload >> 8) & BYTEMASK
         payload = [pay_lo, pay_hi]
     try:
-        print payload
         self._adaptor.hmWriteToController(self._address, self._protocol, fieldinfo[FIELD_ADD], fieldinfo[FIELD_LEN], payload)
     except:
         logging.info("C%i failed to set field %s to %s"%(self._address, fieldname.ljust(FIELD_NAME_LENGTH), ', '.join(str(x) for x in payload)))
@@ -399,11 +396,11 @@ class hmController(object):
     ###should really be handled by a specific overriding function, rather than in here.
     #handle odd effect on WRITE_hotwaterdemand_PROG
     if fieldname == 'hotwaterdemand':
-      if value == WRITE_HOTWATERDEMAND_PROG: #returned to program so outcome is unknown
-        self.datareadtime[field] = None
-        return None
-      elif value == WRITE_HOTWATERDEMAND_OFF: #if overridden off store the off read value
-        value = READ_HOTWATERDEMAND_OFF
+      if payload[0] == WRITE_HOTWATERDEMAND_PROG: #returned to program so outcome is unknown
+        self.datareadtime[fieldname] = None
+        return
+      elif payload[0] == WRITE_HOTWATERDEMAND_OFF: #if overridden off store the off read value
+        payload[0] = READ_HOTWATERDEMAND_OFF
     
     self._procpartpayload(payload,fieldname,fieldname)
     
@@ -577,7 +574,7 @@ class hmController(object):
 
   def setHeatingSchedule(self, day, schedule):
     padschedule = self.heat_schedule.pad_schedule(schedule)
-    self.setField(self._address,self._protocol,day,padschedule)
+    self.setField(day,padschedule)
     
   def setWaterSchedule(self, day, schedule):
     padschedule = self.water_schedule.pad_schedule(schedule)
@@ -602,51 +599,51 @@ class hmController(object):
   def setTemp(self, temp) :
     #sets the temperature demand overriding the program. Believe it returns at next prog change.
     if self.readField('tempholdmins') == 0: #check hold temp not applied
-      return self.setField(self._address,self._protocol,'setroomtemp',temp)
+      return self.setField('setroomtemp',temp)
     else:
       logging.warn("%i address, temp hold applied so won't set temp"%(self._address))
 
   def releaseTemp(self) :
     #release SetTemp back to the program, but only if temp isn't held
     if self.readField('tempholdmins') == 0: #check hold temp not applied
-      return self.setField(self._address,self._protocol,'tempholdmins',0)
+      return self.setField('tempholdmins',0)
     else:
       logging.warn("%i address, temp hold applied so won't remove set temp"%(self._address))     
 
   def holdTemp(self, minutes, temp) :
     #sets the temperature demand overrding the program for a set time. Believe it then returns to program.
-    self.setField(self._address,self._protocol,'setroomtemp',temp)
-    return self.setField(self._address,self._protocol,'tempholdmins',minutes)
+    self.setField('setroomtemp',temp)
+    return self.setField('tempholdmins',minutes)
     #didn't stay on if did minutes followed by temp.
     
   def releaseHoldTemp(self) :
     #release SetTemp or HoldTemp back to the program
-    return self.setField(self._address,self._protocol,'tempholdmins',0)
+    return self.setField('tempholdmins',0)
     
   def setHoliday(self, hours) :
     #sets holiday up for a defined number of hours
-    return self.setField(self._address,self._protocol,'holidayhours',hours)
+    return self.setField('holidayhours',hours)
   
   def releaseHoliday(self) :
     #cancels holiday mode
-    return self.setField(self._address,self._protocol,'holidayhours',0)
+    return self.setField('holidayhours',0)
 
   #onoffs
 
   def setOn(self):
-    return self.setField(self._address,self._protocol,'onoff',WRITE_ONOFF_ON)
+    return self.setField('onoff',WRITE_ONOFF_ON)
   def setOff(self):
-    return self.setField(self._address,self._protocol,'onoff',WRITE_ONOFF_OFF)
+    return self.setField('onoff',WRITE_ONOFF_OFF)
     
   def setHeat(self):
-    return self.setField(self._address,self._protocol,'runmode',WRITE_RUNMODE_HEATING)
+    return self.setField('runmode',WRITE_RUNMODE_HEATING)
   def setFrost(self):
-    return self.setField(self._address,self._protocol,'runmode',WRITE_RUNMODE_FROST)
+    return self.setField('runmode',WRITE_RUNMODE_FROST)
     
   def setLock(self):
-    return self.setField(self._address,self._protocol,'keylock',WRITE_KEYLOCK_ON)
+    return self.setField('keylock',WRITE_KEYLOCK_ON)
   def setUnlock(self):
-    return self.setField(self._address,self._protocol,'keylock',WRITE_KEYLOCK_OFF)
+    return self.setField('keylock',WRITE_KEYLOCK_OFF)
   
 #other
 #set floor limit
