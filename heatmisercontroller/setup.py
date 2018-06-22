@@ -136,7 +136,7 @@ class HeatmiserControllerFileSetup(HeatmiserControllerSetup):
             self._settings_update_timestamp = now + self._c_retry_time_interval
             return
         except SyntaxError as e:
-            self._log.warning('Could not get settings: ' + 
+            self._log.warning('Could not get settings: ' +
                               'Error parsing config file: ' + str(e) + self.retry_msg)
             self._settings_update_timestamp = now + self._c_retry_time_interval
             return

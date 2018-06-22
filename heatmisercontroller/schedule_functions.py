@@ -21,7 +21,7 @@ class scheduler(object):
   #entry is a day or week/end, item is a part within the entry
   fieldbase = None
   fieldnames = ['mon','tues','wed','thurs','fri','sat','sun','wday','wend']
-  
+
   def __init__(self):
     if not self.fieldbase is None:
       self.entrynames = [x + self.fieldbase for x in self.entrynames]
@@ -56,13 +56,15 @@ class scheduler(object):
         textstr = self.entry_text(self.entries[entry])
       print(name.ljust(10) + textstr)
       logging.info(textstr)
-      
-  def _chunks(self, l, n):
+  
+  @staticmethod
+  def _chunks(l, n):
     """Yield successive n-sized chunks from l."""
     for i in range(0, len(l), n):
         yield l[i:i + n]
   
-  def _reversechunks(self, l, n):
+  @staticmethod
+  def _reversechunks(l, n):
     """Yield successive n-sized chunks from l."""
     for i in range(len(l)-n, -1, -n):
         yield l[i:i + n]
@@ -120,11 +122,13 @@ class scheduler(object):
   def _getNextScheduleEntry(self,timearray):
     return self._getScheduleEntry(self._getNextDay(timearray))
 
-  def _getPreviousDay(self,timearray):
+  @staticmethod
+  def _getPreviousDay(timearray):
     #shift from 1-7 to 0-6, subtract 1, modulo, shift back to 1-7
     return ((timearray[CURRENT_TIME_DAY] - 1 - 1 ) % 7 ) + 1
     
-  def _getNextDay(self,timearray):
+  @staticmethod
+  def _getNextDay(timearray):
     #shift from 1-7 to 0-6, add 1, modulo, shift back to 1-7
     return ((timearray[CURRENT_TIME_DAY] - 1 + 1 ) % 7 ) + 1
     
@@ -173,9 +177,9 @@ class schedulerheat(scheduler):
   
   def entry_text(self, data):
     tempstr = ''
-    for set in self._chunks(data,self.valuesperentry):
-      if set[MAP_HOUR] != HOUR_UNUSED:
-        tempstr += "%02d:%02d at %02iC " % (set[MAP_HOUR],set[MAP_MIN],set[MAP_TEMP])
+    for valueset in self._chunks(data,self.valuesperentry):
+      if valueset[MAP_HOUR] != HOUR_UNUSED:
+        tempstr += "%02d:%02d at %02iC " % (valueset[MAP_HOUR],valueset[MAP_MIN],valueset[MAP_TEMP])
         
     return tempstr
   
@@ -190,12 +194,12 @@ class schedulerwater(scheduler):
     count = 1
   
     tempstr = ''
-    for set in self._chunks(data,2):
-      if set[0] != HOUR_UNUSED:
+    for dataset in self._chunks(data,2):
+      if dataset[0] != HOUR_UNUSED:
         if toggle:
-          tempstr += "Time %i On at %02d:%02d " % (count,set[0],set[1])
+          tempstr += "Time %i On at %02d:%02d " % (count,dataset[0],dataset[1])
         else:
-          tempstr += "Off at %02d:%02d, " % (set[0],set[1])
+          tempstr += "Off at %02d:%02d, " % (dataset[0],dataset[1])
           count=count+1
         toggle = not toggle
         

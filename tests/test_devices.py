@@ -13,8 +13,8 @@ class argstore(object):
     def store(self, *args):
         self.args = args
 
-    def setresponse(self, input):
-        self.output = input
+    def setresponse(self, response):
+        self.output = response
         
     def read(self, *args):
         return self.output
@@ -63,14 +63,13 @@ class test_reading_data(unittest.TestCase):
       self.func._procfield([3],['model',0, 1, 1, []])
     
   def test_procpayload(self):
-    import time
     print "tz %i alt tz %i"%(time.timezone, time.altzone)
     goodmessage = [1, 37, 0, 22, 4, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 38, 1, 9, 12, 28, 1, 1, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 220, 0, 0, 0, 3, 14, 49, 36, 7, 0, 19, 9, 30, 10, 17, 0, 19, 21, 30, 10, 7, 0, 19, 21, 30, 10, 24, 0, 5, 24, 0, 5, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 8, 0, 9, 0, 18, 0, 19, 0, 24, 0, 24, 0, 24, 0, 24, 0, 7, 0, 20, 21, 30, 12, 24, 0, 12, 24, 0, 12, 7, 0, 20, 21, 30, 12, 24, 0, 12, 24, 0, 12, 7, 0, 19, 8, 30, 12, 16, 30, 20, 21, 0, 12, 7, 0, 20, 12, 0, 12, 17, 0, 20, 21, 30, 12, 5, 0, 20, 21, 30, 12, 24, 0, 12, 24, 0, 12, 7, 0, 20, 12, 0, 12, 17, 0, 20, 21, 30, 12, 7, 0, 12, 24, 0, 12, 24, 0, 12, 24, 0, 12, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0]
 
     self.func = hmController(None, self.settings)
     self.func.autocorrectime = False
     basetime = (6 - 2) * 86400 + 53376.0 + year2000
-    self.func.lastreadtime = basetime - get_offset(basetime) 
+    self.func.lastreadtime = basetime - get_offset(basetime)
     self.func._procpayload(goodmessage)
 
   def test_procpartpayload(self):
@@ -158,7 +157,7 @@ class test_other_functions(unittest.TestCase):
     #print 'DCBlen','sun_water'
     #print self.func._getFieldBlocks('DCBlen','sun_water')
     from timeit import default_timer as timer
-    start = timer()
+    #start = timer()
     for i in range(1):self.func._getFieldBlocksFromRange('DCBlen','sun_water')
     #print (timer()-start)/1000
     
@@ -188,7 +187,7 @@ class test_time_functions(unittest.TestCase):
       
   def test_comparecontrollertime_bad(self):
     basetime = ( 1 + 1) * 86400 + 9 * 3600 + 33 * 60 + 0 + year2000
-    self.func.datareadtime['currenttime'] = basetime - get_offset(basetime) #has been read 
+    self.func.datareadtime['currenttime'] = basetime - get_offset(basetime) #has been read
     self.func.data['currenttime'] = self.func.currenttime = [1, 0, 0, 0]
     with self.assertRaises(hmControllerTimeError):
       self.func._comparecontrollertime()

@@ -13,8 +13,6 @@ from heatmisercontroller.hm_constants import *
 from heatmisercontroller.network import *
 from heatmisercontroller.exceptions import hmResponseError
 
-
-
 initialize_logger('logs', logging.WARN, True)
 hmn1 = HeatmiserNetwork()
 
@@ -31,7 +29,7 @@ print stat.DCBlength
 
 import numpy as np
 
-def all():
+def testall():
     print "All No proc"
     times = []
     for i in range(tests):
@@ -61,4 +59,4 @@ tests = 30
 cases = [1,150,200,250]
 for i in cases:
     test(i)
-all()
+testall()

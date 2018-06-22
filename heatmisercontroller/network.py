@@ -8,7 +8,6 @@
 # Assume Python 2.7.x
 #
 import os
-import serial
 import time
 import logging
 import sys

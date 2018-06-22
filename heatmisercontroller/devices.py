@@ -298,7 +298,8 @@ class hmController(object):
     readtimes = [self._estimateReadTime(x[2]) for x in blocks]
     return sum(readtimes) + self._adaptor.minTimeBetweenReads() * (len(blocks) - 1)
   
-  def _estimateReadTime(self,length):
+  @staticmethod
+  def _estimateReadTime(length):
     #estiamtes the read time for a call to hmReadFromController without COM_BUS_RESET_TIME
     #based on empirical measurements of one prt_hw_model and 5 prt_e_model
     return length * 0.002075 + 0.070727
@@ -418,7 +419,8 @@ class hmController(object):
     if (self.timeerr > TIME_ERR_LIMIT):
         raise hmControllerTimeError("C%2d Time Error %d greater than %d: local is %s, sensor is %s" % (self._address, self.timeerr, TIME_ERR_LIMIT, localweeksecs, remoteweeksecs))
 
-  def _localtimearray(self, timenow = time.time()):
+  @staticmethod
+  def _localtimearray(timenow = time.time()):
     #creates an array in heatmiser format for local time. Day 1-7, 1=Monday
     #input time.time() (not local)
     localtimenow = time.localtime(timenow)
@@ -473,7 +475,8 @@ class hmController(object):
     
     self._procpartpayload(payload,fieldname,fieldname)
     
-  def _checkPayloadValues(self, payload, fieldinfo):
+  @staticmethod
+  def _checkPayloadValues(payload, fieldinfo):
       #check the payload matches field details
       
       if fieldinfo[FIELD_LEN] in [1, 2] and not isinstance(payload, (int, long)):
@@ -557,7 +560,7 @@ class hmController(object):
     else:
     
       if not self._check_data_age(['currenttime'],MAX_AGE_MEDIUM):
-        currenttime = self.readTime()
+        self.readTime()
       
       locatimenow = self._localtimearray()
       scheduletarget = self.heat_schedule.getCurrentScheduleItem(locatimenow)

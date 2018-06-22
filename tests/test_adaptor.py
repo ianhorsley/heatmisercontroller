@@ -24,28 +24,28 @@ class test_serial(unittest.TestCase):
     retasarray = map(ord,ret)
 
     # Check that the returned data from the serial port == goodmessage
-    assert retasarray == self.goodmessage
+    self.assertEqual(retasarray, self.goodmessage)
 
   def test_receivemsg_1(self):
     string = ''.join(map(chr,self.goodmessage))
     self.serialport.serialPort.write(self.goodmessage)
     ret = self.func._hmReceiveMsg(len(self.goodmessage))
     # Check that the returned data from the serial port == goodmessage
-    assert ret == self.goodmessage
+    self.assertEqual(ret, self.goodmessage)
     
   def test_receivemsg_2(self):
     string = ''.join(map(chr,self.goodmessage))
     self.serialport.serialPort.write(self.goodmessage)
     ret = self.func._hmReceiveMsg(2)
     # Check that the returned data from the serial port == goodmessage
-    assert ret == self.goodmessage[:2]
+    self.assertEqual(ret, self.goodmessage[:2])
     
   def test_receivemsg_3(self):
     string = ''.join(map(chr,self.goodmessage))
     self.serialport.serialPort.write(self.goodmessage)
     ret = self.func._hmReceiveMsg(1)
     # Check that the returned data from the serial port == goodmessage
-    assert ret == self.goodmessage[:1]
+    self.assertEqual(ret, self.goodmessage[:1])
     
 if __name__ == '__main__':
     unittest.main()

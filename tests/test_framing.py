@@ -81,11 +81,11 @@ class test_framing(unittest.TestCase):
 
   def test_framecheckfunction_wrong(self):
     with self.assertRaises(hmResponseError):
-      _hmCheckResponseFrameFunc(HMV3_ID, 1, self.goodresponsemessage) 
+      _hmCheckResponseFrameFunc(HMV3_ID, 1, self.goodresponsemessage)
   
   def test_framecheckfunction_range(self):
     with self.assertRaises(hmResponseError):
-      _hmCheckResponseFrameFunc(HMV3_ID, 2, [129, 7, 0, 5, 2, 116, 39]) 
+      _hmCheckResponseFrameFunc(HMV3_ID, 2, [129, 7, 0, 5, 2, 116, 39])
   
   #verify
   def test_framecheck_good(self):
@@ -107,8 +107,8 @@ class test_framing(unittest.TestCase):
 
   def test_form_bad_length(self):
     with self.assertRaises(ValueError):
-      ret = _hmFormFrame(5, HMV3_ID, 129, 1, 34, 10, [255])
+      _hmFormFrame(5, HMV3_ID, 129, 1, 34, 10, [255])
       
   def test_form_bad_prot(self):
     with self.assertRaises(ValueError):
-      ret = _hmFormFrame(5, HMV3_ID+99, 129, 1, 34, 1, [255])
+      _hmFormFrame(5, HMV3_ID+99, 129, 1, 34, 1, [255])
