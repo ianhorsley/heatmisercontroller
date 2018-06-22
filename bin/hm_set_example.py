@@ -34,6 +34,7 @@ hmn1.All.setOn()
 #hmn1.hmSetField('Cons',HMV3_ID,'onoff',WRITE_ONOFF_OFF)
 
 hmn1.All.setField('runmode',WRITE_RUNMODE_HEATING)
+hmn1.Sit.setField('runmode',WRITE_RUNMODE_FROST)
 
 #hmn1.B2.setTemp(24)
 #hmn1.Kit.setTemp(24)

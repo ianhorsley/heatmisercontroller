@@ -727,30 +727,30 @@ class hmBroadcastController(hmController):
       
     @func_on_all(_controllerlist)
     def readAirTemp(self):
-        logging.info("All reading AirTemps from %i controllers"%(len(self._controllerlist.list)))
+        pass
     
     @func_on_all(_controllerlist)
     def readTempState(self):
-        logging.info("All reading TempStates from %i controllers"%(len(self._controllerlist.list)))
+        pass
     
     @func_on_all(_controllerlist)
     def readWaterState(self):
-        logging.info("All reading WaterStates from %i controllers"%(len(self._controllerlist.list)))
+        pass
     
     @func_on_all(_controllerlist)
     def readAirSensorType(self):
-        logging.info("All reading AirSensorTypes from %i controllers"%(len(self._controllerlist.list)))
-    
+        pass
+        
     @func_on_all(_controllerlist)
     def readTime(self, maxage = 0):
-        logging.info("All reading Times from %i controllers"%(len(self._controllerlist.list)))
-        
+        pass
+    
     #run set functions which require a read on all stats
     @func_on_all(_controllerlist)
-    def setTemp(self, temp) :
-        logging.info("All set Temp on %i controllers"%(len(self._controllerlist.list)))
+    def setTemp(self, temp):
+        pass
     
     @func_on_all(_controllerlist)
-    def releaseTemp(self) :
-        logging.info("All release Temp on %i controllers"%(len(self._controllerlist.list)))
+    def releaseTemp(self):
+        pass
 
