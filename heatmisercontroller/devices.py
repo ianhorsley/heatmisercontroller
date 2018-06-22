@@ -26,7 +26,7 @@ class hmController(object):
   ## Variables used by code
   lastreadtime = 0 #records last time of a successful read
 
-  ## Intialisation functions and low level functions
+  ## Initialisation functions and low level functions
   def __init__(self, adaptor, devicesettings, generalsettings = None):
     #address, protocol, short_name, long_name, model, mode
     self._adaptor = adaptor
@@ -112,15 +112,28 @@ class hmController(object):
     #self._fullDCB = sum(x is not None for x in self._uniquetodcb))
     logging.debug("C%i Fieldsvalid %s"%(self._address,','.join(str(int(x)) for x in self._fieldsvalid)))
   
-  def _check_data_age(self, maxage, *fieldnames):
+  def _check_data_age(self, fieldnames, maxagein = None):
     #field data age is not more than maxage (in seconds)
+    #maxage = None, use the default from fields
+    #maxage = -1, only check if present
+    #maxage >=0, use maxage (0 is effectively always False)
     #return False if old, True if recent
     if len(fieldnames) == 0:
       raise ValueError("Must list at least one field")
     
+    if not isinstance(fieldnames, list):
+      fieldnames = [fieldnames]
+    
     for fieldname in fieldnames:
       if not self._check_data_present(fieldname):
         return False
+      elif maxagein == -1: #only check present
+        return True
+      elif maxagein == None: #if none use field defaults
+        maxage = fields[self._fieldnametonum[fieldname]][FIELD_MAX_AGE]
+      else:
+        maxage = maxagein
+      #now check time  
       if time.time() - self.datareadtime[fieldname] > maxage:
         logging.warning("C%i data item %s too old"%(self._address, fieldname))
         return False
@@ -132,7 +145,7 @@ class hmController(object):
 
     for fieldname in fieldnames:
       if self.datareadtime[fieldname] == None:
-        logging.warning("C%i data item %s not avaliable"%(self._address, fieldname))
+        logging.warning("C%i data item %s not available"%(self._address, fieldname))
         return False
     return True
   
@@ -152,23 +165,24 @@ class hmController(object):
       self._procpayload(self.rawdata)
       return self.rawdata
 
-  def readField(self, fieldname, maxage = 0):
+  def readField(self, fieldname, maxage = None):
     #return field value
-    #read field from network if
-    # no maxage in request (maxage = 0)
-    # maxage is valid and data too old
-    # or not be read before (and maxage = None)
-    if maxage == 0 or (maxage is not None and not self._check_data_age(maxage, fieldname)) or not self._check_data_present(fieldname):
+    #get field from network if
+    # maxage = None, older than the default from fields
+    # maxage = -1, not read before
+    # maxage >=0, older than maxage
+    # maxage = 0, always
+    if maxage == 0 or not self._check_data_age(fieldname, maxage):
       if self._autoreadall is True:
         self.getFieldRange(fieldname)
       else:
         raise ValueError("Need to read %s first"%fieldname)
     return self.data[fieldname]
   
-  def readFields(self, fieldnames, maxage = 0):
+  def readFields(self, fieldnames, maxage = None):
   
     #find which fields need getting because to old
-    fieldids = [self._fieldnametonum[fieldname] for fieldname in fieldnames if self._fieldsvalid[self._fieldnametonum[fieldname]] and (maxage == 0 or (maxage is not None and not self._check_data_age(maxage, fieldname)) or not self._check_data_present(fieldname))]
+    fieldids = [self._fieldnametonum[fieldname] for fieldname in fieldnames if self._fieldsvalid[self._fieldnametonum[fieldname]] and (maxage == 0 or not self._check_data_age(fieldname, maxage))]
     
     if len(fieldids) > 0 and self._autoreadall is True:
         self._getFields(fieldids)
@@ -531,7 +545,7 @@ class hmController(object):
       else:
         raise ValueError("Need to read all before getting temp state")
         
-    if not self._check_data_age(self._max_age_variables, 'onoff','holidayhours','runmode','tempholdmins','setroomtemp'):
+    if not self._check_data_age(['onoff','holidayhours','runmode','tempholdmins','setroomtemp']):
       if self._autoreadall is True:
         self.hmReadVariables()
       else:
@@ -549,7 +563,7 @@ class hmController(object):
       return self.TEMP_STATE_HELD
     else:
     
-      if not self._check_data_age(self._max_age_time, 'currenttime'):
+      if not self._check_data_age(['currenttime'],MAX_AGE_MEDIUM):
         currenttime = self.readTime()
       
       locatimenow = self._localtimearray()
@@ -569,7 +583,7 @@ class hmController(object):
       else:
         raise ValueError("Need to read all before getting temp state")
         
-    if not self._check_data_age(self._max_age_variables, 'onoff','holidayhours','hotwaterdemand'):
+    if not self._check_data_age(['onoff','holidayhours','hotwaterdemand']):
       if self._autoreadall is True:
         self.hmReadVariables()
       else:
@@ -581,7 +595,7 @@ class hmController(object):
       return self.TEMP_STATE_HOLIDAY
     else:
     
-      if not self._check_data_age(self._max_age_time, 'currenttime'):
+      if not self._check_data_age(['currenttime'], MAX_AGE_MEDIUM):
         currenttime = self.readTime()
       
       locatimenow = self._localtimearray()
@@ -720,11 +734,11 @@ class hmBroadcastController(hmController):
     
     #run read functions on all stats
     @func_on_all(_controllerlist)
-    def readField(self, fieldname, maxage = 0):
+    def readField(self, fieldname, maxage = None):
         logging.info("All reading %s from %i controllers"%(fieldname, len(self._controllerlist.list)))
         
     @func_on_all(_controllerlist)
-    def readFields(self, fieldnames, maxage = 0):
+    def readFields(self, fieldnames, maxage = None):
         logging.info("All reading %s from %i controllers"%(', '.join([fieldname for fieldname in fieldnames]), len(self._controllerlist.list)))
       
     @func_on_all(_controllerlist)

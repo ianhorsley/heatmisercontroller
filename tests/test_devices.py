@@ -113,25 +113,25 @@ class test_reading_data(unittest.TestCase):
     print
     responses = [[0, 0, 0, 0, 0, 0, 0, 170]]
     self.adaptor.setresponse(responses)
-    self.assertEqual([0, 17], self.func.readFields(['tempholdmins','airtemp']))
+    self.assertEqual([0, 17], self.func.readFields(['tempholdmins','airtemp'],0))
     responses = [[3],[0,100]]
     self.adaptor.setresponse(responses)
-    self.assertEqual([3, 10], self.func.readFields(['model','airtemp']))
+    self.assertEqual([3, 10], self.func.readFields(['model','airtemp'],0))
     responses = [[3],[0,100,0,1]]
     self.adaptor.setresponse(responses)
-    print self.func.readFields(['model','airtemp','heatingdemand'])
+    print self.func.readFields(['model','airtemp','heatingdemand'],0)
     responses = [[3],[0,100,0,1]]
     self.adaptor.setresponse(responses)
-    print self.func.readFields(['model','airtemp','hotwaterdemand'])
+    print self.func.readFields(['model','airtemp','hotwaterdemand'],0)
     responses = [[3, 0, 1, 0, 0, 0, 0, 4, 0, 0, 0, 0, 1, 7, 5, 20, 0, 0, 0],[0,100,0,1]]
     self.adaptor.setresponse(responses)
-    print self.func.readFields(['model','airtemp','hotwaterdemand','keylock'])
+    print self.func.readFields(['model','airtemp','hotwaterdemand','keylock'],0)
     responses = [[0, 3, 0, 1, 0, 0, 0, 0, 4, 0, 0, 0, 0, 1, 7, 5, 20, 0, 0, 0, 0, 0, 0, 0]]
     self.adaptor.setresponse(responses)
-    print self.func.readFields(['holidayhours','version'])
+    print self.func.readFields(['holidayhours','version'],0)
     responses = [[0, 3, 0, 1, 0, 0, 0, 0, 4, 0, 0, 0],[0, 3, 0, 1, 0, 0, 0, 0, 4, 0, 0, 0]]
     self.adaptor.setresponse(responses)
-    print self.func.readFields(['mon_heat','sun_heat'])
+    print self.func.readFields(['mon_heat','sun_heat'],0)
     
 class test_other_functions(unittest.TestCase):
   def test_getDCBaddress(self):

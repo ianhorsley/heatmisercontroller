@@ -1,4 +1,5 @@
 
+from .exceptions import hmResponseError
 
 
 #class to provide list to decorator
