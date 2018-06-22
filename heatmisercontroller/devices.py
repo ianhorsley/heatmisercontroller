@@ -539,17 +539,8 @@ class hmController(object):
   TEMP_STATE_PROGRAM = 6 #following program
   
   def readTempState(self):
-    if not self._check_data_present('onoff','frostprot','holidayhours','runmode','tempholdmins','setroomtemp'):
-      if self._autoreadall is True:
-        self.readAll()
-      else:
-        raise ValueError("Need to read all before getting temp state")
-        
-    if not self._check_data_age(['onoff','holidayhours','runmode','tempholdmins','setroomtemp']):
-      if self._autoreadall is True:
-        self.hmReadVariables()
-      else:
-        raise ValueError("Vars to old to get temp state")
+    self.readFields(['mon_heat','tues_heat','wed_heat','thurs_heat','fri_heat','wday_heat','wend_heat'],-1)
+    self.readFields(['onoff','frostprot','holidayhours','runmode','tempholdmins','setroomtemp'])
     
     if self.onoff == WRITE_ONOFF_OFF and self.frostprot == READ_FROST_PROT_OFF:
       return self.TEMP_STATE_OFF
@@ -574,20 +565,11 @@ class hmController(object):
       else:
         return self.TEMP_STATE_PROGRAM
 
-  ### UNTESTED OR EVEN CHECKED
+  ### UNTESTED # last part about scheduletarget doesn't work
   def readWaterState(self):
     #does runmode affect hot water state?
-    if not self._check_data_present('onoff','holidayhours','hotwaterdemand'):
-      if self._autoreadall is True:
-        self.readAll()
-      else:
-        raise ValueError("Need to read all before getting temp state")
-        
-    if not self._check_data_age(['onoff','holidayhours','hotwaterdemand']):
-      if self._autoreadall is True:
-        self.hmReadVariables()
-      else:
-        raise ValueError("Vars to old to get temp state")
+    self.readFields(['mon_water','tues_water','wed_water','thurs_water','fri_water','wday_water','wend_water'],-1)
+    self.readFields(['onoff','holidayhours','hotwaterdemand'])
     
     if self.onoff == WRITE_ONOFF_OFF:
       return self.TEMP_STATE_OFF
