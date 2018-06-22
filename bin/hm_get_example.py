@@ -37,13 +37,20 @@ for current_controller in hmn1.controllers:
 
 time.sleep(5) # sleep before next cycle
 
+schedulefields = ['mon_heat','tues_heat','wed_heat','thurs_heat','fri_heat','wday_heat','wend_heat']
+statefields = ['onoff','frostprot','holidayhours','runmode','tempholdmins','setroomtemp']
+otherfields = ['sensorsavaliable','airtemp','remoteairtemp','heatingdemand','hotwaterdemand']
+fieldnames = schedulefields + statefields + otherfields
+
 while True:
   print
   # CYCLE THROUGH ALL CONTROLLERS repeatedly
   for current_controller in hmn1.controllers:
     
     try:
-      current_controller.getTempsandDemand()
+      #current_controller.getTempsandDemand()
+      current_controller.readFields(fieldnames)
+
     except hmResponseError as e:
       print "C%d in %s Failed to Read due to %s" % (current_controller._address,  current_controller._name.ljust(4),str(e))
     else: 

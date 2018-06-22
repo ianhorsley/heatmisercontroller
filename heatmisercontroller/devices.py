@@ -135,7 +135,7 @@ class hmController(object):
         maxage = maxagein
       #now check time  
       if time.time() - self.datareadtime[fieldname] > maxage:
-        logging.warning("C%i data item %s too old"%(self._address, fieldname))
+        logging.debug("C%i data item %s too old"%(self._address, fieldname))
         return False
     return True
     
@@ -145,7 +145,7 @@ class hmController(object):
 
     for fieldname in fieldnames:
       if self.datareadtime[fieldname] == None:
-        logging.warning("C%i data item %s not available"%(self._address, fieldname))
+        logging.debug("C%i data item %s not available"%(self._address, fieldname))
         return False
     return True
   
@@ -180,6 +180,8 @@ class hmController(object):
     return self.data[fieldname]
   
   def readFields(self, fieldnames, maxage = None):
+  
+    fieldnames = list(set(fieldnames)) #remove duplicates
   
     #find which fields need getting because to old
     fieldids = [self._fieldnametonum[fieldname] for fieldname in fieldnames if self._fieldsvalid[self._fieldnametonum[fieldname]] and (maxage == 0 or not self._check_data_age(fieldname, maxage))]
