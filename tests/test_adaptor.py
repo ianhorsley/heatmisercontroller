@@ -1,10 +1,7 @@
 import unittest
 import logging
-import serial
 
 from heatmisercontroller.adaptor import Heatmiser_Adaptor
-from heatmisercontroller.hm_constants import HMV3_ID
-
 from mock_serial import SerialTestClass, setupTestClass
                                   
 class test_serial(unittest.TestCase):

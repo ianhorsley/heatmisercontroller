@@ -34,7 +34,7 @@ def retryer(max_retries=3):
             raise hmResponseError("Failed after %i retries on %s"%(max_retries,str(lasterror)))
         return inner
     return wraps
-        
+
 class Heatmiser_Adaptor(object):
 
     def __init__(self, setup):

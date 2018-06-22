@@ -15,7 +15,6 @@
 import logging
 import time
 import serial
-from datetime import datetime
 
 from hm_constants import *
 from .exceptions import hmResponseError, hmControllerTimeError
@@ -288,8 +287,8 @@ class hmController(object):
         if self._estimateReadTime(readlen) < sum([ self._estimateReadTime(fields[id][FIELD_LEN]) for id in inblock]):
           readblocks.append([min(inblock),max(inblock),readlen])
         else:
-          for id in inblock:
-            readblocks.append([id,id,fields[id][FIELD_LEN]])
+          for ids in inblock:
+            readblocks.append([ids,ids,fields[ids][FIELD_LEN]])
     return readblocks
   
   def _estimateBlocksReadTime(self,blocks):
@@ -308,7 +307,7 @@ class hmController(object):
     fieldname = fieldinfo[FIELD_NAME]
     length = fieldinfo[FIELD_LEN]
     factor = fieldinfo[FIELD_DIV]
-    range = fieldinfo[FIELD_RANGE]
+    fieldrange = fieldinfo[FIELD_RANGE]
     #logging.debug("Processing %s %s"%(fieldinfo[FIELD_NAME],', '.join(str(x) for x in data)))
     if length == 1:
       value = data[0]/factor
@@ -327,8 +326,8 @@ class hmController(object):
     else:
       raise ValueError("_procpayload can't process field length")
   
-    if len(range) == 2 and isinstance(range[0], (int, long)) and isinstance(range[1], (int, long)):
-      if value < range[0] or value > range[1]:
+    if len(fieldrange) == 2 and isinstance(fieldrange[0], (int, long)) and isinstance(fieldrange[1], (int, long)):
+      if value < fieldrange[0] or value > fieldrange[1]:
         raise hmResponseError("Field value %i outside expected range"%value)
     
     if fieldname == 'DCBlen' and value != self.DCBlength:
@@ -494,8 +493,8 @@ class hmController(object):
                   raise ValueError("setField: payload out of range")
           else:
               for i, item in enumerate(payload):
-                  range = ranges[i % len(ranges)]
-                  if item < range[0] or item > range[1]:
+                  r = ranges[i % len(ranges)]
+                  if item < r[0] or item > r[1]:
                       raise ValueError("setField: payload out of range")
   
   ## External functions for printing data

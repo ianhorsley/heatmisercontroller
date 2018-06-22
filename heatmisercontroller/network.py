@@ -8,7 +8,6 @@
 # Assume Python 2.7.x
 #
 import os
-import time
 import logging
 import sys
 
@@ -17,7 +16,7 @@ from devices import *
 from adaptor import *
 import setup as hms
 
-class HeatmiserNetwork:
+class HeatmiserNetwork(object):
 ### stat list setup
 
   def __init__(self, configfile = None):
@@ -45,13 +44,13 @@ class HeatmiserNetwork:
     setattr(self,"All",hmBroadcastController(self.adaptor,"Broadcast to All", self.controllers))
     self._current = self.All
       
-  def setStatList(self, list, generalsettings):
+  def setStatList(self, statlist, generalsettings):
     # Store list of stats
-    self._statlist = list
+    self._statlist = statlist
     self._statnum = len(self._statlist)
 
     self.controllers = range(self._statnum)
-    for name, controllersettings in list.iteritems():
+    for name, controllersettings in statlist.iteritems():
       controllersettings['name'] = name
       if hasattr(self,name):
         print "error duplicate stat name"

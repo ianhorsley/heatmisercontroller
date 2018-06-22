@@ -158,7 +158,7 @@ class test_other_functions(unittest.TestCase):
     #print self.func._getFieldBlocks('DCBlen','sun_water')
     from timeit import default_timer as timer
     #start = timer()
-    for i in range(1):self.func._getFieldBlocksFromRange('DCBlen','sun_water')
+    for _ in range(1):self.func._getFieldBlocksFromRange('DCBlen','sun_water')
     #print (timer()-start)/1000
     
   def test_buildDCBtables(self):

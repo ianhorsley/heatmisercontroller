@@ -1,2 +1,3 @@
-python -m unittest discover -v
+#!/bin/bash
 
+python -m unittest discover -v

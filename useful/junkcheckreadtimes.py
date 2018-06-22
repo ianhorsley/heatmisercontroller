@@ -32,12 +32,12 @@ import numpy as np
 def testall():
     print "All No proc"
     times = []
-    for i in range(tests):
+    for _ in range(tests):
         try:
             start = timer()
             hmn1.adaptor.hmReadAllFromController(address, HMV3_ID, bcdlen)
             times.append(timer() - start - hmn1.adaptor.serport.COM_BUS_RESET_TIME) 
-        except:
+        except hmResponseError:
             print "errored"
             time.sleep(5)
     print "%.3f"%np.median(times), len(times)
@@ -45,13 +45,13 @@ def testall():
 def test(number):
     print "%i No proc"%number
     times = []
-    for i in range(tests):
+    for _ in range(tests):
         try:
             start = timer()
             hmn1.adaptor.hmReadFromController(address, HMV3_ID, uniadd[field][UNIADD_ADD], number)
             times.append(timer() - start - hmn1.adaptor.serport.COM_BUS_RESET_TIME) 
-        except:
-            pass        
+        except hmResponseError:
+            print "errored"
     print "%.3f"%np.median(times), len(times)
 
 

@@ -4,7 +4,6 @@
 
 import unittest
 import logging
-import serial
 
 from heatmisercontroller.framing import _hmCheckFrameCRC, _hmCheckResponseFrameLength, _hmCheckResponseFrameAddresses, _hmCheckResponseFrameFunc, _hmVerifyResponse, _hmFormFrame
 #from heatmisercontroller.framing import crc16
