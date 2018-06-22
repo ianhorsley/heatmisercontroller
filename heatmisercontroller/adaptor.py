@@ -24,7 +24,7 @@ def retryer(max_retries=3):
             for i in range(max_retries):
                 if i is not 0:
                     logging.warn("Gen retrying due to %s"%str(lasterror))
-                try:        
+                try:
                     result = func(*args, **kwargs)
                 except hmResponseError as e:
                     lasterror = e
@@ -38,7 +38,7 @@ def retryer(max_retries=3):
 class Heatmiser_Adaptor(object):
 
     def __init__(self, setup):
-    
+
         # Initialize setup and get settings
         self._setup = setup
         settings = self._setup.settings
@@ -61,7 +61,7 @@ class Heatmiser_Adaptor(object):
 ###
 
     def _update_settings(self, settings):
-        """Check settings and update if needed."""     
+        """Check settings and update if needed."""
         
         for name, value in settings['controller'].iteritems():
             setattr(self, name, value)

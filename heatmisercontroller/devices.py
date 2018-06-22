@@ -29,7 +29,7 @@ class hmController(object):
   def __init__(self, adaptor, devicesettings, generalsettings = None):
     #address, protocol, short_name, long_name, model, mode
     self._adaptor = adaptor
-    
+
     self.water_schedule = None
         
     #initialise data structures
@@ -42,7 +42,7 @@ class hmController(object):
     self.rawdata = [None] * self.DCBlength
   
   def _update_settings(self, settings, generalsettings):
-    """Check settings and update if needed."""   
+    """Check settings and update if needed."""
     
     if not generalsettings is None:
         for name, value in generalsettings.iteritems():
@@ -132,7 +132,7 @@ class hmController(object):
         maxage = fields[self._fieldnametonum[fieldname]][FIELD_MAX_AGE]
       else:
         maxage = maxagein
-      #now check time  
+      #now check time
       if time.time() - self.datareadtime[fieldname] > maxage:
         logging.debug("C%i data item %s too old"%(self._address, fieldname))
         return False
@@ -283,7 +283,7 @@ class hmController(object):
       inblock = [id for id in fieldids if block[0] <= id <= block[1]]
       if len(inblock) > 0:
         #if single read is shorter than individual
-        readlen = fields[max(inblock)][FIELD_LEN] + fields[max(inblock)][FIELD_ADD] - fields[min(inblock)][FIELD_ADD] 
+        readlen = fields[max(inblock)][FIELD_LEN] + fields[max(inblock)][FIELD_ADD] - fields[min(inblock)][FIELD_ADD]
         if self._estimateReadTime(readlen) < sum([ self._estimateReadTime(fields[id][FIELD_LEN]) for id in inblock]):
           readblocks.append([min(inblock),max(inblock),readlen])
         else:
@@ -292,7 +292,7 @@ class hmController(object):
     return readblocks
   
   def _estimateBlocksReadTime(self,blocks):
-    #estimates read time for a set of blocks, including the COM_BUS_RESET_TIME between blocks 
+    #estimates read time for a set of blocks, including the COM_BUS_RESET_TIME between blocks
     #excludes the COM_BUS_RESET_TIME before first block
     readtimes = [self._estimateReadTime(x[2]) for x in blocks]
     return sum(readtimes) + self._adaptor.minTimeBetweenReads() * (len(blocks) - 1)
@@ -395,7 +395,7 @@ class hmController(object):
       else:
         raise
   
-  def _comparecontrollertime(self):       
+  def _comparecontrollertime(self):
     # Now do same sanity checking
     # Check the time is within range
     # currentday is numbered 1-7 for M-S
@@ -443,7 +443,7 @@ class hmController(object):
     
     if len(fieldinfo) < FIELD_WRITE + 1 or fieldinfo[FIELD_WRITE] != 'W':
         #check that write is part of field info and is 'W'
-        raise ValueError("setField: field isn't writeable")        
+        raise ValueError("setField: field isn't writeable")
                
     self._checkPayloadValues(payload, fieldinfo)
 
@@ -485,7 +485,7 @@ class hmController(object):
           #greater than two byte field, payload length must match field length
           raise ValueError("setField: invalid payload length")
   
-      #checks the payload matches the ranges if ranges are defined 
+      #checks the payload matches the ranges if ranges are defined
       ranges = fieldinfo[FIELD_RANGE]
       if ranges != []:
           if isinstance(payload, (int, long)):
@@ -582,7 +582,7 @@ class hmController(object):
     else:
     
       if not self._check_data_age(['currenttime'], MAX_AGE_MEDIUM):
-        currenttime = self.readTime()
+        self.readTime()
       
       locatimenow = self._localtimearray()
       scheduletarget = self.water_schedule.getCurrentScheduleItem(locatimenow)
@@ -605,7 +605,7 @@ class hmController(object):
       
   def readAirTemp(self):
     #if not read before read sensorsavaliable field
-    self.readField('sensorsavaliable',None) 
+    self.readField('sensorsavaliable',None)
     
     if self.sensorsavaliable == READ_SENSORS_AVALIABLE_INT_ONLY or self.sensorsavaliable == READ_SENSORS_AVALIABLE_INT_FLOOR:
       return self.readField('airtemp', self._max_age_temp)
@@ -647,8 +647,8 @@ class hmController(object):
       timenow = time.time() + 0.5 #allow a little time for any delay in setting
       return self.setField('currenttime',self._localtimearray(timenow))
 
-  #overriding      
-      
+  #overriding
+
   def setTemp(self, temp) :
     #sets the temperature demand overriding the program. Believe it returns at next prog change.
     if self.readField('tempholdmins') == 0: #check hold temp not applied
@@ -661,7 +661,7 @@ class hmController(object):
     if self.readField('tempholdmins') == 0: #check hold temp not applied
       return self.setField('tempholdmins',0)
     else:
-      logging.warn("%i address, temp hold applied so won't remove set temp"%(self._address))     
+      logging.warn("%i address, temp hold applied so won't remove set temp"%(self._address))
 
   def holdTemp(self, minutes, temp) :
     #sets the temperature demand overrding the program for a set time. Believe it then returns to program.

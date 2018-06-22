@@ -5,7 +5,7 @@ from hm_constants import *
 from .exceptions import hmResponseError, hmResponseErrorCRC
 
 ### low level framing functions
-    
+
 def _hmFormReadFrame(destination, protocol, source, start, length) :
   return _hmFormFrame(destination, protocol, source, FUNC_READ, start, length, [])
 
@@ -49,7 +49,7 @@ def _hmCheckFrameCRC(protocol, data):
   crc = crc16() # Initialises the CRC
   expectedchecksum = crc.run(rxmsg)
   if expectedchecksum != checksum:
-    raise hmResponseErrorCRC("CRC is incorrect")      
+    raise hmResponseErrorCRC("CRC is incorrect")
 
 def _hmCheckResponseFrameLength(protocol, data, expectedLength):
   """Takes frame and checks length, must be a receive frame"""
@@ -79,7 +79,7 @@ def _hmCheckResponseFrameAddresses(protocol, source, destination, data):
   if protocol != HMV3_ID:
     raise ValueError("Protocol unknown")
     
-  dest_addr = data[FR_DEST_ADDR]        
+  dest_addr = data[FR_DEST_ADDR]
   source_addr = data[FR_SOURCE_ADDR]
 
   if (dest_addr < MASTER_ADDR_MIN or dest_addr > MASTER_ADDR_MAX):
