@@ -180,11 +180,11 @@ class hmController(object):
     return self.data[fieldname]
   
   def readFields(self, fieldnames, maxage = None):
-  
-    fieldnames = list(set(fieldnames)) #remove duplicates
-  
+   
     #find which fields need getting because to old
     fieldids = [self._fieldnametonum[fieldname] for fieldname in fieldnames if self._fieldsvalid[self._fieldnametonum[fieldname]] and (maxage == 0 or not self._check_data_age(fieldname, maxage))]
+    
+    fieldids = list(set(fieldids)) #remove duplicates, ordering doesn't matter
     
     if len(fieldids) > 0 and self._autoreadall is True:
         self._getFields(fieldids)
