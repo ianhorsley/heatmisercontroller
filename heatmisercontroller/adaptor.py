@@ -193,7 +193,7 @@ class Heatmiser_Adaptor(object):
     @retryer(max_retries = 3)
     def hmWriteToController(self, network_address, protocol, dcb_address, length, payload):
         ###shouldn't be labelled dcb_address. It is a unique address.
-        msg = framing._hmFormFrame(network_address, protocol, self.my_master_addr, FUNC_WRITE, dcb_address, length, payload)
+        msg = framing._form_frame(network_address, protocol, self.my_master_addr, FUNC_WRITE, dcb_address, length, payload)
         
         try:
             self._hmSendMsg(msg)
@@ -207,7 +207,7 @@ class Heatmiser_Adaptor(object):
             else:
                 response = self._hmReceiveMsg(FRAME_WRITE_RESP_LENGTH)
                 try:
-                    framing._hmVerifyWriteAck(protocol, network_address, self.my_master_addr, response)
+                    framing._verify_write_ack(protocol, network_address, self.my_master_addr, response)
                 except hmResponseErrorCRC:
                     self._hmClearInputBuffer()
                     raise
@@ -219,10 +219,10 @@ class Heatmiser_Adaptor(object):
     def hmReadFromController(self, network_address, protocol, dcb_start_address, expectedLength, readall = False):
         ###mis labelled dcb addres, should be unique
             if readall:
-                msg = framing._hmFormReadFrame(network_address, protocol, self.my_master_addr, DCB_START, RW_LENGTH_ALL)
+                msg = framing._form_read_frame(network_address, protocol, self.my_master_addr, DCB_START, RW_LENGTH_ALL)
                 logging.debug("C %i read request to address %i length %i"%(network_address,DCB_START, RW_LENGTH_ALL))
             else:
-                msg = framing._hmFormReadFrame(network_address, protocol, self.my_master_addr, dcb_start_address, expectedLength)
+                msg = framing._form_read_frame(network_address, protocol, self.my_master_addr, dcb_start_address, expectedLength)
                 logging.debug("C %i read request to address %i length %i"%(network_address,dcb_start_address, expectedLength))
             
             try:
@@ -242,7 +242,7 @@ class Heatmiser_Adaptor(object):
                     logging.debug("C%i read in %.2f s from address %i length %i response %s"%(network_address,time.time()-time1,dcb_start_address, expectedLength, ', '.join(str(x) for x in response)))
                 
                     try:
-                        framing._hmVerifyResponse(protocol, network_address, self.my_master_addr, FUNC_READ, expectedLength , response)
+                        framing._verify_response(protocol, network_address, self.my_master_addr, FUNC_READ, expectedLength , response)
                     except hmResponseErrorCRC:
                         self._hmClearInputBuffer()
                         raise
