@@ -2,17 +2,21 @@ import unittest
 import logging
 
 from heatmisercontroller.adaptor import Heatmiser_Adaptor
+from heatmisercontroller.exceptions import hmResponseError
 from mock_serial import SerialTestClass, setupTestClass
 
 class test_serial(unittest.TestCase):
   def setUp(self):
     self.serialport = SerialTestClass()
     logging.basicConfig(level=logging.ERROR)
-    setup = setupTestClass()
-    self.func = Heatmiser_Adaptor(setup)
+    self.setup = setupTestClass()
+    self.func = Heatmiser_Adaptor(self.setup)
     self.func.serport = self.serialport.serialPort
     self.goodmessage = [5, 10, 129, 0, 34, 0, 8, 0, 193, 72]
-      
+
+  def tearDown(self):
+    del self.func
+  
   def test_sendmsg_1(self):
     # Send message
     self.func._hmSendMsg(self.goodmessage)
@@ -41,6 +45,16 @@ class test_serial(unittest.TestCase):
     ret = self.func._hmReceiveMsg(1)
     # Check that the returned data from the serial port == goodmessage
     self.assertEqual(ret, self.goodmessage[:1])
+  
+  def test_receivemsg_none(self):
+    with self.assertRaises(hmResponseError):
+      ret = self.func._hmReceiveMsg(1)
+  
+  def test_updatesettings(self):
+    # Send message to open serial port
+    self.func._hmSendMsg(self.goodmessage)
+    # update settings
+    self.func._update_settings(self.setup.settings)
     
 if __name__ == '__main__':
     unittest.main()
