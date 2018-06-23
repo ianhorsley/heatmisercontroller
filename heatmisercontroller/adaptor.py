@@ -203,7 +203,7 @@ class HeatmiserAdaptor(object):
             else:
                 response = self._receive_message(FRAME_WRITE_RESP_LENGTH)
                 try:
-                    framing._verify_write_ack(protocol, network_address, self.my_master_addr, response)
+                    framing.verify_write_ack(protocol, network_address, self.my_master_addr, response)
                 except HeatmiserResponseErrorCRC:
                     self._clear_input_buffer()
                     raise
@@ -216,10 +216,10 @@ class HeatmiserAdaptor(object):
     def read_from_device(self, network_address, protocol, unique_start_address, expected_length, readall=False):
         """Forms read frame and sends to serial link checking the response"""
         if readall:
-            msg = framing._form_read_frame(network_address, protocol, self.my_master_addr, DCB_START, RW_LENGTH_ALL)
+            msg = framing.form_read_frame(network_address, protocol, self.my_master_addr, DCB_START, RW_LENGTH_ALL)
             logging.debug("C %i read request to address %i length %i"%(network_address,DCB_START, RW_LENGTH_ALL))
         else:
-            msg = framing._form_read_frame(network_address, protocol, self.my_master_addr, dcb_start_address, expected_length)
+            msg = framing.form_read_frame(network_address, protocol, self.my_master_addr, dcb_start_address, expected_length)
             logging.debug("C %i read request to address %i length %i"%(network_address,dcb_start_address, expected_length))
         
         try:
@@ -239,7 +239,7 @@ class HeatmiserAdaptor(object):
                 logging.debug("C%i read in %.2f s from address %i length %i response %s"%(network_address,time.time()-time1,unique_start_address, expected_length, ', '.join(str(x) for x in response)))
             
                 try:
-                    framing._verify_response(protocol, network_address, self.my_master_addr, FUNC_READ, expected_length , response)
+                    framing.verify_response(protocol, network_address, self.my_master_addr, FUNC_READ, expected_length , response)
                 except HeatmiserResponseErrorCRC:
                     self._clear_input_buffer()
                     raise

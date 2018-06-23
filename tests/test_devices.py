@@ -33,9 +33,9 @@ class MockHeatmiserAdaptor(HeatmiserAdaptor):
         Expects a list of lists"""
         self.outputs = inputs
 
-    def read_from_device(self, network_address, protocol, unique_start_address, expectedLength, readall = False):
+    def read_from_device(self, network_address, protocol, unique_start_address, expected_length, readall=False):
         """Stores the arguments sent to read and provides a response"""
-        self.arguments.append((network_address, protocol, unique_start_address, expectedLength, readall))
+        self.arguments.append((network_address, protocol, unique_start_address, expected_length, readall))
         return self.outputs.pop(0)
                 
 class TestReadingData(unittest.TestCase):
@@ -145,7 +145,7 @@ class TestOtherFunctions(unittest.TestCase):
         self.assertEqual(24, self.func._get_dcb_address(24))
         self.assertEqual(DCB_INVALID, self.func._get_dcb_address(26))
         
-    def test_getFieldBlocks(self):
+    def test_getfieldblocks(self):
         self.settings = {'address':1, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_e_model', 'expected_prog_mode':PROG_MODE_DAY}
         self.func = HeatmiserDevice(None, self.settings)
         from heatmisercontroller.hm_constants import fields
@@ -231,7 +231,7 @@ class test_protocol(unittest.TestCase):
     def test_setfield_1(self):
         #checks the arguments sent to write_to_device
         #fieldname, payload
-        self.func.setField('frosttemp', 7 )
+        self.func.set_field('frosttemp', 7 )
         self.assertEqual(self.tester.arguments, (5, 3, 17, 1, [7]))
         
     def test_setfield_2(self):
@@ -239,18 +239,18 @@ class test_protocol(unittest.TestCase):
         #self.func.lastreadtime = 7 * 86400 + 7 *3600 + 7 * 60 - 3600
         self.func.lastreadtime = time.time()
         loctime = self.func._localtimearray(self.func.lastreadtime)
-        self.func.setField('currenttime', loctime )
+        self.func.set_field('currenttime', loctime )
         self.assertEqual(self.tester.arguments,(5, 3, 43, 4, loctime))
         
     def test_setfield_errors(self):
         with self.assertRaises(ValueError):
-            self.func.setField('frosttemp', 3 )
+            self.func.set_field('frosttemp', 3 )
         with self.assertRaises(TypeError):
-            self.func.setField('frosttemp', [3, 3] )
+            self.func.set_field('frosttemp', [3, 3] )
         with self.assertRaises(ValueError):
-            self.func.setField('currenttime', [8, 7, 7, 7] )
+            self.func.set_field('currenttime', [8, 7, 7, 7] )
         with self.assertRaises(TypeError):
-            self.func.setField('currenttime', 7)
+            self.func.set_field('currenttime', 7)
     
 if __name__ == '__main__':
         unittest.main()

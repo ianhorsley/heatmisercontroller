@@ -5,7 +5,7 @@
 import unittest
 import logging
 
-from heatmisercontroller.framing import _check_frame_crc, _check_response_frame_length, _check_response_frame_addresses, _check_response_frame_function, _verify_response, form_frame
+from heatmisercontroller.framing import _check_frame_crc, _check_response_frame_length, _check_response_frame_addresses, _check_response_frame_function, verify_response, form_frame
 from heatmisercontroller.exceptions import HeatmiserResponseError, HeatmiserResponseErrorCRC
 from heatmisercontroller.hm_constants import HMV3_ID
 
@@ -87,11 +87,11 @@ class TestFraming(unittest.TestCase):
     
     #verify
     def test_framecheck_good(self):
-        _verify_response(HMV3_ID, 5, 129, 0, 1, self.goodresponsemessage)
+        verify_response(HMV3_ID, 5, 129, 0, 1, self.goodresponsemessage)
         
     def test_framecheck_bad(self):
         with self.assertRaises(HeatmiserResponseError):
-            _verify_response(HMV3_ID, 5, 129, 0, 1, self.badackmessage)
+            verify_response(HMV3_ID, 5, 129, 0, 1, self.badackmessage)
             
     #form frames
     def test_form_good_write(self):

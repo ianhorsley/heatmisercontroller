@@ -89,7 +89,7 @@ class HeatmiserDevice(object):
         else:
             raise ValueError("DCB map length not found")
 
-        self.fullreadtime = self._estimateReadTime(self.dcb_length)
+        self.fullreadtime = self._estimate_read_time(self.dcb_length)
         
     def _get_dcb_address(self, uniqueaddress):
         """get the DCB address for a controller from the unique address"""
@@ -159,6 +159,7 @@ class HeatmiserDevice(object):
     ## Basic reading and getting functions
     
     def read_all(self):
+        """Returns all the field values having got them from the device"""
         try:
             self.rawdata = self._adaptor.read_all_from_device(self.address, self._protocol, self.dcb_length)
         except serial.SerialException as err:
@@ -201,12 +202,14 @@ class HeatmiserDevice(object):
         return [self.data[fieldname] for fieldname in fieldnames]
     
     def get_variables(self):
+        """Gets setroomtemp to hotwaterdemand fields from device"""
         self.get_field_range('setroomtemp', 'hotwaterdemand')
         
     def get_temps_and_demand(self):
+        """Gets remoteairtemp to hotwaterdemand fields from device"""
         self.get_field_range('remoteairtemp', 'hotwaterdemand')
     
-    def get_field_range(self, firstfieldname, lastfieldname = None):
+    def get_field_range(self, firstfieldname, lastfieldname=None):
         """gets fieldrange from device
         
         safe for blocks crossing gaps in dcb"""
@@ -215,30 +218,30 @@ class HeatmiserDevice(object):
 
         blockstoread = self._get_field_blocks_from_range(firstfieldname, lastfieldname)
         logging.debug(blockstoread)
-        estimatedreadtime = self._estimateBlocksReadTime(blockstoread)
+        estimatedreadtime = self._estimate_blocks_read_time(blockstoread)
         
         if estimatedreadtime < self.fullreadtime - 0.02: #if to close to full read time, then read all
             try:
                 for firstfieldid, lastfieldid, blocklength in blockstoread:
-                    logging.debug("C%i Reading ui %i to %i len %i, proc %s to %s"%(self.address, fields[firstfieldid][FIELD_ADD],fields[lastfieldid][FIELD_ADD],blocklength,fields[firstfieldid][FIELD_NAME], fields[lastfieldid][FIELD_NAME]))
+                    logging.debug("C%i Reading ui %i to %i len %i, proc %s to %s"%(self.address, fields[firstfieldid][FIELD_ADD], fields[lastfieldid][FIELD_ADD], blocklength,fields[firstfieldid][FIELD_NAME], fields[lastfieldid][FIELD_NAME]))
                     rawdata = self._adaptor.read_from_device(self.address, self._protocol, fields[firstfieldid][FIELD_ADD], blocklength)
                     self.lastreadtime = time.time()
                     self._procpartpayload(rawdata, fields[firstfieldid][FIELD_NAME], fields[lastfieldid][FIELD_NAME])
             except serial.SerialException as err:
-                logging.warn("C%i Read failed of fields %s to %s, Serial Port error %s"%(self.address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH), str(err)))
+                logging.warn("C%i Read failed of fields %s to %s, Serial Port error %s"%(self.address, firstfieldname.ljust(FIELD_NAME_LENGTH), lastfieldname.ljust(FIELD_NAME_LENGTH), str(err)))
                 raise
             else:
-                logging.info("C%i Read fields %s to %s, in %i blocks"%(self.address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH),len(blockstoread)))
+                logging.info("C%i Read fields %s to %s, in %i blocks"%(self.address, firstfieldname.ljust(FIELD_NAME_LENGTH), lastfieldname.ljust(FIELD_NAME_LENGTH), len(blockstoread)))
         else:
-            logging.debug("C%i Read fields %s to %s by read_all, %0.3f %0.3f"%(self.address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH), estimatedreadtime, self.fullreadtime))
+            logging.debug("C%i Read fields %s to %s by read_all, %0.3f %0.3f"%(self.address, firstfieldname.ljust(FIELD_NAME_LENGTH), lastfieldname.ljust(FIELD_NAME_LENGTH), estimatedreadtime, self.fullreadtime))
             self.read_all()
 
     def _get_fields(self, fieldids):
         #reads fields from controller, safe for blocks crossing gaps in dcb
         
-        blockstoread = self._getFieldBlocksFromListById(fieldids)
+        blockstoread = self._get_field_blocks_from_list_by_id(fieldids)
         logging.debug(blockstoread)
-        estimatedreadtime = self._estimateBlocksReadTime(blockstoread)
+        estimatedreadtime = self._estimate_blocks_read_time(blockstoread)
         
         if estimatedreadtime < self.fullreadtime - 0.02: #if to close to full read time, then read all
             try:
@@ -251,7 +254,7 @@ class HeatmiserDevice(object):
                 logging.warn("C%i Read failed of fields %s, Serial Port error %s"%(self.address, ', '.join(fields[id][FIELD_NAME] for id in fieldids), str(err)))
                 raise
             else:
-                logging.info("C%i Read fields %s in %i blocks"%(self.address, ', '.join(fields[id][FIELD_NAME] for id in fieldids),len(blockstoread)))
+                logging.info("C%i Read fields %s in %i blocks"%(self.address, ', '.join(fields[id][FIELD_NAME] for id in fieldids), len(blockstoread)))
                     
         else:
             logging.debug("C%i Read fields %s by read_all, %0.3f %0.3f"%(self.address, ', '.join(fields[id][FIELD_NAME] for id in fieldids), estimatedreadtime, self.fullreadtime))
@@ -261,15 +264,19 @@ class HeatmiserDevice(object):
         #functions takes a first and last field and separates out the individual blocks available for the controller type
         #return, fieldstart, fieldend, length of read in bytes
     def _get_field_blocks_from_range(self, firstfieldname, lastfieldname):
+        """Takes range of fieldnames and returns field blocks"""
         firstfieldid = self._fieldnametonum[firstfieldname]
         lastfieldid = self._fieldnametonum[lastfieldname]
-        return self._getFieldBlocksFromRangeById(firstfieldid,lastfieldid)
+        return self._get_field_blocks_from_range_by_id(firstfieldid, lastfieldid)
         
-    def _getFieldBlocksFromRangeById(self,firstfieldid,lastfieldid):
+    def _get_field_blocks_from_range_by_id(self, firstfieldid, lastfieldid):
+        """Takes range of fieldids and returns field blocks
+        
+        Splits by invalid fields"""
         blocks = []
         previousfieldvalid = False
 
-        for fieldnum, fieldvalid in enumerate(self._fieldsvalid[firstfieldid:lastfieldid + 1],firstfieldid):
+        for fieldnum, fieldvalid in enumerate(self._fieldsvalid[firstfieldid:lastfieldid + 1], firstfieldid):
             if previousfieldvalid is False and not fieldvalid is False:
                 start = fieldnum
             elif not previousfieldvalid is False and fieldvalid is False:
@@ -281,9 +288,12 @@ class HeatmiserDevice(object):
             blocks.append([start,lastfieldid,fields[lastfieldid][FIELD_ADD] + fields[lastfieldid][FIELD_LEN] - fields[start][FIELD_ADD]])
         return blocks
     
-    def _getFieldBlocksFromListById(self,fieldids):
+    def _get_field_blocks_from_list_by_id(self,fieldids):
+        """Takes range of fieldids and returns field blocks
+        
+        Splits by invalid fields. Uses timing to determine the optimum blocking"""
         #find blocks between lowest and highest field
-        fieldblocks = self._getFieldBlocksFromRangeById(min(fieldids),max(fieldids))
+        fieldblocks = self._get_field_blocks_from_range_by_id(min(fieldids),max(fieldids))
         
         readblocks = []
         for block in fieldblocks:
@@ -292,26 +302,32 @@ class HeatmiserDevice(object):
             if len(inblock) > 0:
                 #if single read is shorter than individual
                 readlen = fields[max(inblock)][FIELD_LEN] + fields[max(inblock)][FIELD_ADD] - fields[min(inblock)][FIELD_ADD]
-                if self._estimateReadTime(readlen) < sum([ self._estimateReadTime(fields[id][FIELD_LEN]) for id in inblock]):
+                if self._estimate_read_time(readlen) < sum([ self._estimate_read_time(fields[id][FIELD_LEN]) for id in inblock]):
                     readblocks.append([min(inblock),max(inblock),readlen])
                 else:
                     for ids in inblock:
                         readblocks.append([ids,ids,fields[ids][FIELD_LEN]])
         return readblocks
     
-    def _estimateBlocksReadTime(self,blocks):
-        #estimates read time for a set of blocks, including the COM_BUS_RESET_TIME between blocks
-        #excludes the COM_BUS_RESET_TIME before first block
-        readtimes = [self._estimateReadTime(x[2]) for x in blocks]
+    def _estimate_blocks_read_time(self,blocks):
+        """estimates read time for a set of blocks, including the COM_BUS_RESET_TIME between blocks
+        
+        excludes the COM_BUS_RESET_TIME before first block"""
+        readtimes = [self._estimate_read_time(x[2]) for x in blocks]
         return sum(readtimes) + self._adaptor.min_time_between_reads() * (len(blocks) - 1)
     
     @staticmethod
-    def _estimateReadTime(length):
-        #estiamtes the read time for a call to read_from_device without COM_BUS_RESET_TIME
-        #based on empirical measurements of one prt_hw_model and 5 prt_e_model
+    def _estimate_read_time(length):
+        """"estimates the read time for a call to read_from_device without COM_BUS_RESET_TIME
+        
+        based on empirical measurements of one prt_hw_model and 5 prt_e_model"""
         return length * 0.002075 + 0.070727
     
-    def _procfield(self,data,fieldinfo):
+    def _procfield(self, data, fieldinfo):
+        """Process data for a single field storing in relevant.
+        
+        Converts from bytes to integers/floats
+        Checks the validity"""
         fieldname = fieldinfo[FIELD_NAME]
         length = fieldinfo[FIELD_LEN]
         factor = fieldinfo[FIELD_DIV]
@@ -364,13 +380,13 @@ class HeatmiserDevice(object):
     def _procpartpayload(self, rawdata, firstfieldname, lastfieldname):
         #rawdata must be a list
         #converts field names to unique addresses to allow process of shortened raw data
-        logging.debug("C%i Processing Payload from field %s to %s"%(self.address,firstfieldname,lastfieldname) )
+        logging.debug("C%i Processing Payload from field %s to %s"%(self.address, firstfieldname, lastfieldname) )
         firstfieldid = self._fieldnametonum[firstfieldname]
         lastfieldid = self._fieldnametonum[lastfieldname]
         self._procpayload(rawdata, firstfieldid, lastfieldid)
         
-    def _procpayload(self, rawdata, firstfieldid = 0, lastfieldid = len(fields)):
-        logging.debug("C%i Processing Payload from field %i to %i"%(self.address,firstfieldid,lastfieldid) )
+    def _procpayload(self, rawdata, firstfieldid=0, lastfieldid=len(fields)):
+        logging.debug("C%i Processing Payload from field %i to %i"%(self.address, firstfieldid, lastfieldid) )
 
         fullfirstdcbadd = self._get_dcb_address(fields[firstfieldid][FIELD_ADD])
         
@@ -394,7 +410,7 @@ class HeatmiserDevice(object):
         self.rawdata[fullfirstdcbadd:fullfirstdcbadd+len(rawdata)] = rawdata
 
     def _checkcontrollertime(self):
-        #run compare of times, and try to fix if _autocorrectime
+        """run check of device time against local read time, and try to fix if _autocorrectime"""
         try:
             self._comparecontrollertime()
         except HeatmiserControllerTimeError:
@@ -404,6 +420,7 @@ class HeatmiserDevice(object):
                 raise
     
     def _comparecontrollertime(self):
+        """Compare device and local time difference against threshold"""
         # Now do same sanity checking
         # Check the time is within range
         # currentday is numbered 1-7 for M-S
@@ -445,13 +462,13 @@ class HeatmiserDevice(object):
     
     ## Basic set field functions
     
-    def setField(self, fieldname, payload):
+    def set_field(self, fieldname, payload):
         #set a field (single member of fields) to a state or payload. Defined for all field lengths.
         fieldinfo = fields[self._fieldnametonum[fieldname]]
         
         if len(fieldinfo) < FIELD_WRITE + 1 or fieldinfo[FIELD_WRITE] != 'W':
             #check that write is part of field info and is 'W'
-            raise ValueError("setField: field isn't writeable")
+            raise ValueError("set_field: field isn't writeable")
                              
         self._checkPayloadValues(payload, fieldinfo)
 
@@ -480,7 +497,7 @@ class HeatmiserDevice(object):
             elif payload[0] == WRITE_HOTWATERDEMAND_OFF: #if overridden off store the off read value
                 payload[0] = READ_HOTWATERDEMAND_OFF
         
-        self._procpartpayload(payload,fieldname,fieldname)
+        self._procpartpayload(payload, fieldname, fieldname)
         
     @staticmethod
     def _checkPayloadValues(payload, fieldinfo):
@@ -488,22 +505,22 @@ class HeatmiserDevice(object):
         
         if fieldinfo[FIELD_LEN] in [1, 2] and not isinstance(payload, (int, long)):
             #one or two byte field, not single length payload
-            raise TypeError("setField: invalid requested value")
+            raise TypeError("set_field: invalid requested value")
         elif fieldinfo[FIELD_LEN] > 2 and len(payload) != fieldinfo[FIELD_LEN]:
             #greater than two byte field, payload length must match field length
-            raise ValueError("setField: invalid payload length")
+            raise ValueError("set_field: invalid payload length")
 
         #checks the payload matches the ranges if ranges are defined
         ranges = fieldinfo[FIELD_RANGE]
         if ranges != []:
             if isinstance(payload, (int, long)):
                 if ( payload < ranges[0] or payload > ranges[1] ):
-                    raise ValueError("setField: payload out of range")
+                    raise ValueError("set_field: payload out of range")
             else:
                 for i, item in enumerate(payload):
                     r = ranges[i % len(ranges)]
                     if item < r[0] or item > r[1]:
-                        raise ValueError("setField: payload out of range")
+                        raise ValueError("set_field: payload out of range")
     
     ## External functions for printing data
     def display_heating_schedule(self):
@@ -551,8 +568,8 @@ class HeatmiserDevice(object):
     TEMP_STATE_PROGRAM = 6 #following program
     
     def readTempState(self):
-        self.read_fields(['mon_heat','tues_heat','wed_heat','thurs_heat','fri_heat','wday_heat','wend_heat'],-1)
-        self.read_fields(['onoff','frostprot','holidayhours','runmode','tempholdmins','setroomtemp'])
+        self.read_fields(['mon_heat', 'tues_heat', 'wed_heat', 'thurs_heat', 'fri_heat', 'wday_heat', 'wend_heat'], -1)
+        self.read_fields(['onoff', 'frostprot', 'holidayhours', 'runmode', 'tempholdmins', 'setroomtemp'])
         
         if self.onoff == WRITE_ONOFF_OFF and self.frostprot == READ_FROST_PROT_OFF:
             return self.TEMP_STATE_OFF
@@ -566,7 +583,7 @@ class HeatmiserDevice(object):
             return self.TEMP_STATE_HELD
         else:
         
-            if not self._check_data_age(['currenttime'],MAX_AGE_MEDIUM):
+            if not self._check_data_age(['currenttime'], MAX_AGE_MEDIUM):
                 self.readTime()
             
             locatimenow = self._localtimearray()
@@ -580,8 +597,8 @@ class HeatmiserDevice(object):
     ### UNTESTED # last part about scheduletarget doesn't work
     def readWaterState(self):
         #does runmode affect hot water state?
-        self.read_fields(['mon_water','tues_water','wed_water','thurs_water','fri_water','wday_water','wend_water'],-1)
-        self.read_fields(['onoff','holidayhours','hotwaterdemand'])
+        self.read_fields(['mon_water', 'tues_water', 'wed_water', 'thurs_water', 'fri_water', 'wday_water', 'wend_water'], -1)
+        self.read_fields(['onoff', 'holidayhours', 'hotwaterdemand'])
         
         if self.onoff == WRITE_ONOFF_OFF:
             return self.TEMP_STATE_OFF
@@ -589,7 +606,7 @@ class HeatmiserDevice(object):
             return self.TEMP_STATE_HOLIDAY
         else:
         
-            if not self._check_data_age(['currenttime'], MAX_AGE_MEDIUM):
+            if not self._check_data_age(['currenttime'],  MAX_AGE_MEDIUM):
                 self.readTime()
             
             locatimenow = self._localtimearray()
@@ -613,7 +630,7 @@ class HeatmiserDevice(object):
             
     def readAirTemp(self):
         #if not read before read sensorsavaliable field
-        self.read_field('sensorsavaliable',None)
+        self.read_field('sensorsavaliable', None)
         
         if self.sensorsavaliable == READ_SENSORS_AVALIABLE_INT_ONLY or self.sensorsavaliable == READ_SENSORS_AVALIABLE_INT_FLOOR:
             return self.read_field('airtemp', self._max_age_temp)
@@ -622,89 +639,89 @@ class HeatmiserDevice(object):
         else:
             raise ValueError("sensorsavaliable field invalid")
     
-    def readRawData(self, startfieldname = None, endfieldname = None):
+    def readRawData(self, startfieldname=None, endfieldname=None):
         if startfieldname == None or endfieldname == None:
             return self.rawdata
         else:
             return self.rawdata[self._get_dcb_address(uniadd[startfieldname][UNIADD_ADD]):self._get_dcb_address(uniadd[endfieldname][UNIADD_ADD])]
         
-    def readTime(self, maxage = 0):
+    def readTime(self, maxage=0):
         return self.read_field('currenttime', maxage)
         
     ## External functions for setting data
 
     def setHeatingSchedule(self, day, schedule):
         padschedule = self.heat_schedule.pad_schedule(schedule)
-        self.setField(day,padschedule)
+        self.set_field(day, padschedule)
         
     def setWaterSchedule(self, day, schedule):
         padschedule = self.water_schedule.pad_schedule(schedule)
         if day == 'all':
-            self.setField('mon_water',padschedule)
-            self.setField('tues_water',padschedule)
-            self.setField('wed_water',padschedule)
-            self.setField('thurs_water',padschedule)
-            self.setField('fri_water',padschedule)
-            self.setField('sat_water',padschedule)
-            self.setField('sun_water',padschedule)
+            self.set_field('mon_water', padschedule)
+            self.set_field('tues_water', padschedule)
+            self.set_field('wed_water', padschedule)
+            self.set_field('thurs_water', padschedule)
+            self.set_field('fri_water', padschedule)
+            self.set_field('sat_water', padschedule)
+            self.set_field('sun_water', padschedule)
         else:
-            self.setField(day,padschedule)
+            self.set_field(day, padschedule)
 
     def setTime(self) :
             """set time on controller to match current localtime on server"""
             timenow = time.time() + 0.5 #allow a little time for any delay in setting
-            return self.setField('currenttime',self._localtimearray(timenow))
+            return self.set_field('currenttime', self._localtimearray(timenow))
 
     #overriding
 
     def setTemp(self, temp) :
         #sets the temperature demand overriding the program. Believe it returns at next prog change.
         if self.read_field('tempholdmins') == 0: #check hold temp not applied
-            return self.setField('setroomtemp',temp)
+            return self.set_field('setroomtemp', temp)
         else:
             logging.warn("%i address, temp hold applied so won't set temp"%(self.address))
 
     def releaseTemp(self) :
         #release SetTemp back to the program, but only if temp isn't held
         if self.read_field('tempholdmins') == 0: #check hold temp not applied
-            return self.setField('tempholdmins',0)
+            return self.set_field('tempholdmins', 0)
         else:
             logging.warn("%i address, temp hold applied so won't remove set temp"%(self.address))
 
     def holdTemp(self, minutes, temp) :
         #sets the temperature demand overrding the program for a set time. Believe it then returns to program.
-        self.setField('setroomtemp',temp)
-        return self.setField('tempholdmins',minutes)
+        self.set_field('setroomtemp', temp)
+        return self.set_field('tempholdmins', minutes)
         #didn't stay on if did minutes followed by temp.
         
     def releaseHoldTemp(self) :
         #release SetTemp or HoldTemp back to the program
-        return self.setField('tempholdmins',0)
+        return self.set_field('tempholdmins', 0)
         
     def setHoliday(self, hours) :
         #sets holiday up for a defined number of hours
-        return self.setField('holidayhours',hours)
+        return self.set_field('holidayhours', hours)
     
     def releaseHoliday(self) :
         #cancels holiday mode
-        return self.setField('holidayhours',0)
+        return self.set_field('holidayhours', 0)
 
     #onoffs
 
     def setOn(self):
-        return self.setField('onoff',WRITE_ONOFF_ON)
+        return self.set_field('onoff', WRITE_ONOFF_ON)
     def setOff(self):
-        return self.setField('onoff',WRITE_ONOFF_OFF)
+        return self.set_field('onoff', WRITE_ONOFF_OFF)
         
     def setHeat(self):
-        return self.setField('runmode',WRITE_RUNMODE_HEATING)
+        return self.set_field('runmode', WRITE_RUNMODE_HEATING)
     def setFrost(self):
-        return self.setField('runmode',WRITE_RUNMODE_FROST)
+        return self.set_field('runmode', WRITE_RUNMODE_FROST)
         
     def setLock(self):
-        return self.setField('keylock',WRITE_KEYLOCK_ON)
+        return self.set_field('keylock', WRITE_KEYLOCK_ON)
     def setUnlock(self):
-        return self.setField('keylock',WRITE_KEYLOCK_OFF)
+        return self.set_field('keylock', WRITE_KEYLOCK_OFF)
     
 #other
 #set floor limit
@@ -729,11 +746,11 @@ class HeatmiserBroadcastDevice(HeatmiserDevice):
     
     #run read functions on all stats
     @run_function_on_all(_controllerlist)
-    def read_field(self, fieldname, maxage = None):
+    def read_field(self, fieldname, maxage=None):
         logging.info("All reading %s from %i controllers"%(fieldname, len(self._controllerlist.list)))
             
     @run_function_on_all(_controllerlist)
-    def read_fields(self, fieldnames, maxage = None):
+    def read_fields(self, fieldnames, maxage=None):
         logging.info("All reading %s from %i controllers"%(', '.join([fieldname for fieldname in fieldnames]), len(self._controllerlist.list)))
         
     @run_function_on_all(_controllerlist)
@@ -753,7 +770,7 @@ class HeatmiserBroadcastDevice(HeatmiserDevice):
         pass
             
     @run_function_on_all(_controllerlist)
-    def readTime(self, maxage = 0):
+    def readTime(self, maxage=0):
         pass
     
     #run set functions which require a read on all stats

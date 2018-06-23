@@ -6,7 +6,7 @@ from .exceptions import HeatmiserResponseError, HeatmiserResponseErrorCRC
 
 ### low level framing functions
 
-def _form_read_frame(destination, protocol, source, start, length):
+def form_read_frame(destination, protocol, source, start, length):
     return form_frame(destination, protocol, source, FUNC_READ, start, length, [])
 
 # TODO check master address is in legal range
@@ -103,11 +103,11 @@ def _check_response_frame_function(protocol, expected_function, data):
     if func_code != expected_function:
         raise HeatmiserResponseError("Function    code was not as expected: %i" %(func_code))
         
-def _verify_write_ack(protocol, source, destination, data):
+def verify_write_ack(protocol, source, destination, data):
     """Verifies message response to write is correct"""
-    return _verify_response(protocol, source, destination, FUNC_WRITE, DONT_CARE_LENGTH, data)
+    return verify_response(protocol, source, destination, FUNC_WRITE, DONT_CARE_LENGTH, data)
  
-def _verify_response(protocol, source, destination, expected_function, expectedLength, data):
+def verify_response(protocol, source, destination, expected_function, expectedLength, data):
     """Verifies response frame appears legal"""
     try:
         # check CRC
