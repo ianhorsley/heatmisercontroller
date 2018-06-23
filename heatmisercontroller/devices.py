@@ -421,10 +421,10 @@ class HeatmiserDevice(object):
         logging.debug("Local time %i, remote time %i, error %i"%(localweeksecs,remoteweeksecs,self.timeerr))
 
         if self.timeerr > self.DAYSECS:
-                raise HeatmiserControllerTimeError("C%2d Incorrect day : local is %s, sensor is %s" % (self.address, localtimearray[CURRENT_TIME_DAY], self.data['currenttime'][CURRENT_TIME_DAY]))
+            raise HeatmiserControllerTimeError("C%2d Incorrect day : local is %s, sensor is %s" % (self.address, localtimearray[CURRENT_TIME_DAY], self.data['currenttime'][CURRENT_TIME_DAY]))
 
         if (self.timeerr > TIME_ERR_LIMIT):
-                raise HeatmiserControllerTimeError("C%2d Time Error %d greater than %d: local is %s, sensor is %s" % (self.address, self.timeerr, TIME_ERR_LIMIT, localweeksecs, remoteweeksecs))
+            raise HeatmiserControllerTimeError("C%2d Time Error %d greater than %d: local is %s, sensor is %s" % (self.address, self.timeerr, TIME_ERR_LIMIT, localweeksecs, remoteweeksecs))
 
     @staticmethod
     def _localtimearray(timenow = time.time()):
@@ -450,24 +450,24 @@ class HeatmiserDevice(object):
         fieldinfo = fields[self._fieldnametonum[fieldname]]
         
         if len(fieldinfo) < FIELD_WRITE + 1 or fieldinfo[FIELD_WRITE] != 'W':
-                #check that write is part of field info and is 'W'
-                raise ValueError("setField: field isn't writeable")
+            #check that write is part of field info and is 'W'
+            raise ValueError("setField: field isn't writeable")
                              
         self._checkPayloadValues(payload, fieldinfo)
 
         if fieldinfo[FIELD_LEN] == 1:
-                payload = [payload]
+            payload = [payload]
         elif fieldinfo[FIELD_LEN] == 2:
-                pay_lo = (payload & BYTEMASK)
-                pay_hi = (payload >> 8) & BYTEMASK
-                payload = [pay_lo, pay_hi]
+            pay_lo = (payload & BYTEMASK)
+            pay_hi = (payload >> 8) & BYTEMASK
+            payload = [pay_lo, pay_hi]
         try:
-                self._adaptor.write_to_device(self.address, self._protocol, fieldinfo[FIELD_ADD], fieldinfo[FIELD_LEN], payload)
+            self._adaptor.write_to_device(self.address, self._protocol, fieldinfo[FIELD_ADD], fieldinfo[FIELD_LEN], payload)
         except:
-                logging.info("C%i failed to set field %s to %s"%(self.address, fieldname.ljust(FIELD_NAME_LENGTH), ', '.join(str(x) for x in payload)))
-                raise
+            logging.info("C%i failed to set field %s to %s"%(self.address, fieldname.ljust(FIELD_NAME_LENGTH), ', '.join(str(x) for x in payload)))
+            raise
         else:
-                logging.info("C%i set field %s to %s"%(self.address, fieldname.ljust(FIELD_NAME_LENGTH), ', '.join(str(x) for x in payload)))
+            logging.info("C%i set field %s to %s"%(self.address, fieldname.ljust(FIELD_NAME_LENGTH), ', '.join(str(x) for x in payload)))
         
         self.lastreadtime = time.time()
         
@@ -484,26 +484,26 @@ class HeatmiserDevice(object):
         
     @staticmethod
     def _checkPayloadValues(payload, fieldinfo):
-            #check the payload matches field details
-            
-            if fieldinfo[FIELD_LEN] in [1, 2] and not isinstance(payload, (int, long)):
-                    #one or two byte field, not single length payload
-                    raise TypeError("setField: invalid requested value")
-            elif fieldinfo[FIELD_LEN] > 2 and len(payload) != fieldinfo[FIELD_LEN]:
-                    #greater than two byte field, payload length must match field length
-                    raise ValueError("setField: invalid payload length")
-    
-            #checks the payload matches the ranges if ranges are defined
-            ranges = fieldinfo[FIELD_RANGE]
-            if ranges != []:
-                    if isinstance(payload, (int, long)):
-                            if ( payload < ranges[0] or payload > ranges[1] ):
-                                    raise ValueError("setField: payload out of range")
-                    else:
-                            for i, item in enumerate(payload):
-                                    r = ranges[i % len(ranges)]
-                                    if item < r[0] or item > r[1]:
-                                            raise ValueError("setField: payload out of range")
+        #check the payload matches field details
+        
+        if fieldinfo[FIELD_LEN] in [1, 2] and not isinstance(payload, (int, long)):
+            #one or two byte field, not single length payload
+            raise TypeError("setField: invalid requested value")
+        elif fieldinfo[FIELD_LEN] > 2 and len(payload) != fieldinfo[FIELD_LEN]:
+            #greater than two byte field, payload length must match field length
+            raise ValueError("setField: invalid payload length")
+
+        #checks the payload matches the ranges if ranges are defined
+        ranges = fieldinfo[FIELD_RANGE]
+        if ranges != []:
+            if isinstance(payload, (int, long)):
+                if ( payload < ranges[0] or payload > ranges[1] ):
+                    raise ValueError("setField: payload out of range")
+            else:
+                for i, item in enumerate(payload):
+                    r = ranges[i % len(ranges)]
+                    if item < r[0] or item > r[1]:
+                        raise ValueError("setField: payload out of range")
     
     ## External functions for printing data
     def display_heating_schedule(self):

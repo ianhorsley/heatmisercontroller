@@ -24,6 +24,6 @@ class SerialTestClass(object):
 
 class setupTestClass(object):
     def __init__(self):
-      self.settings = {}
-      self.settings['controller'] = {'my_master_addr':129}
-      self.settings['serial'] = {'COM_BUS_RESET_TIME': 0.1}
+        self.settings = {}
+        self.settings['controller'] = {'my_master_addr':129}
+        self.settings['serial'] = {'COM_BUS_RESET_TIME': 0.1}

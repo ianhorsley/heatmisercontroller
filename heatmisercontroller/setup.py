@@ -36,9 +36,7 @@ The check_settings() method is run regularly as well. It checks the settings
 and returns True is settings were changed.
 
 This almost empty class is meant to be inherited by subclasses specific to
-each setup.
-
-"""
+each setup."""
 
 class HeatmiserControllerSetup(object):
 
