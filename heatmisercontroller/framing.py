@@ -14,9 +14,9 @@ def _form_frame(destination, protocol, source, function, start, length, payload)
     """Forms a message payload, including CRC"""
     if protocol != HMV3_ID:
         raise ValueError("Protocol unknown")
-    start_low = (start & BYTEMASK)
+    start_low = start & BYTEMASK
     start_high = (start >> 8) & BYTEMASK
-    length_low = (length & BYTEMASK)
+    length_low = length & BYTEMASK
     length_high = (length >> 8) & BYTEMASK
     payload_length = len(payload)
     frame_length = MIN_FRAME_SEND_LENGTH
@@ -57,7 +57,7 @@ def _check_response_frame_length(protocol, data, expectedLength):
         raise ValueError("Protocol unknown")
 
     if len(data) < MIN_FRAME_RESP_LENGTH:
-        raise hmResponseError("Response length too short: %s %s"% (len(data), MIN_FRAME_RESP_LENGTH))
+        raise hmResponseError("Response length too short: %s %s"%(len(data), MIN_FRAME_RESP_LENGTH))
 
     frame_len_l = data[FR_LEN_LOW]
     frame_len_h = data[FR_LEN_HIGH]
@@ -65,14 +65,14 @@ def _check_response_frame_length(protocol, data, expectedLength):
     func_code = data[FR_FUNC_CODE]
     
     if len(data) != frame_len:
-        raise hmResponseError("Frame length does not match header: %s %s" % (len(data), frame_len))
+        raise hmResponseError("Frame length does not match header: %s %s" %(len(data), frame_len))
 
     if expectedLength != RW_LENGTH_ALL and func_code == FUNC_READ and frame_len != MIN_FRAME_READ_RESP_LENGTH + expectedLength:
         # Read response length is wrong
-        raise hmResponseError("Response length %s not EXPECTED value %s + %s given read request" % (frame_len, MIN_FRAME_READ_RESP_LENGTH, expectedLength ))
+        raise hmResponseError("Response length %s not EXPECTED value %s + %s given read request" %(frame_len, MIN_FRAME_READ_RESP_LENGTH, expectedLength ))
     if func_code == FUNC_WRITE and frame_len != FRAME_WRITE_RESP_LENGTH:
         # Reply to Write is always 7 long
-        raise hmResponseError("Response length %s not EXPECTED value %s given write request" % (frame_len, FRAME_WRITE_RESP_LENGTH ))
+        raise hmResponseError("Response length %s not EXPECTED value %s given write request" %(frame_len, FRAME_WRITE_RESP_LENGTH ))
             
 def _check_response_frame_addresses(protocol, source, destination, data):
 
@@ -98,10 +98,10 @@ def _check_response_frame_function(protocol, expected_function, data):
 
     func_code = data[FR_FUNC_CODE]
 
-    if (func_code != FUNC_WRITE and func_code != FUNC_READ):
-        raise hmResponseError("Unknown function    code: %i" % (func_code))
-    if (func_code != expected_function):
-        raise hmResponseError("Function    code was not as expected: %i" % (func_code))
+    if func_code != FUNC_WRITE and func_code != FUNC_READ:
+        raise hmResponseError("Unknown function    code: %i" %(func_code))
+    if func_code != expected_function:
+        raise hmResponseError("Function    code was not as expected: %i" %(func_code))
         
 def _verify_write_ack(protocol, source, destination, data):
     """Verifies message response to write is correct"""
@@ -119,7 +119,7 @@ def _verify_response(protocol, source, destination, expected_function, expectedL
         # check function
         _check_response_frame_function(protocol, expected_function, data)
     except hmResponseError as err:
-        logging.warning("C%s Invalid Response: %s: %s" % (source, str(err), data))
+        logging.warning("C%s Invalid Response: %s: %s" %(source, str(err), data))
         raise
         
     ## missing check that it is valid for this type of controller. Use DCBUnique function not false.
@@ -143,27 +143,27 @@ class crc16:
 
     def _update_4_bits(self, val):
         # Step one, extract the Most significant 4 bits of the CRC register
-        #print "val is %d" % (val)
+        #print "val is %d" %(val)
         t = self.high>>4
-        #print "t is %d" % (t)
+        #print "t is %d" %(t)
 
         # XOR in the Message Data into the extracted bits
         t = t^val
-        #print "t is %d" % (t)
+        #print "t is %d" %(t)
 
         # Shift the CRC Register left 4 bits
         self.high = (self.high << 4)|(self.low>>4)
-        self.high = self.high & BYTEMASK        # force char
+        self.high = self.high & BYTEMASK # force char
         self.low = self.low <<4
-        self.low = self.low & BYTEMASK    # force char
+        self.low = self.low & BYTEMASK # force char
 
         # Do the table lookups and XOR the result into the CRC tables
-        #print "t for lookup is %d" % (t)
+        #print "t for lookup is %d" %(t)
         self.high = self.high ^ self.LookupHigh[t]
-        self.high = self.high & BYTEMASK        # force char
+        self.high = self.high & BYTEMASK # force char
         self.low = self.low ^ self.LookupLow[t]
-        self.low = self.low & BYTEMASK    # force char
-        #print "high is %d Low is %d" % (self.high, self.low)
+        self.low = self.low & BYTEMASK # force char
+        #print "high is %d Low is %d" %(self.high, self.low)
 
     def _crc16_update(self, val):
         self._update_4_bits(val>>4) # High nibble first
@@ -174,5 +174,5 @@ class crc16:
         for c in message:
             #print c
             self._crc16_update(c)
-        #print "CRC is Low %d High    %d" % (self.low, self.high)
+        #print "CRC is Low %d High    %d" %(self.low, self.high)
         return [self.low, self.high]

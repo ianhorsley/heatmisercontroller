@@ -1,7 +1,7 @@
 import unittest
 import logging
 
-from heatmisercontroller.adaptor import Heatmiser_Adaptor
+from heatmisercontroller.adaptor import HeatmiserAdaptor
 from heatmisercontroller.exceptions import hmResponseError
 from mock_serial import SerialTestClass, setupTestClass
 
@@ -10,7 +10,7 @@ class test_serial(unittest.TestCase):
     self.serialport = SerialTestClass()
     logging.basicConfig(level=logging.ERROR)
     self.setup = setupTestClass()
-    self.func = Heatmiser_Adaptor(self.setup)
+    self.func = HeatmiserAdaptor(self.setup)
     self.func.serport = self.serialport.serialPort
     self.goodmessage = [5, 10, 129, 0, 34, 0, 8, 0, 193, 72]
 

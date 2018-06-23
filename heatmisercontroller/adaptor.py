@@ -35,7 +35,7 @@ def retryer(max_retries=3):
         return inner
     return wraps
 
-class Heatmiser_Adaptor(object):
+class HeatmiserAdaptor(object):
 
     def __init__(self, setup):
 
