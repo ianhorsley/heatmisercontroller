@@ -2,7 +2,7 @@
 import logging
 
 from hm_constants import *
-from .exceptions import hmResponseError, hmResponseErrorCRC
+from .exceptions import HeatmiserResponseError, HeatmiserResponseErrorCRC
 
 ### low level framing functions
 
@@ -41,7 +41,7 @@ def _check_frame_crc(protocol, data):
     if protocol != HMV3_ID:
         raise ValueError("Protocol unknown")
     if datalength < 2:
-        raise hmResponseError("No CRC")
+        raise HeatmiserResponseError("No CRC")
 
     checksum = data[len(data)-2:]
     rxmsg = data[:len(data)-2]
@@ -49,7 +49,7 @@ def _check_frame_crc(protocol, data):
     crc = crc16() # Initialises the CRC
     expectedchecksum = crc.run(rxmsg)
     if expectedchecksum != checksum:
-        raise hmResponseErrorCRC("CRC is incorrect")
+        raise HeatmiserResponseErrorCRC("CRC is incorrect")
 
 def _check_response_frame_length(protocol, data, expectedLength):
     """Takes frame and checks length, must be a receive frame"""
@@ -57,7 +57,7 @@ def _check_response_frame_length(protocol, data, expectedLength):
         raise ValueError("Protocol unknown")
 
     if len(data) < MIN_FRAME_RESP_LENGTH:
-        raise hmResponseError("Response length too short: %s %s"%(len(data), MIN_FRAME_RESP_LENGTH))
+        raise HeatmiserResponseError("Response length too short: %s %s"%(len(data), MIN_FRAME_RESP_LENGTH))
 
     frame_len_l = data[FR_LEN_LOW]
     frame_len_h = data[FR_LEN_HIGH]
@@ -65,14 +65,14 @@ def _check_response_frame_length(protocol, data, expectedLength):
     func_code = data[FR_FUNC_CODE]
     
     if len(data) != frame_len:
-        raise hmResponseError("Frame length does not match header: %s %s" %(len(data), frame_len))
+        raise HeatmiserResponseError("Frame length does not match header: %s %s" %(len(data), frame_len))
 
     if expectedLength != RW_LENGTH_ALL and func_code == FUNC_READ and frame_len != MIN_FRAME_READ_RESP_LENGTH + expectedLength:
         # Read response length is wrong
-        raise hmResponseError("Response length %s not EXPECTED value %s + %s given read request" %(frame_len, MIN_FRAME_READ_RESP_LENGTH, expectedLength ))
+        raise HeatmiserResponseError("Response length %s not EXPECTED value %s + %s given read request" %(frame_len, MIN_FRAME_READ_RESP_LENGTH, expectedLength ))
     if func_code == FUNC_WRITE and frame_len != FRAME_WRITE_RESP_LENGTH:
         # Reply to Write is always 7 long
-        raise hmResponseError("Response length %s not EXPECTED value %s given write request" %(frame_len, FRAME_WRITE_RESP_LENGTH ))
+        raise HeatmiserResponseError("Response length %s not EXPECTED value %s given write request" %(frame_len, FRAME_WRITE_RESP_LENGTH ))
             
 def _check_response_frame_addresses(protocol, source, destination, data):
 
@@ -83,13 +83,13 @@ def _check_response_frame_addresses(protocol, source, destination, data):
     source_addr = data[FR_SOURCE_ADDR]
 
     if dest_addr < MASTER_ADDR_MIN or dest_addr > MASTER_ADDR_MAX:
-        raise hmResponseError("Destination address out of valid range %i" % dest_addr)
+        raise HeatmiserResponseError("Destination address out of valid range %i" % dest_addr)
     if dest_addr != destination:
-        raise hmResponseError("Destination address incorrect %i" % dest_addr)
+        raise HeatmiserResponseError("Destination address incorrect %i" % dest_addr)
     if source_addr < SLAVE_ADDR_MIN or source_addr > SLAVE_ADDR_MAX:
-        raise hmResponseError("Source address out of valid range %i" % source_addr)
+        raise HeatmiserResponseError("Source address out of valid range %i" % source_addr)
     if source_addr != source:
-        raise hmResponseError("Source address does not match %i" % source_addr)
+        raise HeatmiserResponseError("Source address does not match %i" % source_addr)
             
 def _check_response_frame_function(protocol, expected_function, data):
 
@@ -99,9 +99,9 @@ def _check_response_frame_function(protocol, expected_function, data):
     func_code = data[FR_FUNC_CODE]
 
     if func_code != FUNC_WRITE and func_code != FUNC_READ:
-        raise hmResponseError("Unknown function    code: %i" %(func_code))
+        raise HeatmiserResponseError("Unknown function    code: %i" %(func_code))
     if func_code != expected_function:
-        raise hmResponseError("Function    code was not as expected: %i" %(func_code))
+        raise HeatmiserResponseError("Function    code was not as expected: %i" %(func_code))
         
 def _verify_write_ack(protocol, source, destination, data):
     """Verifies message response to write is correct"""
@@ -118,7 +118,7 @@ def _verify_response(protocol, source, destination, expected_function, expectedL
         _check_response_frame_addresses(protocol, source, destination, data)
         # check function
         _check_response_frame_function(protocol, expected_function, data)
-    except hmResponseError as err:
+    except HeatmiserResponseError as err:
         logging.warning("C%s Invalid Response: %s: %s" %(source, str(err), data))
         raise
         

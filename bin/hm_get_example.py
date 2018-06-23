@@ -9,7 +9,7 @@ import logging
 from heatmisercontroller.logging_setup import initialize_logger
 from heatmisercontroller.hm_constants import *
 from heatmisercontroller.network import HeatmiserNetwork
-from heatmisercontroller.exceptions import hmResponseError
+from heatmisercontroller.exceptions import HeatmiserResponseError
 
 #start logging
 initialize_logger('logs', logging.INFO, True)
@@ -22,7 +22,7 @@ for current_controller in hmn1.controllers:
 
     try:
         current_controller.readAll()
-    except hmResponseError as err:
+    except HeatmiserResponseError as err:
         print "C%d in %s Failed to Read due to %s" %(current_controller._address, current_controller._name.ljust(4), str(err))
     else:
         disptext = "C%d Air Temp is %.1f from type %.f and Target set to %d    Boiler Demand %d" % (current_controller._address, current_controller.readAirTemp(), current_controller.readAirSensorType(), current_controller.setroomtemp, current_controller.heatingdemand)
@@ -49,7 +49,7 @@ while True:
             #read all fields at the same time allows for most efficent number of reads
             current_controller.readFields(schedulefields)
             current_controller.readFields(fieldnames, 0) #force get on these fields
-        except hmResponseError as err:
+        except HeatmiserResponseError as err:
             print "C%d in %s Failed to Read due to %s" %(current_controller._address, current_controller._name.ljust(4),str(err))
         else:
             targettext = current_controller.printTarget()

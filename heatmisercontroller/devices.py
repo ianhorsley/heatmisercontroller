@@ -14,9 +14,9 @@ import time
 import serial
 
 from hm_constants import *
-from .exceptions import hmResponseError, hmControllerTimeError
+from .exceptions import HeatmiserResponseError, HeatmiserControllerTimeError
 from schedule_functions import schedulerdayheat, schedulerweekheat, schedulerdaywater, schedulerweekwater, SCH_ENT_TEMP
-from decorators import listclass, func_on_all
+from decorators import ListWrapperClass, run_function_on_all
 
 class HeatmiserDevice(object):
     """General device class for thermostats"""
@@ -326,16 +326,16 @@ class HeatmiserDevice(object):
     
         if len(fieldrange) == 2 and isinstance(fieldrange[0], (int, long)) and isinstance(fieldrange[1], (int, long)):
             if value < fieldrange[0] or value > fieldrange[1]:
-                raise hmResponseError("Field value %i outside expected range"%value)
+                raise HeatmiserResponseError("Field value %i outside expected range"%value)
         
         if fieldname == 'DCBlen' and value != self.DCBlength:
-            raise hmResponseError('DCBlengh is unexpected')
+            raise HeatmiserResponseError('DCBlengh is unexpected')
         
         if fieldname == 'model' and value != self._expected_model_number:
-            raise hmResponseError('Model is unexpected')
+            raise HeatmiserResponseError('Model is unexpected')
         
         if fieldname == 'programmode' and value != self._expected_prog_mode_number:
-            raise hmResponseError('Programme mode is unexpected')
+            raise HeatmiserResponseError('Programme mode is unexpected')
         
         if fieldname == 'version' and self._expected_model != 'prt_hw_model':
             value = data[0] & 0x7f
@@ -378,7 +378,7 @@ class HeatmiserDevice(object):
                 
                 try:
                     self._procfield(rawdata[dcbadd:dcbadd+length], fieldinfo)
-                except hmResponseError as e:
+                except HeatmiserResponseError as e:
                     logging.warn("C%i Field %s process failed due to %s"%(self._address, fieldinfo[FIELD_NAME], str(e)))
 
         self.rawdata[fullfirstdcbadd:fullfirstdcbadd+len(rawdata)] = rawdata
@@ -387,7 +387,7 @@ class HeatmiserDevice(object):
         #run compare of times, and try to fix if _autocorrectime
         try:
             self._comparecontrollertime()
-        except hmControllerTimeError:
+        except HeatmiserControllerTimeError:
             if self._autocorrectime is True:
                 self.setTime()
             else:
@@ -400,7 +400,7 @@ class HeatmiserDevice(object):
         # localday (python) is numbered 0-6 for Sun-Sat
         
         if not self._check_data_present('currenttime'):
-            raise hmResponseError("Time not read before check")
+            raise HeatmiserResponseError("Time not read before check")
 
         localtimearray = self._localtimearray(self.datareadtime['currenttime']) #time that time field was read
         localweeksecs = self._weeksecs(localtimearray)
@@ -411,10 +411,10 @@ class HeatmiserDevice(object):
         logging.debug("Local time %i, remote time %i, error %i"%(localweeksecs,remoteweeksecs,self.timeerr))
 
         if self.timeerr > self.DAYSECS:
-                raise hmControllerTimeError("C%2d Incorrect day : local is %s, sensor is %s" % (self._address, localtimearray[CURRENT_TIME_DAY], self.data['currenttime'][CURRENT_TIME_DAY]))
+                raise HeatmiserControllerTimeError("C%2d Incorrect day : local is %s, sensor is %s" % (self._address, localtimearray[CURRENT_TIME_DAY], self.data['currenttime'][CURRENT_TIME_DAY]))
 
         if (self.timeerr > TIME_ERR_LIMIT):
-                raise hmControllerTimeError("C%2d Time Error %d greater than %d: local is %s, sensor is %s" % (self._address, self.timeerr, TIME_ERR_LIMIT, localweeksecs, remoteweeksecs))
+                raise HeatmiserControllerTimeError("C%2d Time Error %d greater than %d: local is %s, sensor is %s" % (self._address, self.timeerr, TIME_ERR_LIMIT, localweeksecs, remoteweeksecs))
 
     @staticmethod
     def _localtimearray(timenow = time.time()):
@@ -703,7 +703,7 @@ class HeatmiserDevice(object):
 #create a controller that broadcasts or reads from multiple stats
 class HeatmiserBroadcastDevice(HeatmiserDevice):
     """Broadcast device class for broadcast set functions and managing reading on all devices"""
-    _controllerlist = listclass()
+    _controllerlist = ListWrapperClass()
 
     def __init__(self, network, long_name, controllerlist=None):
         self._controllerlist.list = controllerlist
@@ -718,40 +718,40 @@ class HeatmiserBroadcastDevice(HeatmiserDevice):
         super(HeatmiserBroadcastDevice, self).__init__(network, settings)
     
     #run read functions on all stats
-    @func_on_all(_controllerlist)
+    @run_function_on_all(_controllerlist)
     def readField(self, fieldname, maxage = None):
         logging.info("All reading %s from %i controllers"%(fieldname, len(self._controllerlist.list)))
             
-    @func_on_all(_controllerlist)
+    @run_function_on_all(_controllerlist)
     def readFields(self, fieldnames, maxage = None):
         logging.info("All reading %s from %i controllers"%(', '.join([fieldname for fieldname in fieldnames]), len(self._controllerlist.list)))
         
-    @func_on_all(_controllerlist)
+    @run_function_on_all(_controllerlist)
     def readAirTemp(self):
         pass
     
-    @func_on_all(_controllerlist)
+    @run_function_on_all(_controllerlist)
     def readTempState(self):
         pass
     
-    @func_on_all(_controllerlist)
+    @run_function_on_all(_controllerlist)
     def readWaterState(self):
         pass
     
-    @func_on_all(_controllerlist)
+    @run_function_on_all(_controllerlist)
     def readAirSensorType(self):
         pass
             
-    @func_on_all(_controllerlist)
+    @run_function_on_all(_controllerlist)
     def readTime(self, maxage = 0):
         pass
     
     #run set functions which require a read on all stats
-    @func_on_all(_controllerlist)
+    @run_function_on_all(_controllerlist)
     def setTemp(self, temp):
         pass
     
-    @func_on_all(_controllerlist)
+    @run_function_on_all(_controllerlist)
     def releaseTemp(self):
         pass
 

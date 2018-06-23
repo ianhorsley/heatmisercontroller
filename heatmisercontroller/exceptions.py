@@ -1,19 +1,21 @@
-# Catch all, not used directly in code
-class hmError(RuntimeError):
+"""Contains all exceptions used by package"""
+
+class HeatmiserError(RuntimeError):
+    """Catch all, not used directly in code."""
     pass
 
-# Raise this when response from a device is wrong
-class hmResponseError(hmError):
+class HeatmiserResponseError(HeatmiserError):
+    """Raise this when response from a device is wrong."""
     pass
 
-# Specifically when CRC fails check. This is the most common response error.
-class hmResponseErrorCRC(hmResponseError):
+class HeatmiserResponseErrorCRC(HeatmiserResponseError):
+    """Specifically when CRC fails check. This is the most common response error."""
     pass
 
-# Raise this when controller time is outside of boundarys
-class hmControllerTimeError(hmError):
+class HeatmiserControllerTimeError(HeatmiserError):
+    """Raise this when controller time is outside of acceptable limits."""
     pass
 
-# Raise this when init fails.
-class HeatmiserControllerSetupInitError(hmError):
+class HeatmiserControllerSetupInitError(HeatmiserError):
+    """Raise this when init fails."""
     pass

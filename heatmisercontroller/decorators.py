@@ -1,47 +1,48 @@
 import logging
 import serial
 
-from .exceptions import hmResponseError, hmControllerTimeError
+from .exceptions import HeatmiserResponseError, HeatmiserControllerTimeError
 
-
-#class to provide list to decorator
-class listclass(object):
+class ListWrapperClass(object):
+    """Class to provide mutable list as decorator argument"""
     def __init__(self):
-        self._x = None
+        self._storedlist = None
 
     @property
     def list(self):
         """I'm the 'x' property."""
-        return self._x
+        return self._storedlist
 
     @list.setter
     def list(self, value):
-        self._x = value
+        self._storedlist = value
 
     @list.deleter
     def list(self):
-        self._x = None
+        self._storedlist = None
 
-#decorator to allow a class method to be run on all objects in a list
-def func_on_all(liststore):
+def run_function_on_all(liststore):
+    """Decorator to allow a class method to be run on all objects in a list"""
     def wraps(func):
+        """Decorator internal"""
         def inner(self, *args, **kwargs):
+            """Decorator internal"""
             if liststore.list is None:
-              raise ValueError("liststore contains no list")
+                raise ValueError("liststore contains no list")
             logging.info("All running %s for %i controllers"%(func.__name__,len(liststore.list)))
             func(self, *args, **kwargs)
             results = [None] * len(liststore.list)
             lasterror = None
             for index, obj in enumerate(liststore.list):
-              try:
-                results[index] = getattr(obj, func.__name__)(*args, **kwargs)
-              except (hmResponseError, serial.SerialException, hmControllerTimeError) as e:
-                logging.warn("C%i %s failed due to %s"%(obj._address, func.__name__, str(lasterror)))
-                lasterror = e
-                continue
+                try:
+                    results[index] = getattr(obj, func.__name__)(*args, **kwargs)
+                except (HeatmiserResponseError, serial.SerialException, HeatmiserControllerTimeError) as err:
+                    logging.warn("C%i %s failed due to %s"%(obj._address, func.__name__, str(lasterror)))
+                    lasterror = err
+                    continue
 
             if all(result is None for result in results):
-              raise hmResponseError("All failed, last error was %s"%(str(lasterror)))
+                raise HeatmiserResponseError("All failed, last error was %s"%(str(lasterror)))
 
             return results
 

@@ -2,7 +2,7 @@ import unittest
 import logging
 
 from heatmisercontroller.adaptor import HeatmiserAdaptor
-from heatmisercontroller.exceptions import hmResponseError
+from heatmisercontroller.exceptions import HeatmiserResponseError
 from mock_serial import SerialTestClass, setupTestClass
 
 class test_serial(unittest.TestCase):
@@ -48,7 +48,7 @@ class test_serial(unittest.TestCase):
     self.assertEqual(ret, self.goodmessage[:1])
   
   def test_receivemsg_none(self):
-    with self.assertRaises(hmResponseError):
+    with self.assertRaises(HeatmiserResponseError):
       self.func._receive_message(1)
   
   def test_updatesettings(self):

@@ -7,7 +7,7 @@ import logging
 
 from heatmisercontroller.framing import _check_frame_crc, _check_response_frame_length, _check_response_frame_addresses, _check_response_frame_function, _verify_response, _form_frame
 #from heatmisercontroller.framing import crc16
-from heatmisercontroller.exceptions import hmResponseError, hmResponseErrorCRC
+from heatmisercontroller.exceptions import HeatmiserResponseError, HeatmiserResponseErrorCRC
 from heatmisercontroller.hm_constants import HMV3_ID
 
 class test_framing(unittest.TestCase):
@@ -22,11 +22,11 @@ class test_framing(unittest.TestCase):
   #crc
   def test_framecheckcrc_short(self):
 #    self.assertTrue(True)
-    with self.assertRaises(hmResponseError):
+    with self.assertRaises(HeatmiserResponseError):
       _check_frame_crc(HMV3_ID,[0])
       
   def test_framecheckcrc_bad_CRC(self):
-    with self.assertRaises(hmResponseErrorCRC):
+    with self.assertRaises(HeatmiserResponseErrorCRC):
       _check_frame_crc(HMV3_ID,self.badackmessage)
       
   def test_framecheckcrc_good(self):
@@ -43,15 +43,15 @@ class test_framing(unittest.TestCase):
     _check_response_frame_length(HMV3_ID, self.goodackmessage, 1)
     
   def test_framechecklength_short(self):
-    with self.assertRaises(hmResponseError):
+    with self.assertRaises(HeatmiserResponseError):
       _check_response_frame_length(HMV3_ID, [0, 0, 0, 0], 1)
       
   def test_framechecklength_mismatch(self):
-    with self.assertRaises(hmResponseError):
+    with self.assertRaises(HeatmiserResponseError):
       _check_response_frame_length(HMV3_ID, self.badackmessage, 1)
       
   def test_framechecklength_mismatch2(self):
-    with self.assertRaises(hmResponseError):
+    with self.assertRaises(HeatmiserResponseError):
       _check_response_frame_length(HMV3_ID, self.goodresponsemessage, 2)
   
   #addresses
@@ -59,19 +59,19 @@ class test_framing(unittest.TestCase):
     _check_response_frame_addresses(HMV3_ID, 5, 129, self.goodresponsemessage)
     
   def test_framecheckaddresses_dest(self):
-    with self.assertRaises(hmResponseError):
+    with self.assertRaises(HeatmiserResponseError):
       _check_response_frame_addresses(HMV3_ID, 5, 1, self.goodresponsemessage)
       
   def test_framecheckaddresses_source(self):
-    with self.assertRaises(hmResponseError):
+    with self.assertRaises(HeatmiserResponseError):
       _check_response_frame_addresses(HMV3_ID, 1, 129, self.goodresponsemessage)
 
   def test_framecheckaddresses_source_range(self):
-    with self.assertRaises(hmResponseError):
+    with self.assertRaises(HeatmiserResponseError):
       _check_response_frame_addresses(HMV3_ID, 33, 129, [129, 7, 0, 33, 1, 116, 39])      
 
   def test_framecheckaddresses_dest_range(self):
-    with self.assertRaises(hmResponseError):
+    with self.assertRaises(HeatmiserResponseError):
       _check_response_frame_addresses(HMV3_ID, 5, 128, [128, 7, 0, 5, 1, 116, 39])
 
   #function
@@ -79,11 +79,11 @@ class test_framing(unittest.TestCase):
     _check_response_frame_function(HMV3_ID, 0, self.goodresponsemessage)
 
   def test_framecheckfunction_wrong(self):
-    with self.assertRaises(hmResponseError):
+    with self.assertRaises(HeatmiserResponseError):
       _check_response_frame_function(HMV3_ID, 1, self.goodresponsemessage)
   
   def test_framecheckfunction_range(self):
-    with self.assertRaises(hmResponseError):
+    with self.assertRaises(HeatmiserResponseError):
       _check_response_frame_function(HMV3_ID, 2, [129, 7, 0, 5, 2, 116, 39])
   
   #verify
@@ -91,7 +91,7 @@ class test_framing(unittest.TestCase):
     _verify_response(HMV3_ID, 5, 129, 0, 1, self.goodresponsemessage)
     
   def test_framecheck_bad(self):
-    with self.assertRaises(hmResponseError):
+    with self.assertRaises(HeatmiserResponseError):
       _verify_response(HMV3_ID, 5, 129, 0, 1, self.badackmessage)
       
   #form
