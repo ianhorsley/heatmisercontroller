@@ -24,15 +24,15 @@ class Mock_Heatmiser_Adaptor(Heatmiser_Adaptor):
         self.args = []
         self.outputs = []
         super(Mock_Heatmiser_Adaptor, self).__init__(setup)
-    
-    def hmWriteToController(self, *args):
-        self.args.append(args)
+
+    def hmWriteToController(self, network_address, protocol, dcb_address, length, payload):
+        self.args.append((network_address, protocol, dcb_address, length, payload))
 
     def setresponse(self, inputs):
         self.outputs = inputs
         
-    def hmReadFromController(self, *args):
-        self.args.append(args)
+    def hmReadFromController(self, network_address, protocol, dcb_start_address, expectedLength, readall = False):
+        self.args.append((network_address, protocol, dcb_start_address, expectedLength, readall))
         return self.outputs.pop(0)
         
 class test_reading_data(unittest.TestCase):
@@ -85,7 +85,7 @@ class test_reading_data(unittest.TestCase):
     # self.adaptor = Mock_Heatmiser_Adaptor(setup)
     # self.func = hmController(self.adaptor, self.settings)
     # basetime = (6 - 2) * 86400 + 53376.0 + year2000
-    # self.func.lastreadtime = basetime - get_offset(basetime) 
+    # self.func.lastreadtime = basetime - get_offset(basetime)
     # responses = [[1, 37, 0, 22, 4, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 38, 1, 9, 12, 28, 1, 1, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 220, 0, 0, 0, 3, 14, 49, 36, 7, 0, 19, 9, 30, 10, 17, 0, 19, 21, 30, 10, 7, 0, 19, 21, 30, 10, 24, 0, 5, 24, 0, 5, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 8, 0, 9, 0, 18, 0, 19, 0, 24, 0, 24, 0, 24, 0, 24, 0, 7, 0, 20, 21, 30, 12, 24, 0, 12, 24, 0, 12, 7, 0, 20, 21, 30, 12, 24, 0, 12, 24, 0, 12, 7, 0, 19, 8, 30, 12, 16, 30, 20, 21, 0, 12, 7, 0, 20, 12, 0, 12, 17, 0, 20, 21, 30, 12, 5, 0, 20, 21, 30, 12, 24, 0, 12, 24, 0, 12, 7, 0, 20, 12, 0, 12, 17, 0, 20, 21, 30, 12, 7, 0, 12, 24, 0, 12, 24, 0, 12, 24, 0, 12, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0]]
     # self.adaptor.setresponse(responses)
     # self.func.readAll()
@@ -101,7 +101,7 @@ class test_reading_data(unittest.TestCase):
     self.adaptor.setresponse(responses)
     #run command
     self.func.getVariables()
-    self.assertEqual([(1, 3, 18, 8), (1, 3, 32, 11)],self.adaptor.args)
+    self.assertEqual([(1, 3, 18, 8, False), (1, 3, 32, 11, False)],self.adaptor.args)
     self.assertEqual(17,self.func.setroomtemp)
     self.assertEqual(0,self.func.hotwaterdemand)
 
@@ -163,7 +163,7 @@ class test_other_functions(unittest.TestCase):
     
   def test_buildDCBtables(self):
     self.settings = {'address':1,'protocol':HMV3_ID,'long_name':'test controller','expected_model':'prt_e_model','expected_prog_mode':PROG_MODE_DAY}
-    self.func = hmController(None, self.settings) 
+    self.func = hmController(None, self.settings)
     self.func._buildDCBtables()
     expected = [[0,0],[25,25],[26,None],[31,None],[32,26],[186,147],[187,None],[298,None]]
     for u,d in expected:
@@ -194,14 +194,14 @@ class test_time_functions(unittest.TestCase):
     
   def test_comparecontrollertime_1(self):
     basetime = ( 4 + 1) * 86400 + 9 * 3600 + 33 * 60 + 5 + year2000
-    self.func.datareadtime['currenttime'] = basetime - get_offset(basetime) #has been read 
+    self.func.datareadtime['currenttime'] = basetime - get_offset(basetime) #has been read
     self.func.data['currenttime'] = self.func.currenttime = [4, 9, 33, 0]
     #print "s ", self.func._localtimearray(self.func.datareadtime['currenttime']), self.func.data['currenttime'], self.func.datareadtime['currenttime'], time.localtime(self.func.datareadtime['currenttime']).tm_hour, time.localtime(self.func.datareadtime['currenttime']), "e"
     self.func._comparecontrollertime()
     self.assertEqual(5, self.func.timeerr)
     
   def test_comparecontrollertime_2(self):
-    #self.func.datareadtime['currenttime'] = ( 7 + 3) * 86400 + 23 * 3600 + 59 * 60 + 55 - self.utc_offset #has been read 
+    #self.func.datareadtime['currenttime'] = ( 7 + 3) * 86400 + 23 * 3600 + 59 * 60 + 55 - self.utc_offset #has been read
     basetime = ( 7 + 1) * 86400 + 23 * 3600 + 59 * 60 + 55 + year2000
     self.func.datareadtime['currenttime'] = basetime - get_offset(basetime) #has been read 
     self.func.data['currenttime'] = self.func.currenttime = [1, 0, 0, 0]

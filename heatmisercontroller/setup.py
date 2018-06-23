@@ -43,7 +43,6 @@ each setup.
 class HeatmiserControllerSetup(object):
 
     def __init__(self):
-        
         # Initialize logger
         self._log = logging.getLogger("HeatmiserController")
         
@@ -51,8 +50,8 @@ class HeatmiserControllerSetup(object):
         self.settings = None
 
     def run(self):
-        """Run in background. 
-        
+        """Run in background.
+
         To be implemented in child class.
 
         """
@@ -160,7 +159,8 @@ class HeatmiserControllerFileSetup(HeatmiserControllerSetup):
 
             # Check the settings file sections exist
             for name in self._sections:
-                self.settings[name]
+                if not name in self.settings:
+                    raise KeyError("Section %s not defined"%name)
         except (ValueError, KeyError) as e:
             logging.warning("Configuration parse failed : " + str(e))
             raise

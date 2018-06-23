@@ -13,7 +13,7 @@ class hmResponseErrorCRC(hmResponseError):
 # Raise this when controller time is outside of boundarys
 class hmControllerTimeError(hmError):
     pass
-    
+
 # Raise this when init fails.
 class HeatmiserControllerSetupInitError(hmError):
     pass
