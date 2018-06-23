@@ -29,7 +29,7 @@ def func_on_all(liststore):
             if liststore.list is None:
               raise ValueError("liststore contains no list")
             logging.info("All running %s for %i controllers"%(func.__name__,len(liststore.list)))
-            func(self, *args, **kwargs) 
+            func(self, *args, **kwargs)
             results = [None] * len(liststore.list)
             lasterror = None
             for index, obj in enumerate(liststore.list):
@@ -44,6 +44,6 @@ def func_on_all(liststore):
               raise hmResponseError("All failed, last error was %s"%(str(lasterror)))
 
             return results
- 
+
         return inner
     return wraps

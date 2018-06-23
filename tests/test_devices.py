@@ -30,7 +30,7 @@ class Mock_Heatmiser_Adaptor(Heatmiser_Adaptor):
 
     def setresponse(self, inputs):
         self.outputs = inputs
-        
+
     def hmReadFromController(self, network_address, protocol, dcb_start_address, expectedLength, readall = False):
         self.args.append((network_address, protocol, dcb_start_address, expectedLength, readall))
         return self.outputs.pop(0)
@@ -203,7 +203,7 @@ class test_time_functions(unittest.TestCase):
   def test_comparecontrollertime_2(self):
     #self.func.datareadtime['currenttime'] = ( 7 + 3) * 86400 + 23 * 3600 + 59 * 60 + 55 - self.utc_offset #has been read
     basetime = ( 7 + 1) * 86400 + 23 * 3600 + 59 * 60 + 55 + year2000
-    self.func.datareadtime['currenttime'] = basetime - get_offset(basetime) #has been read 
+    self.func.datareadtime['currenttime'] = basetime - get_offset(basetime) #has been read
     self.func.data['currenttime'] = self.func.currenttime = [1, 0, 0, 0]
     self.func._comparecontrollertime()
     self.assertEqual(5, self.func.timeerr)

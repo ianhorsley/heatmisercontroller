@@ -2,4 +2,4 @@ logging
 pyserial
 configobj
 coverage
-codacy
+codacy-coverage

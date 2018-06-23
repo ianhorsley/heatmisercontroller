@@ -3,7 +3,7 @@ import logging
 
 from heatmisercontroller.adaptor import Heatmiser_Adaptor
 from mock_serial import SerialTestClass, setupTestClass
-                                  
+
 class test_serial(unittest.TestCase):
   def setUp(self):
     self.serialport = SerialTestClass()
@@ -11,7 +11,7 @@ class test_serial(unittest.TestCase):
     setup = setupTestClass()
     self.func = Heatmiser_Adaptor(setup)
     self.func.serport = self.serialport.serialPort
-    self.goodmessage = [5, 10, 129, 0, 34, 0, 8, 0, 193, 72]      
+    self.goodmessage = [5, 10, 129, 0, 34, 0, 8, 0, 193, 72]
       
   def test_sendmsg_1(self):
     # Send message
