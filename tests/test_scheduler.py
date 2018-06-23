@@ -21,8 +21,8 @@ class test_SchedulerDayHeat(unittest.TestCase):
     
   def test_getnextday(self):
     self.func = SchedulerDayHeat()
-    self.assertEqual(3, self.func._getNextDay([2,0,0,0]) )
-    self.assertEqual(1, self.func._getNextDay([7,0,0,0]) )
+    self.assertEqual(3, self.func._get_next_day([2,0,0,0]) )
+    self.assertEqual(1, self.func._get_next_day([7,0,0,0]) )
     
   def test_pad_bad_input(self):
     self.func = SchedulerDayHeat()

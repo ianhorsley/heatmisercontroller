@@ -30,10 +30,12 @@ class Scheduler(object):
         self.entries = dict.fromkeys(self.fieldnames, None)
         
     def set_raw_all(self, schedule):
+        """Set all fields to same schedule"""
         for entry in self.fieldnames:
             self.set_raw(entry, schedule)
 
     def set_raw(self, entry, schedule):
+        """Set single field to schedule"""
         if not entry in self.fieldnames:
             raise ValueError('Schedule entry does not exist %s'%entry)
         if not len(schedule) is self.valuesperentry * self.entriesperday:
@@ -41,6 +43,7 @@ class Scheduler(object):
         self.entries[entry] = schedule
         
     def pad_schedule(self, schedule):
+        """Pads a partial schedule up to correct length"""
         if not len(schedule)%self.valuesperentry == 0:
             raise IndexError("Schedule length not multiple of %d"%self.valuesperentry)
         pad_item = [HOUR_UNUSED, 0, 12][0:self.valuesperentry]
@@ -48,6 +51,7 @@ class Scheduler(object):
         return schedule + pad_item * ((self.valuesperentry * self.entriesperday - len(schedule))/self.valuesperentry)
         
     def display(self):
+        """Prints schedule to stdout"""
         print self.title + " Schedule"
         
         for name, entry in itertools.izip(self.printnames, self.entrynames):
@@ -59,45 +63,45 @@ class Scheduler(object):
             logging.info(textstr)
     
     @staticmethod
-    def _chunks(l, n):
+    def _chunks(fulllist, chunklength):
         """Yield successive n-sized chunks from l."""
-        for i in range(0, len(l), n):
-                yield l[i:i + n]
+        for pos in range(0, len(fulllist), chunklength):
+            yield fulllist[pos:pos + chunklength]
     
     @staticmethod
-    def _reversechunks(l, n):
+    def _reversechunks(fulllist, chunklength):
         """Yield successive n-sized chunks from l."""
-        for i in range(len(l)-n, -1, -n):
-                yield l[i:i + n]
+        for pos in range(len(fulllist)-n, -1, -chunklength):
+            yield fulllist[pos:pos + chunklength]
             
-    def getCurrentScheduleItem(self, timearray):
+    def get_current_schedule_item(self, timearray):
         ####check time and vars current
         
-        todayschedule = self._getScheduleEntry(timearray[CURRENT_TIME_DAY])
+        todayschedule = self._get_schedule_entry(timearray[CURRENT_TIME_DAY])
             
-        scheduletarget = self._getCurrentItemFromAnEntry(todayschedule, timearray)
+        scheduletarget = self._get_current_item_from_an_entry(todayschedule, timearray)
             
         if scheduletarget == None:
-            yestschedule = self._getPreviousScheduleEntry(timearray)
-            scheduletarget = self._getLastItemFromAnEntry(yestschedule)
-            return [self._getPreviousDay(timearray)] + scheduletarget
+            yestschedule = self._get_previous_schedule_entry(timearray)
+            scheduletarget = self._get_last_item_from_an_entry(yestschedule)
+            return [self._get_previous_day(timearray)] + scheduletarget
         else:
             return [timearray[CURRENT_TIME_DAY]] + scheduletarget
             
-    def getNextScheduleItem(self, timearray):
+    def get_next_schedule_item(self, timearray):
 
-        todayschedule = self._getScheduleEntry(timearray[CURRENT_TIME_DAY])
+        todayschedule = self._get_schedule_entry(timearray[CURRENT_TIME_DAY])
         
-        scheduletarget = self._getNextItemFromAnEntry(todayschedule, timearray)
+        scheduletarget = self._get_next_item_from_an_entry(todayschedule, timearray)
             
         if scheduletarget == None:
-            tomschedule = self._getNextScheduleEntry(timearray)
-            scheduletarget = self._getFirstItemFromAnEntry(tomschedule)
-            return [self._getNextDay(timearray)] + scheduletarget
+            tomschedule = self._get_next_schedule_entry(timearray)
+            scheduletarget = self._get_first_item_from_an_entry(tomschedule)
+            return [self._get_next_day(timearray)] + scheduletarget
         else:
             return [timearray[CURRENT_TIME_DAY]] + scheduletarget
             
-    def _getNextItemFromAnEntry(self, schedule, timearray):
+    def _get_next_item_from_an_entry(self, schedule, timearray):
         scheduletarget = None
         dayminutes = timearray[CURRENT_TIME_HOUR] * HOUR_MINUTES + timearray[CURRENT_TIME_MIN]
 
@@ -107,7 +111,7 @@ class Scheduler(object):
         
         return scheduletarget
     
-    def _getCurrentItemFromAnEntry(self, schedule, timearray):
+    def _get_current_item_from_an_entry(self, schedule, timearray):
         scheduletarget = None
         dayminutes = timearray[CURRENT_TIME_HOUR] * HOUR_MINUTES + timearray[CURRENT_TIME_MIN]
         
@@ -117,23 +121,23 @@ class Scheduler(object):
         
         return scheduletarget
         
-    def _getPreviousScheduleEntry(self, timearray):
-        return self._getScheduleEntry(self._getPreviousDay(timearray))
+    def _get_previous_schedule_entry(self, timearray):
+        return self._get_schedule_entry(self._get_previous_day(timearray))
 
-    def _getNextScheduleEntry(self, timearray):
-        return self._getScheduleEntry(self._getNextDay(timearray))
+    def _get_next_schedule_entry(self, timearray):
+        return self._get_schedule_entry(self._get_next_day(timearray))
 
     @staticmethod
-    def _getPreviousDay(timearray):
+    def _get_previous_day(timearray):
         #shift from 1-7 to 0-6, subtract 1, modulo, shift back to 1-7
-        return ((timearray[CURRENT_TIME_DAY] - 1 - 1 ) % 7 ) + 1
+        return ((timearray[CURRENT_TIME_DAY] - 1 - 1) % 7) + 1
         
     @staticmethod
-    def _getNextDay(timearray):
+    def _get_next_day(timearray):
         #shift from 1-7 to 0-6, add 1, modulo, shift back to 1-7
-        return ((timearray[CURRENT_TIME_DAY] - 1 + 1 ) % 7 ) + 1
+        return ((timearray[CURRENT_TIME_DAY] - 1 + 1) % 7) + 1
         
-    def _getFirstItemFromAnEntry(self, schedule):
+    def _get_first_item_from_an_entry(self, schedule):
         #gets first schedule entry if valid (not 24)
         firstentry = self._chunks(schedule, self.valuesperentry).next()
         if firstentry[MAP_HOUR] != HOUR_UNUSED:
@@ -141,7 +145,7 @@ class Scheduler(object):
         else:
             return None
 
-    def _getLastItemFromAnEntry(self, schedule):
+    def _get_last_item_from_an_entry(self, schedule):
         #gets last valid schedule entry (not 24)
         scheduletarget = None
         for i in self._reversechunks(schedule, self.valuesperentry):
@@ -155,14 +159,14 @@ class SchedulerDay(Scheduler):
     entrynames = ['mon', 'tues', 'wed', 'thurs', 'fri', 'sat', 'sun']
     printnames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
     
-    def _getScheduleEntry(self, day):
+    def _get_schedule_entry(self, day):
         return self.entries[self.entrynames[day - 1]]
 
 class SchedulerWeek(Scheduler):
     entrynames = ['wday', 'wend']
     printnames = ['Weekdays', 'Weekends']
     
-    def _getScheduleEntry(self, day):
+    def _get_schedule_entry(self, day):
         if day == 6 or day == 7:
             return self.entries[self.entrynames[1]]
         elif day >= 1 and day <= 5:
@@ -198,9 +202,9 @@ class SchedulerWater(Scheduler):
         for dataset in self._chunks(data, 2):
             if dataset[0] != HOUR_UNUSED:
                 if toggle:
-                    tempstr += "Time %i On at %02d:%02d " % (count, dataset[0], dataset[1])
+                    tempstr += "Time %i On at %02d:%02d " %(count, dataset[0], dataset[1])
                 else:
-                    tempstr += "Off at %02d:%02d, " % (dataset[0], dataset[1])
+                    tempstr += "Off at %02d:%02d, " %(dataset[0], dataset[1])
                     count=count+1
                 toggle = not toggle
                 

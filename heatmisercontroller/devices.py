@@ -50,7 +50,10 @@ class HeatmiserDevice(object):
         
         for name, value in settings.iteritems():
             setattr(self, '_' + name, value)
-            
+        
+        self.address = self._address #make externally available
+        del self._address
+        
         if self._expected_prog_mode == PROG_MODE_DAY:
             self.heat_schedule = SchedulerDayHeat()
             if self.isHotWater():
@@ -109,7 +112,7 @@ class HeatmiserDevice(object):
         for first, last in self._fieldranges:
             self._fieldsvalid[self._fieldnametonum[first]: self._fieldnametonum[last] + 1] = [True] * (self._fieldnametonum[last] - self._fieldnametonum[first] + 1)
         #self._fullDCB = sum(x is not None for x in self._uniquetodcb))
-        logging.debug("C%i Fieldsvalid %s"%(self._address,','.join(str(int(x)) for x in self._fieldsvalid)))
+        logging.debug("C%i Fieldsvalid %s"%(self.address,','.join(str(int(x)) for x in self._fieldsvalid)))
     
     def _check_data_age(self, fieldnames, maxagein = None):
         #field data age is not more than maxage (in seconds)
@@ -134,7 +137,7 @@ class HeatmiserDevice(object):
                 maxage = maxagein
             #now check time
             if time.time() - self.datareadtime[fieldname] > maxage:
-                logging.debug("C%i data item %s too old"%(self._address, fieldname))
+                logging.debug("C%i data item %s too old"%(self.address, fieldname))
                 return False
         return True
         
@@ -144,7 +147,7 @@ class HeatmiserDevice(object):
 
         for fieldname in fieldnames:
             if self.datareadtime[fieldname] == None:
-                logging.debug("C%i data item %s not available"%(self._address, fieldname))
+                logging.debug("C%i data item %s not available"%(self.address, fieldname))
                 return False
         return True
     
@@ -152,13 +155,13 @@ class HeatmiserDevice(object):
     
     def readAll(self):
         try:
-            self.rawdata = self._adaptor.read_all_from_device(self._address, self._protocol, self.DCBlength)
+            self.rawdata = self._adaptor.read_all_from_device(self.address, self._protocol, self.DCBlength)
         except serial.SerialException as e:
 
-            logging.warn("C%i Read all failed, Serial Port error %s"%(self._address, str(e)))
+            logging.warn("C%i Read all failed, Serial Port error %s"%(self.address, str(e)))
             raise
         else:
-            logging.info("C%i Read all"%(self._address))
+            logging.info("C%i Read all"%(self.address))
 
             self.lastreadtime = time.time()
             self._procpayload(self.rawdata)
@@ -209,17 +212,17 @@ class HeatmiserDevice(object):
         if estimatedreadtime < self.fullreadtime - 0.02: #if to close to full read time, then read all
                 try:
                         for firstfieldid, lastfieldid, blocklength in blockstoread:
-                                logging.debug("C%i Reading ui %i to %i len %i, proc %s to %s"%(self._address, fields[firstfieldid][FIELD_ADD],fields[lastfieldid][FIELD_ADD],blocklength,fields[firstfieldid][FIELD_NAME], fields[lastfieldid][FIELD_NAME]))
-                                rawdata = self._adaptor.read_from_device(self._address, self._protocol, fields[firstfieldid][FIELD_ADD], blocklength)
+                                logging.debug("C%i Reading ui %i to %i len %i, proc %s to %s"%(self.address, fields[firstfieldid][FIELD_ADD],fields[lastfieldid][FIELD_ADD],blocklength,fields[firstfieldid][FIELD_NAME], fields[lastfieldid][FIELD_NAME]))
+                                rawdata = self._adaptor.read_from_device(self.address, self._protocol, fields[firstfieldid][FIELD_ADD], blocklength)
                                 self.lastreadtime = time.time()
                                 self._procpartpayload(rawdata, fields[firstfieldid][FIELD_NAME], fields[lastfieldid][FIELD_NAME])
                 except serial.SerialException as e:
-                        logging.warn("C%i Read failed of fields %s to %s, Serial Port error %s"%(self._address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH), str(e)))
+                        logging.warn("C%i Read failed of fields %s to %s, Serial Port error %s"%(self.address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH), str(e)))
                         raise
                 else:
-                        logging.info("C%i Read fields %s to %s, in %i blocks"%(self._address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH),len(blockstoread)))
+                        logging.info("C%i Read fields %s to %s, in %i blocks"%(self.address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH),len(blockstoread)))
         else:
-                logging.debug("C%i Read fields %s to %s by readAll, %0.3f %0.3f"%(self._address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH), estimatedreadtime, self.fullreadtime))
+                logging.debug("C%i Read fields %s to %s by readAll, %0.3f %0.3f"%(self.address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH), estimatedreadtime, self.fullreadtime))
                 self.readAll()
 
     def _getFields(self, fieldids):
@@ -232,18 +235,18 @@ class HeatmiserDevice(object):
         if estimatedreadtime < self.fullreadtime - 0.02: #if to close to full read time, then read all
                 try:
                         for firstfieldid, lastfieldid, blocklength in blockstoread:
-                                logging.debug("C%i Reading ui %i to %i len %i, proc %s to %s"%(self._address, fields[firstfieldid][FIELD_ADD],fields[lastfieldid][FIELD_ADD],blocklength,fields[firstfieldid][FIELD_NAME], fields[lastfieldid][FIELD_NAME]))
-                                rawdata = self._adaptor.read_from_device(self._address, self._protocol, fields[firstfieldid][FIELD_ADD], blocklength)
+                                logging.debug("C%i Reading ui %i to %i len %i, proc %s to %s"%(self.address, fields[firstfieldid][FIELD_ADD],fields[lastfieldid][FIELD_ADD],blocklength,fields[firstfieldid][FIELD_NAME], fields[lastfieldid][FIELD_NAME]))
+                                rawdata = self._adaptor.read_from_device(self.address, self._protocol, fields[firstfieldid][FIELD_ADD], blocklength)
                                 self.lastreadtime = time.time()
                                 self._procpartpayload(rawdata, fields[firstfieldid][FIELD_NAME], fields[lastfieldid][FIELD_NAME])
                 except serial.SerialException as e:
-                        logging.warn("C%i Read failed of fields %s, Serial Port error %s"%(self._address, ', '.join(fields[id][FIELD_NAME] for id in fieldids), str(e)))
+                        logging.warn("C%i Read failed of fields %s, Serial Port error %s"%(self.address, ', '.join(fields[id][FIELD_NAME] for id in fieldids), str(e)))
                         raise
                 else:
-                        logging.info("C%i Read fields %s in %i blocks"%(self._address, ', '.join(fields[id][FIELD_NAME] for id in fieldids),len(blockstoread)))
+                        logging.info("C%i Read fields %s in %i blocks"%(self.address, ', '.join(fields[id][FIELD_NAME] for id in fieldids),len(blockstoread)))
                         
         else:
-                logging.debug("C%i Read fields %s by readAll, %0.3f %0.3f"%(self._address, ', '.join(fields[id][FIELD_NAME] for id in fieldids), estimatedreadtime, self.fullreadtime))
+                logging.debug("C%i Read fields %s by readAll, %0.3f %0.3f"%(self.address, ', '.join(fields[id][FIELD_NAME] for id in fieldids), estimatedreadtime, self.fullreadtime))
                 self.readAll()
                 
         #data can only be requested from the controller in contiguous blocks
@@ -356,13 +359,13 @@ class HeatmiserDevice(object):
     def _procpartpayload(self, rawdata, firstfieldname, lastfieldname):
         #rawdata must be a list
         #converts field names to unique addresses to allow process of shortened raw data
-        logging.debug("C%i Processing Payload from field %s to %s"%(self._address,firstfieldname,lastfieldname) )
+        logging.debug("C%i Processing Payload from field %s to %s"%(self.address,firstfieldname,lastfieldname) )
         firstfieldid = self._fieldnametonum[firstfieldname]
         lastfieldid = self._fieldnametonum[lastfieldname]
         self._procpayload(rawdata, firstfieldid, lastfieldid)
         
     def _procpayload(self, rawdata, firstfieldid = 0, lastfieldid = len(fields)):
-        logging.debug("C%i Processing Payload from field %i to %i"%(self._address,firstfieldid,lastfieldid) )
+        logging.debug("C%i Processing Payload from field %i to %i"%(self.address,firstfieldid,lastfieldid) )
 
         fullfirstdcbadd = self._getDCBaddress(fields[firstfieldid][FIELD_ADD])
         
@@ -381,7 +384,7 @@ class HeatmiserDevice(object):
                 try:
                     self._procfield(rawdata[dcbadd:dcbadd+length], fieldinfo)
                 except HeatmiserResponseError as e:
-                    logging.warn("C%i Field %s process failed due to %s"%(self._address, fieldinfo[FIELD_NAME], str(e)))
+                    logging.warn("C%i Field %s process failed due to %s"%(self.address, fieldinfo[FIELD_NAME], str(e)))
 
         self.rawdata[fullfirstdcbadd:fullfirstdcbadd+len(rawdata)] = rawdata
 
@@ -413,10 +416,10 @@ class HeatmiserDevice(object):
         logging.debug("Local time %i, remote time %i, error %i"%(localweeksecs,remoteweeksecs,self.timeerr))
 
         if self.timeerr > self.DAYSECS:
-                raise HeatmiserControllerTimeError("C%2d Incorrect day : local is %s, sensor is %s" % (self._address, localtimearray[CURRENT_TIME_DAY], self.data['currenttime'][CURRENT_TIME_DAY]))
+                raise HeatmiserControllerTimeError("C%2d Incorrect day : local is %s, sensor is %s" % (self.address, localtimearray[CURRENT_TIME_DAY], self.data['currenttime'][CURRENT_TIME_DAY]))
 
         if (self.timeerr > TIME_ERR_LIMIT):
-                raise HeatmiserControllerTimeError("C%2d Time Error %d greater than %d: local is %s, sensor is %s" % (self._address, self.timeerr, TIME_ERR_LIMIT, localweeksecs, remoteweeksecs))
+                raise HeatmiserControllerTimeError("C%2d Time Error %d greater than %d: local is %s, sensor is %s" % (self.address, self.timeerr, TIME_ERR_LIMIT, localweeksecs, remoteweeksecs))
 
     @staticmethod
     def _localtimearray(timenow = time.time()):
@@ -454,12 +457,12 @@ class HeatmiserDevice(object):
                 pay_hi = (payload >> 8) & BYTEMASK
                 payload = [pay_lo, pay_hi]
         try:
-                self._adaptor.write_to_device(self._address, self._protocol, fieldinfo[FIELD_ADD], fieldinfo[FIELD_LEN], payload)
+                self._adaptor.write_to_device(self.address, self._protocol, fieldinfo[FIELD_ADD], fieldinfo[FIELD_LEN], payload)
         except:
-                logging.info("C%i failed to set field %s to %s"%(self._address, fieldname.ljust(FIELD_NAME_LENGTH), ', '.join(str(x) for x in payload)))
+                logging.info("C%i failed to set field %s to %s"%(self.address, fieldname.ljust(FIELD_NAME_LENGTH), ', '.join(str(x) for x in payload)))
                 raise
         else:
-                logging.info("C%i set field %s to %s"%(self._address, fieldname.ljust(FIELD_NAME_LENGTH), ', '.join(str(x) for x in payload)))
+                logging.info("C%i set field %s to %s"%(self.address, fieldname.ljust(FIELD_NAME_LENGTH), ', '.join(str(x) for x in payload)))
         
         self.lastreadtime = time.time()
         
@@ -521,11 +524,11 @@ class HeatmiserDevice(object):
             return "temp held for %i mins at %i"%(self.tempholdmins, self.setroomtemp)
         elif current_state == self.TEMP_STATE_OVERRIDDEN:
             locatimenow = self._localtimearray()
-            nexttarget = self.heat_schedule.getNextScheduleItem(locatimenow)
+            nexttarget = self.heat_schedule.get_next_schedule_item(locatimenow)
             return "temp overridden to %0.1f until %02d:%02d" % (self.setroomtemp, nexttarget[1], nexttarget[2])
         elif current_state == self.TEMP_STATE_PROGRAM:
             locatimenow = self._localtimearray()
-            nexttarget = self.heat_schedule.getNextScheduleItem(locatimenow)
+            nexttarget = self.heat_schedule.get_next_schedule_item(locatimenow)
             return "temp set to %0.1f until %02d:%02d" % (self.setroomtemp, nexttarget[1], nexttarget[2])
     
     ## External functions for reading data
@@ -562,7 +565,7 @@ class HeatmiserDevice(object):
                 self.readTime()
             
             locatimenow = self._localtimearray()
-            scheduletarget = self.heat_schedule.getCurrentScheduleItem(locatimenow)
+            scheduletarget = self.heat_schedule.get_current_schedule_item(locatimenow)
 
             if scheduletarget[SCH_ENT_TEMP] != self.setroomtemp:
                 return self.TEMP_STATE_OVERRIDDEN
@@ -585,7 +588,7 @@ class HeatmiserDevice(object):
                 self.readTime()
             
             locatimenow = self._localtimearray()
-            scheduletarget = self.water_schedule.getCurrentScheduleItem(locatimenow)
+            scheduletarget = self.water_schedule.get_current_schedule_item(locatimenow)
 
             if scheduletarget[SCH_ENT_TEMP] != self.hotwaterdemand:
                 return self.TEMP_STATE_OVERRIDDEN
@@ -654,14 +657,14 @@ class HeatmiserDevice(object):
         if self.readField('tempholdmins') == 0: #check hold temp not applied
             return self.setField('setroomtemp',temp)
         else:
-            logging.warn("%i address, temp hold applied so won't set temp"%(self._address))
+            logging.warn("%i address, temp hold applied so won't set temp"%(self.address))
 
     def releaseTemp(self) :
         #release SetTemp back to the program, but only if temp isn't held
         if self.readField('tempholdmins') == 0: #check hold temp not applied
             return self.setField('tempholdmins',0)
         else:
-            logging.warn("%i address, temp hold applied so won't remove set temp"%(self._address))
+            logging.warn("%i address, temp hold applied so won't remove set temp"%(self.address))
 
     def holdTemp(self, minutes, temp) :
         #sets the temperature demand overrding the program for a set time. Believe it then returns to program.
