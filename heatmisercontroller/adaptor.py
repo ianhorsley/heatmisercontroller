@@ -42,15 +42,15 @@ class Heatmiser_Adaptor(object):
         # Initialize setup and get settings
         self._setup = setup
         settings = self._setup.settings
-        
+
         self.serport = serial.Serial()
         self.serport.bytesize = serial.EIGHTBITS #COM_SIZE
         self.serport.parity = serial.PARITY_NONE #COM_PARITY
         self.serport.stopbits = serial.STOPBITS_ONE #COM_STOP
-        
+
         self.lastsendtime = None
         self.creationtime = time.time()
-        
+
         self._update_settings(settings)
         
         self.lastreceivetime = self.creationtime - self.serport.COM_BUS_RESET_TIME # so that system will get on with sending straight away
