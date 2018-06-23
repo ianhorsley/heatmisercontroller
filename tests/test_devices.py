@@ -100,7 +100,7 @@ class test_reading_data(unittest.TestCase):
         responses = [[17, 30, 1, 1, 1, 1, 0, 0],[0, 0, 17, 0, 17, 0, 17, 0, 0, 0, 0]]
         self.adaptor.setresponse(responses)
         #run command
-        self.func.getVariables()
+        self.func.get_variables()
         self.assertEqual([(1, 3, 18, 8, False), (1, 3, 32, 11, False)],self.adaptor.arguements)
         self.assertEqual(17,self.func.setroomtemp)
         self.assertEqual(0,self.func.hotwaterdemand)
@@ -146,10 +146,10 @@ class test_other_functions(unittest.TestCase):
         from heatmisercontroller.hm_constants import fields
         print fields[25],fields[29]
         print self.func._fieldsvalid[25], self.func._fieldsvalid[30]
-        self.assertEqual([[25, 29, 8]], self.func._getFieldBlocksFromRange('remoteairtemp','hotwaterdemand'))
-        self.assertEqual([[31, 31, 4]], self.func._getFieldBlocksFromRange('hotwaterdemand','currenttime'))
-        self.assertEqual([[0, 22, 26], [24, 29, 10], [31, 31, 4]], self.func._getFieldBlocksFromRange('DCBlen','currenttime'))
-        self.assertEqual([[0, 22, 26], [24, 29, 10], [31, 33, 28], [36, 42, 84]], self.func._getFieldBlocksFromRange('DCBlen','sun_water'))
+        self.assertEqual([[25, 29, 8]], self.func._get_field_blocks_from_range('remoteairtemp','hotwaterdemand'))
+        self.assertEqual([[31, 31, 4]], self.func._get_field_blocks_from_range('hotwaterdemand','currenttime'))
+        self.assertEqual([[0, 22, 26], [24, 29, 10], [31, 31, 4]], self.func._get_field_blocks_from_range('DCBlen','currenttime'))
+        self.assertEqual([[0, 22, 26], [24, 29, 10], [31, 33, 28], [36, 42, 84]], self.func._get_field_blocks_from_range('DCBlen','sun_water'))
         
     def test_checkblock4(self):
         self.settings = {'address':1,'protocol':HMV3_ID,'long_name':'test controller','expected_model':'prt_e_model','expected_prog_mode':PROG_MODE_DAY}
@@ -158,7 +158,7 @@ class test_other_functions(unittest.TestCase):
         #print self.func._getFieldBlocks('DCBlen','sun_water')
         #from timeit import default_timer as timer
         #start = timer()
-        for _ in range(1):self.func._getFieldBlocksFromRange('DCBlen','sun_water')
+        for _ in range(1):self.func._get_field_blocks_from_range('DCBlen','sun_water')
         #print (timer()-start)/1000
         
     def test_buildDCBtables(self):
