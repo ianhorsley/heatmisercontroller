@@ -19,7 +19,7 @@ class test_serial(unittest.TestCase):
   
   def test_sendmsg_1(self):
     # Send message
-    self.func._hmSendMsg(self.goodmessage)
+    self.func._send_message(self.goodmessage)
     # Use serial to receive raw transmission
     ret = self.serialport.serialPort.read(len(self.goodmessage))
     retasarray = map(ord,ret)
@@ -31,29 +31,29 @@ class test_serial(unittest.TestCase):
     #string = ''.join(map(chr,self.goodmessage))
     self.serialport.serialPort.write(self.goodmessage)
     #self.func._disconnect() # make sure checks the reconnect function
-    ret = self.func._hmReceiveMsg(len(self.goodmessage))
+    ret = self.func._receive_message(len(self.goodmessage))
     # Check that the returned data from the serial port == goodmessage
     self.assertEqual(ret, self.goodmessage)
     
   def test_receivemsg_2(self):
     self.serialport.serialPort.write(self.goodmessage)
-    ret = self.func._hmReceiveMsg(2)
+    ret = self.func._receive_message(2)
     # Check that the returned data from the serial port == goodmessage
     self.assertEqual(ret, self.goodmessage[:2])
     
   def test_receivemsg_3(self):
     self.serialport.serialPort.write(self.goodmessage)
-    ret = self.func._hmReceiveMsg(1)
+    ret = self.func._receive_message(1)
     # Check that the returned data from the serial port == goodmessage
     self.assertEqual(ret, self.goodmessage[:1])
   
   def test_receivemsg_none(self):
     with self.assertRaises(hmResponseError):
-      self.func._hmReceiveMsg(1)
+      self.func._receive_message(1)
   
   def test_updatesettings(self):
     # Send message to open serial port
-    self.func._hmSendMsg(self.goodmessage)
+    self.func._send_message(self.goodmessage)
     # update settings
     self.func._update_settings(self.setup.settings)
     

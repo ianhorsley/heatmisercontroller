@@ -11,106 +11,106 @@ from heatmisercontroller.network import *
 
 initialize_logger('logs', logging.INFO, True)
 
-hmn1 = HeatmiserNetwork()
+HMN = HeatmiserNetwork()
 
-#hmn1.hmSetTemp("Kit", 25)
-#hmn1.Kit.holdTemp(30,21) #mins, temp
-#hmn1.Kit.releaseHoldTemp()
+#HMN.hmSetTemp("Kit", 25)
+#HMN.Kit.holdTemp(30,21) #mins, temp
+#HMN.Kit.releaseHoldTemp()
 
-#hmn1.hmSetTemp("Cons", 25)
-#hmn1.hmReleaseTemp("Cons")
-#hmn1.All.setField('holidayhours', 96)
-hmn1.All.releaseHoliday()
+#HMN.hmSetTemp("Cons", 25)
+#HMN.hmReleaseTemp("Cons")
+#HMN.All.setField('holidayhours', 96)
+HMN.All.releaseHoliday()
 
-hmn1.Kit.setField('hotwaterdemand', WRITE_HOTWATERDEMAND_PROG)
+HMN.Kit.setField('hotwaterdemand', WRITE_HOTWATERDEMAND_PROG)
 
-hmn1.All.setOn()
-#hmn1.hmUpdateTime(2)
-#hmn1.controllerByName('B1').setOff()
+HMN.All.setOn()
+#HMN.hmUpdateTime(2)
+#HMN.controllerByName('B1').setOff()
 
-hmn1.All.setField('runmode', WRITE_RUNMODE_HEATING)
-hmn1.Sit.setField('runmode', WRITE_RUNMODE_FROST)
+HMN.All.setField('runmode', WRITE_RUNMODE_HEATING)
+HMN.Sit.setField('runmode', WRITE_RUNMODE_FROST)
 
-#hmn1.B2.setTemp(24)
-#hmn1.Kit.setTemp(24)
-#hmn1.B1.setTemp(24)
-#hmn1.Cons.setTemp(24)
-#hmn1.All.setTemp(24)
+#HMN.B2.setTemp(24)
+#HMN.Kit.setTemp(24)
+#HMN.B1.setTemp(24)
+#HMN.Cons.setTemp(24)
+#HMN.All.setTemp(24)
 
-hmn1.Kit.releaseTemp()
-hmn1.B1.releaseTemp()
-hmn1.B2.releaseTemp()
-hmn1.Cons.releaseTemp()
+HMN.Kit.releaseTemp()
+HMN.B1.releaseTemp()
+HMN.B2.releaseTemp()
+HMN.Cons.releaseTemp()
 
-downInactive = 20
-downActive = 19
-frost = 12
-dayfrost = [7, 0, frost]
+DOWNINACTIVE = 20
+DOWNACTIVE = 19
+FROST = 12
+DAYFROST = [7, 0, FROST]
 
-wkday_zearly =    [5, 00, downActive, 8, 30, frost, 15, 00, downInactive, 21, 00, frost]
-wkday_zlate =     [7, 00, downInactive, 12, 00, frost, 17, 00, downInactive, 21, 30, frost]
-wkday_ztraining = [7, 00, downActive, 8, 30, frost, 16, 30, downInactive, 21, 00, frost]
-wkend_zearly =    [5, 00, downInactive, 21, 30, frost]
-wkend_zlate =     [7, 00, downInactive, 21, 30, frost]
-wkend_zoff =      [7, 00, downInactive, 21, 30, frost]
-hmn1.Kit.setHeatingSchedule('mon_heat', wkend_zearly)
-hmn1.Kit.setHeatingSchedule('tues_heat', wkend_zearly)
-hmn1.Kit.setHeatingSchedule('wed_heat', wkday_ztraining)
-hmn1.Kit.setHeatingSchedule('thurs_heat', wkend_zearly)
-hmn1.Kit.setHeatingSchedule('fri_heat', wkend_zearly)
-hmn1.Kit.setHeatingSchedule('sat_heat', wkend_zoff)
-hmn1.Kit.setHeatingSchedule('sun_heat', wkend_zoff)
+WKDAY_ZEARLY = [5, 00, DOWNACTIVE, 8, 30, FROST, 15, 00, DOWNINACTIVE, 21, 00, FROST]
+WKDAY_ZLATE = [7, 00, DOWNINACTIVE, 12, 00, FROST, 17, 00, DOWNINACTIVE, 21, 30, FROST]
+WKDAY_ZTRAINING = [7, 00, DOWNACTIVE, 8, 30, FROST, 16, 30, DOWNINACTIVE, 21, 00, FROST]
+WKEND_ZEARLY = [5, 00, DOWNINACTIVE, 21, 30, FROST]
+WKEND_ZLATE = [7, 00, DOWNINACTIVE, 21, 30, FROST]
+WKEND_ZOFF = [7, 00, DOWNINACTIVE, 21, 30, FROST]
+HMN.Kit.setHeatingSchedule('mon_heat', WKEND_ZEARLY)
+HMN.Kit.setHeatingSchedule('tues_heat', WKEND_ZEARLY)
+HMN.Kit.setHeatingSchedule('wed_heat', WKDAY_ZTRAINING)
+HMN.Kit.setHeatingSchedule('thurs_heat', WKEND_ZEARLY)
+HMN.Kit.setHeatingSchedule('fri_heat', WKEND_ZEARLY)
+HMN.Kit.setHeatingSchedule('sat_heat', WKEND_ZOFF)
+HMN.Kit.setHeatingSchedule('sun_heat', WKEND_ZOFF)
 
 eveningwater = [17, 30, 18, 0]
 nowater = []
-hmn1.Kit.setWaterSchedule('all', eveningwater)
+HMN.Kit.setWaterSchedule('all', eveningwater)
 
-upSleep = 16
-upAwake = 18
-upwkday_zearly =  [5, 0, upAwake, 7, 00, frost, 20, 30, upAwake, 21, 30, upSleep]
-upwkday_zlate =   [7, 0, upAwake, 8, 00, frost, 21, 30, upAwake, 22, 30, upSleep]
-upwkday =         [7, 0, upAwake, 8, 30, frost, 21, 00, upAwake, 21, 30, upSleep]
-upwkend_zearly =  [5, 0, upAwake, 8, 00, frost, 20, 30, upAwake, 21, 30, upSleep]
-upwkend_zlate =   [7, 0, upAwake, 9, 30, frost, 21, 30, upAwake, 22, 30, upSleep]
-upwkend =         [7, 0, upAwake, 9, 30, frost, 21, 00, upAwake, 22, 00, upSleep]
-dayfrost = [7, 0, frost]
+UPSLEEP = 16
+UPAWAKE = 18
+upwkday_zearly = [5, 0, UPAWAKE, 7, 00, FROST, 20, 30, UPAWAKE, 21, 30, UPSLEEP]
+upwkday_zlate = [7, 0, UPAWAKE, 8, 00, FROST, 21, 30, UPAWAKE, 22, 30, UPSLEEP]
+upwkday = [7, 0, UPAWAKE, 8, 30, FROST, 21, 00, UPAWAKE, 21, 30, UPSLEEP]
+upwkend_zearly = [5, 0, UPAWAKE, 8, 00, FROST, 20, 30, UPAWAKE, 21, 30, UPSLEEP]
+upwkend_zlate = [7, 0, UPAWAKE, 9, 30, FROST, 21, 30, UPAWAKE, 22, 30, UPSLEEP]
+upwkend = [7, 0, UPAWAKE, 9, 30, FROST, 21, 00, UPAWAKE, 22, 00, UPSLEEP]
+DAYFROST = [7, 0, FROST]
 
-hmn1.B1.setHeatingSchedule('mon_heat', dayfrost)
-hmn1.B1.setHeatingSchedule('tues_heat', dayfrost)
-hmn1.B1.setHeatingSchedule('wed_heat', dayfrost)
-hmn1.B1.setHeatingSchedule('thurs_heat', dayfrost)
-hmn1.B1.setHeatingSchedule('fri_heat', dayfrost)
-hmn1.B1.setHeatingSchedule('sat_heat', dayfrost)
-hmn1.B1.setHeatingSchedule('sun_heat', dayfrost)
+HMN.B1.setHeatingSchedule('mon_heat', DAYFROST)
+HMN.B1.setHeatingSchedule('tues_heat', DAYFROST)
+HMN.B1.setHeatingSchedule('wed_heat', DAYFROST)
+HMN.B1.setHeatingSchedule('thurs_heat', DAYFROST)
+HMN.B1.setHeatingSchedule('fri_heat', DAYFROST)
+HMN.B1.setHeatingSchedule('sat_heat', DAYFROST)
+HMN.B1.setHeatingSchedule('sun_heat', DAYFROST)
 
-hmn1.B2.setHeatingSchedule('mon_heat', dayfrost)
-hmn1.B2.setHeatingSchedule('tues_heat', dayfrost)
-hmn1.B2.setHeatingSchedule('wed_heat', dayfrost)
-hmn1.B2.setHeatingSchedule('thurs_heat', dayfrost)
-hmn1.B2.setHeatingSchedule('fri_heat', dayfrost)
-hmn1.B2.setHeatingSchedule('sat_heat', dayfrost)
-hmn1.B2.setHeatingSchedule('sun_heat', dayfrost)
+HMN.B2.setHeatingSchedule('mon_heat', DAYFROST)
+HMN.B2.setHeatingSchedule('tues_heat', DAYFROST)
+HMN.B2.setHeatingSchedule('wed_heat', DAYFROST)
+HMN.B2.setHeatingSchedule('thurs_heat', DAYFROST)
+HMN.B2.setHeatingSchedule('fri_heat', DAYFROST)
+HMN.B2.setHeatingSchedule('sat_heat', DAYFROST)
+HMN.B2.setHeatingSchedule('sun_heat', DAYFROST)
 
-#hmn1.hmSetFields('Kit', 'wday_heat', [7, 0, 19, 9, 30, 10, 17, 0, 19, 21, 30, 10])
-#hmn1.hmSetFields('B1', HMV3_ID,'wday_heat', [7, 0, 18, 8, 30, 10, 20, 30, 18, 22, 0, 16])
-#hmn1.hmSetFields('B2', HMV3_ID,'wday_heat', [7, 0, 19, 8, 30, 10, 20, 30, 19, 22, 0, 16])
-hmn1.controllerByName('Cons').setField('wday_heat', [9, 0, 12, 21, 30, 10, 24, 0, 5, 24, 0, 5])
+#HMN.hmSetFields('Kit', 'wday_heat', [7, 0, 19, 9, 30, 10, 17, 0, 19, 21, 30, 10])
+#HMN.hmSetFields('B1', HMV3_ID,'wday_heat', [7, 0, 18, 8, 30, 10, 20, 30, 18, 22, 0, 16])
+#HMN.hmSetFields('B2', HMV3_ID,'wday_heat', [7, 0, 19, 8, 30, 10, 20, 30, 19, 22, 0, 16])
+HMN.controllerByName('Cons').setField('wday_heat', [9, 0, 12, 21, 30, 10, 24, 0, 5, 24, 0, 5])
 
-#hmn1.hmSetFields('Kit', 'wend_heat', [7, 0, 19, 21, 30, 10, 24, 0, 5, 24, 0, 5])
-#hmn1.hmSetFields('B1', HMV3_ID,'wend_heat', [7, 0, 18, 9, 30, 10, 20, 30, 18, 22, 0, 16])
-#hmn1.hmSetFields('B2', HMV3_ID,'wend_heat', [7, 0, 19, 9, 30, 10, 20, 30, 19, 22, 0, 16])
-hmn1.controllerByName('Cons').setField('wend_heat', [9, 0, 12, 21, 30, 10, 24, 0, 5, 24, 0, 5])
+#HMN.hmSetFields('Kit', 'wend_heat', [7, 0, 19, 21, 30, 10, 24, 0, 5, 24, 0, 5])
+#HMN.hmSetFields('B1', HMV3_ID,'wend_heat', [7, 0, 18, 9, 30, 10, 20, 30, 18, 22, 0, 16])
+#HMN.hmSetFields('B2', HMV3_ID,'wend_heat', [7, 0, 19, 9, 30, 10, 20, 30, 19, 22, 0, 16])
+HMN.controllerByName('Cons').setField('wend_heat', [9, 0, 12, 21, 30, 10, 24, 0, 5, 24, 0, 5])
 
-hmn1.Sit.setHeatingSchedule('wday_heat', dayfrost)
-hmn1.Sit.setHeatingSchedule('wend_heat', dayfrost)
+HMN.Sit.setHeatingSchedule('wday_heat', DAYFROST)
+HMN.Sit.setHeatingSchedule('wend_heat', DAYFROST)
 
-#hmn1.hmSetFields("Kit", 'wday_water', [7, 0, 8, 0, 16, 0, 17, 0, 24, 0, 24, 0, 24, 0, 24, 0])
-#hmn1.hmSetFields("Kit", 'wday_water', [24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0])
-#hmn1.hmSetFields("Kit", 'wend_water', [8, 0, 9, 0, 18, 0, 19, 0, 24, 0, 24, 0, 24, 0, 24, 0])
+#HMN.hmSetFields("Kit", 'wday_water', [7, 0, 8, 0, 16, 0, 17, 0, 24, 0, 24, 0, 24, 0, 24, 0])
+#HMN.hmSetFields("Kit", 'wday_water', [24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0])
+#HMN.hmSetFields("Kit", 'wend_water', [8, 0, 9, 0, 18, 0, 19, 0, 24, 0, 24, 0, 24, 0, 24, 0])
 
-#hmn1.hmSetField("Kit", 'frosttemp', 9)
-#hmn1.hmSetField("B1", 'frosttemp', 9)
-#hmn1.hmSetField("B2", 'frosttemp', 9)
-#hmn1.hmSetField("Cons", 'frosttemp', 9)
+#HMN.hmSetField("Kit", 'frosttemp', 9)
+#HMN.hmSetField("B1", 'frosttemp', 9)
+#HMN.hmSetField("B2", 'frosttemp', 9)
+#HMN.hmSetField("Cons", 'frosttemp', 9)
 
 

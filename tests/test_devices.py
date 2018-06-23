@@ -25,13 +25,13 @@ class Mock_Heatmiser_Adaptor(HeatmiserAdaptor):
         self.outputs = []
         super(Mock_Heatmiser_Adaptor, self).__init__(setup)
 
-    def hmWriteToController(self, network_address, protocol, dcb_address, length, payload):
+    def write_to_device(self, network_address, protocol, dcb_address, length, payload):
         self.args.append((network_address, protocol, dcb_address, length, payload))
 
     def setresponse(self, inputs):
         self.outputs = inputs
 
-    def hmReadFromController(self, network_address, protocol, dcb_start_address, expectedLength, readall = False):
+    def read_from_device(self, network_address, protocol, dcb_start_address, expectedLength, readall = False):
         self.args.append((network_address, protocol, dcb_start_address, expectedLength, readall))
         return self.outputs.pop(0)
         
@@ -218,11 +218,11 @@ class test_protocol(unittest.TestCase):
     logging.basicConfig(level=logging.ERROR)
     self.settings = {'address':5,'protocol':HMV3_ID,'long_name':'test controller','expected_model':'prt_e_model','expected_prog_mode':PROG_MODE_DAY}
     self.tester = argstore()
-    self.tester.hmWriteToController = self.tester.store
+    self.tester.write_to_device = self.tester.store
     self.func = HeatmiserDevice(self.tester, self.settings)
     
   def test_setfield_1(self):
-    #checks the arguements sent to hmWriteToController
+    #checks the arguements sent to write_to_device
     #fieldname, payload
     self.func.setField('frosttemp', 7 )
     self.assertEqual(self.tester.args,(5, 3, 17, 1, [7]))

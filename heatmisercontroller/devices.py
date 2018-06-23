@@ -150,7 +150,7 @@ class HeatmiserDevice(object):
     
     def readAll(self):
         try:
-            self.rawdata = self._adaptor.hmReadAllFromController(self._address, self._protocol, self.DCBlength)
+            self.rawdata = self._adaptor.read_all_from_device(self._address, self._protocol, self.DCBlength)
         except serial.SerialException as e:
 
             logging.warn("C%i Read all failed, Serial Port error %s"%(self._address, str(e)))
@@ -208,7 +208,7 @@ class HeatmiserDevice(object):
                 try:
                         for firstfieldid, lastfieldid, blocklength in blockstoread:
                                 logging.debug("C%i Reading ui %i to %i len %i, proc %s to %s"%(self._address, fields[firstfieldid][FIELD_ADD],fields[lastfieldid][FIELD_ADD],blocklength,fields[firstfieldid][FIELD_NAME], fields[lastfieldid][FIELD_NAME]))
-                                rawdata = self._adaptor.hmReadFromController(self._address, self._protocol, fields[firstfieldid][FIELD_ADD], blocklength)
+                                rawdata = self._adaptor.read_from_device(self._address, self._protocol, fields[firstfieldid][FIELD_ADD], blocklength)
                                 self.lastreadtime = time.time()
                                 self._procpartpayload(rawdata, fields[firstfieldid][FIELD_NAME], fields[lastfieldid][FIELD_NAME])
                 except serial.SerialException as e:
@@ -231,7 +231,7 @@ class HeatmiserDevice(object):
                 try:
                         for firstfieldid, lastfieldid, blocklength in blockstoread:
                                 logging.debug("C%i Reading ui %i to %i len %i, proc %s to %s"%(self._address, fields[firstfieldid][FIELD_ADD],fields[lastfieldid][FIELD_ADD],blocklength,fields[firstfieldid][FIELD_NAME], fields[lastfieldid][FIELD_NAME]))
-                                rawdata = self._adaptor.hmReadFromController(self._address, self._protocol, fields[firstfieldid][FIELD_ADD], blocklength)
+                                rawdata = self._adaptor.read_from_device(self._address, self._protocol, fields[firstfieldid][FIELD_ADD], blocklength)
                                 self.lastreadtime = time.time()
                                 self._procpartpayload(rawdata, fields[firstfieldid][FIELD_NAME], fields[lastfieldid][FIELD_NAME])
                 except serial.SerialException as e:
@@ -293,11 +293,11 @@ class HeatmiserDevice(object):
         #estimates read time for a set of blocks, including the COM_BUS_RESET_TIME between blocks
         #excludes the COM_BUS_RESET_TIME before first block
         readtimes = [self._estimateReadTime(x[2]) for x in blocks]
-        return sum(readtimes) + self._adaptor.minTimeBetweenReads() * (len(blocks) - 1)
+        return sum(readtimes) + self._adaptor.min_time_between_reads() * (len(blocks) - 1)
     
     @staticmethod
     def _estimateReadTime(length):
-        #estiamtes the read time for a call to hmReadFromController without COM_BUS_RESET_TIME
+        #estiamtes the read time for a call to read_from_device without COM_BUS_RESET_TIME
         #based on empirical measurements of one prt_hw_model and 5 prt_e_model
         return length * 0.002075 + 0.070727
     
@@ -452,7 +452,7 @@ class HeatmiserDevice(object):
                 pay_hi = (payload >> 8) & BYTEMASK
                 payload = [pay_lo, pay_hi]
         try:
-                self._adaptor.hmWriteToController(self._address, self._protocol, fieldinfo[FIELD_ADD], fieldinfo[FIELD_LEN], payload)
+                self._adaptor.write_to_device(self._address, self._protocol, fieldinfo[FIELD_ADD], fieldinfo[FIELD_LEN], payload)
         except:
                 logging.info("C%i failed to set field %s to %s"%(self._address, fieldname.ljust(FIELD_NAME_LENGTH), ', '.join(str(x) for x in payload)))
                 raise
