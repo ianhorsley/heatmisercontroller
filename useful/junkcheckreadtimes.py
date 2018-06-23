@@ -5,7 +5,7 @@ import logging
 
 from heatmisercontroller.logging_setup import initialize_logger
 from heatmisercontroller.hm_constants import *
-from heatmisercontroller.network import HeatmiserNetwork()
+from heatmisercontroller.network import HeatmiserNetwork
 from heatmisercontroller.exceptions import hmResponseError
 
 initialize_logger('logs', logging.WARN, True)

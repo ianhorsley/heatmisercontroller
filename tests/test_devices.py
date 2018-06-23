@@ -12,6 +12,9 @@ from mock_serial import setupTestClass
 
 class ArgumentStore(object):
     """Class used to replace class method allowing arguments to be captured"""
+    def __init__(self):
+        self.arguments = ()
+    
     def store(self, *args):
         """Method used to replace other writing methods"""
         self.arguments = args
@@ -46,10 +49,10 @@ class TestReadingData(unittest.TestCase):
         #self.func = HeatmiserDevice(None, 1, HMV3_ID, 'test', 'test controller', 'prt_hw_model', PROG_MODE_DAY)
         self.settings = {'address':1, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_hw_model', 'expected_prog_mode':PROG_MODE_DAY}
         self.settings2 = {'address':1, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_e_model', 'expected_prog_mode':PROG_MODE_DAY, 'autoreadall':True}
+        self.func = HeatmiserDevice(None, self.settings)
             
     def test_procfield(self):
         #unique_address, length, divisor, valid range
-        self.func = HeatmiserDevice(None, self.settings)
         self.func._procfield([1], ['test', 0,  1,  1,  []])
         self.func._procfield([1], ['test', 0,  1,  1,  [0, 1]])
         self.func._procfield([1, 1], ['test', 0, 2, 1, [0, 257]])
@@ -57,12 +60,10 @@ class TestReadingData(unittest.TestCase):
         self.func._procfield([PROG_MODES[PROG_MODE_DAY]], ['programmode', 0, 1, 1, []])
         
     def test_procfield_range(self):
-        self.func = HeatmiserDevice(None, self.settings)
         with self.assertRaises(HeatmiserResponseError):
             self.func._procfield([3], ['test', 0, 1, 1, [0, 1]])
             
     def test_procfield_model(self):
-        self.func = HeatmiserDevice(None, self.settings)
         with self.assertRaises(HeatmiserResponseError):
             self.func._procfield([3], ['model', 0, 1, 1, []])
         
@@ -70,14 +71,12 @@ class TestReadingData(unittest.TestCase):
         print "tz %i alt tz %i"%(time.timezone, time.altzone)
         goodmessage = [1, 37, 0, 22, 4, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 38, 1, 9, 12, 28, 1, 1, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 220, 0, 0, 0, 3, 14, 49, 36, 7, 0, 19, 9, 30, 10, 17, 0, 19, 21, 30, 10, 7, 0, 19, 21, 30, 10, 24, 0, 5, 24, 0, 5, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 8, 0, 9, 0, 18, 0, 19, 0, 24, 0, 24, 0, 24, 0, 24, 0, 7, 0, 20, 21, 30, 12, 24, 0, 12, 24, 0, 12, 7, 0, 20, 21, 30, 12, 24, 0, 12, 24, 0, 12, 7, 0, 19, 8, 30, 12, 16, 30, 20, 21, 0, 12, 7, 0, 20, 12, 0, 12, 17, 0, 20, 21, 30, 12, 5, 0, 20, 21, 30, 12, 24, 0, 12, 24, 0, 12, 7, 0, 20, 12, 0, 12, 17, 0, 20, 21, 30, 12, 7, 0, 12, 24, 0, 12, 24, 0, 12, 24, 0, 12, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0]
 
-        self.func = HeatmiserDevice(None, self.settings)
         self.func.autocorrectime = False
         basetime = (6 - 2) * 86400 + 53376.0 + year2000
         self.func.lastreadtime = basetime - get_offset(basetime)
         self.func._procpayload(goodmessage)
 
     def test_procpartpayload(self):
-        self.func = HeatmiserDevice(None, self.settings)
         self.func._procpartpayload([0, 1], 'tempholdmins', 'tempholdmins')
         self.assertEqual(1, self.func.tempholdmins)
         self.func._procpartpayload([0, 1, 0, 0, 0, 0, 0, 0], 'tempholdmins', 'airtemp')
@@ -138,15 +137,16 @@ class TestReadingData(unittest.TestCase):
         
 class TestOtherFunctions(unittest.TestCase):
     """Unittests for other functions"""
-    def test_get_dcb_address(self):
+    def setUp(self):
         self.settings = {'address':1, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_e_model', 'expected_prog_mode':PROG_MODE_DAY}
+    
+    def test_get_dcb_address(self):
         self.func = HeatmiserDevice(None, self.settings)
         self.assertEqual(0, self.func._get_dcb_address(0))
         self.assertEqual(24, self.func._get_dcb_address(24))
         self.assertEqual(DCB_INVALID, self.func._get_dcb_address(26))
         
     def test_getfieldblocks(self):
-        self.settings = {'address':1, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_e_model', 'expected_prog_mode':PROG_MODE_DAY}
         self.func = HeatmiserDevice(None, self.settings)
         from heatmisercontroller.hm_constants import fields
         print fields[25],fields[29]
@@ -157,7 +157,6 @@ class TestOtherFunctions(unittest.TestCase):
         self.assertEqual([[0, 22, 26], [24, 29, 10], [31, 33, 28], [36, 42, 84]], self.func._get_field_blocks_from_range('DCBlen', 'sun_water'))
         
     def test_checkblock4(self):
-        self.settings = {'address':1, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_e_model', 'expected_prog_mode':PROG_MODE_DAY}
         self.func = HeatmiserDevice(None, self.settings)
         #print 'DCBlen','sun_water'
         #print self.func._getFieldBlocks('DCBlen','sun_water')
@@ -167,7 +166,6 @@ class TestOtherFunctions(unittest.TestCase):
         #print (timer()-start)/1000
         
     def test_buildDCBtables(self):
-        self.settings = {'address':1, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_e_model', 'expected_prog_mode':PROG_MODE_DAY}
         self.func = HeatmiserDevice(None, self.settings)
         self.func._build_dcb_tables()
         expected = [[0, 0], [25, 25], [26, None], [31, None], [32, 26], [186, 147], [187, None], [298, None]]

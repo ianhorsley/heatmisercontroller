@@ -35,8 +35,10 @@ class HeatmiserDevice(object):
         self._fieldsvalid = []
         self._buildfieldtables()
         self.data = dict.fromkeys(self._fieldnametonum.keys(), None)
+        self.floorlimiting = None
         self.datareadtime = dict.fromkeys(self._fieldnametonum.keys(), None)
-
+        self.timeerr = None
+        
         self._update_settings(devicesettings, generalsettings)
 
         self.rawdata = [None] * self.dcb_length
