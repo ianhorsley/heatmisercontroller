@@ -164,7 +164,7 @@ class test_other_functions(unittest.TestCase):
     def test_buildDCBtables(self):
         self.settings = {'address':1,'protocol':HMV3_ID,'long_name':'test controller','expected_model':'prt_e_model','expected_prog_mode':PROG_MODE_DAY}
         self.func = HeatmiserDevice(None, self.settings)
-        self.func._buildDCBtables()
+        self.func._build_dcb_tables()
         expected = [[0,0],[25,25],[26,None],[31,None],[32,26],[186,147],[187,None],[298,None]]
         for u,d in expected:
             self.assertEqual(d,self.func._uniquetodcb[u])
