@@ -13,8 +13,6 @@ from heatmisercontroller.hm_constants import *
 from heatmisercontroller.network import *
 from heatmisercontroller.exceptions import hmResponseError
 
-
-
 initialize_logger('logs', logging.WARN, True)
 hmn1 = HeatmiserNetwork()
 
@@ -31,15 +29,15 @@ print stat.DCBlength
 
 import numpy as np
 
-def all():
+def testall():
     print "All No proc"
     times = []
-    for i in range(tests):
+    for _ in range(tests):
         try:
             start = timer()
             hmn1.adaptor.hmReadAllFromController(address, HMV3_ID, bcdlen)
             times.append(timer() - start - hmn1.adaptor.serport.COM_BUS_RESET_TIME) 
-        except:
+        except hmResponseError:
             print "errored"
             time.sleep(5)
     print "%.3f"%np.median(times), len(times)
@@ -47,13 +45,13 @@ def all():
 def test(number):
     print "%i No proc"%number
     times = []
-    for i in range(tests):
+    for _ in range(tests):
         try:
             start = timer()
             hmn1.adaptor.hmReadFromController(address, HMV3_ID, uniadd[field][UNIADD_ADD], number)
             times.append(timer() - start - hmn1.adaptor.serport.COM_BUS_RESET_TIME) 
-        except:
-            pass        
+        except hmResponseError:
+            print "errored"
     print "%.3f"%np.median(times), len(times)
 
 
@@ -61,4 +59,4 @@ tests = 30
 cases = [1,150,200,250]
 for i in cases:
     test(i)
-all()
+testall()

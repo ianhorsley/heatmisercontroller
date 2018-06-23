@@ -21,7 +21,7 @@ hmn1 = HeatmiserNetwork()
 # CYCLE THROUGH ALL CONTROLLERS
 for current_controller in hmn1.controllers:
   print "\r\nGetting all data control %2d in %s *****************************" % (current_controller._address, current_controller._long_name)
-  
+
   try:
     current_controller.readAll()
   except hmResponseError as e:
@@ -53,7 +53,7 @@ while True:
       current_controller.readFields(fieldnames, 0) #force get on these fields
     except hmResponseError as e:
       print "C%d in %s Failed to Read due to %s" % (current_controller._address,  current_controller._name.ljust(4),str(e))
-    else: 
+    else:
       targettext = current_controller.printTarget()
       disptext = "C%d in %s Air Temp is %.1f from type %.f, %s, Heat %d" % (current_controller._address,  current_controller._name.ljust(4), current_controller.readAirTemp(), current_controller.readAirSensorType(), targettext, current_controller.heatingdemand)
       

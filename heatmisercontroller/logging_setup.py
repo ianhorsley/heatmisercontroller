@@ -32,7 +32,7 @@ def initialize_logger(output_dir, screenlevel, debugLog = None):
     #a is append, w is write
     if debugLog != None:
       #create debug file handler and set level to debug
-      handler = RotatingFileHandler(os.path.join(output_dir, "all.log"), mode='a', maxBytes=5*1024*1024, 
+      handler = RotatingFileHandler(os.path.join(output_dir, "all.log"), mode='a', maxBytes=5*1024*1024,
                                    backupCount=2, encoding=None, delay=0)
       #handler = logging.FileHandler(os.path.join(output_dir, "all.log"),"w", encoding=None, delay="true")
       handler.setLevel(logging.DEBUG)

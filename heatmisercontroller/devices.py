@@ -15,7 +15,6 @@
 import logging
 import time
 import serial
-from datetime import datetime
 
 from hm_constants import *
 from .exceptions import hmResponseError, hmControllerTimeError
@@ -30,7 +29,7 @@ class hmController(object):
   def __init__(self, adaptor, devicesettings, generalsettings = None):
     #address, protocol, short_name, long_name, model, mode
     self._adaptor = adaptor
-    
+
     self.water_schedule = None
         
     #initialise data structures
@@ -43,7 +42,7 @@ class hmController(object):
     self.rawdata = [None] * self.DCBlength
   
   def _update_settings(self, settings, generalsettings):
-    """Check settings and update if needed."""   
+    """Check settings and update if needed."""
     
     if not generalsettings is None:
         for name, value in generalsettings.iteritems():
@@ -133,7 +132,7 @@ class hmController(object):
         maxage = fields[self._fieldnametonum[fieldname]][FIELD_MAX_AGE]
       else:
         maxage = maxagein
-      #now check time  
+      #now check time
       if time.time() - self.datareadtime[fieldname] > maxage:
         logging.debug("C%i data item %s too old"%(self._address, fieldname))
         return False
@@ -284,21 +283,22 @@ class hmController(object):
       inblock = [id for id in fieldids if block[0] <= id <= block[1]]
       if len(inblock) > 0:
         #if single read is shorter than individual
-        readlen = fields[max(inblock)][FIELD_LEN] + fields[max(inblock)][FIELD_ADD] - fields[min(inblock)][FIELD_ADD] 
+        readlen = fields[max(inblock)][FIELD_LEN] + fields[max(inblock)][FIELD_ADD] - fields[min(inblock)][FIELD_ADD]
         if self._estimateReadTime(readlen) < sum([ self._estimateReadTime(fields[id][FIELD_LEN]) for id in inblock]):
           readblocks.append([min(inblock),max(inblock),readlen])
         else:
-          for id in inblock:
-            readblocks.append([id,id,fields[id][FIELD_LEN]])
+          for ids in inblock:
+            readblocks.append([ids,ids,fields[ids][FIELD_LEN]])
     return readblocks
   
   def _estimateBlocksReadTime(self,blocks):
-    #estimates read time for a set of blocks, including the COM_BUS_RESET_TIME between blocks 
+    #estimates read time for a set of blocks, including the COM_BUS_RESET_TIME between blocks
     #excludes the COM_BUS_RESET_TIME before first block
     readtimes = [self._estimateReadTime(x[2]) for x in blocks]
     return sum(readtimes) + self._adaptor.minTimeBetweenReads() * (len(blocks) - 1)
   
-  def _estimateReadTime(self,length):
+  @staticmethod
+  def _estimateReadTime(length):
     #estiamtes the read time for a call to hmReadFromController without COM_BUS_RESET_TIME
     #based on empirical measurements of one prt_hw_model and 5 prt_e_model
     return length * 0.002075 + 0.070727
@@ -307,7 +307,7 @@ class hmController(object):
     fieldname = fieldinfo[FIELD_NAME]
     length = fieldinfo[FIELD_LEN]
     factor = fieldinfo[FIELD_DIV]
-    range = fieldinfo[FIELD_RANGE]
+    fieldrange = fieldinfo[FIELD_RANGE]
     #logging.debug("Processing %s %s"%(fieldinfo[FIELD_NAME],', '.join(str(x) for x in data)))
     if length == 1:
       value = data[0]/factor
@@ -326,8 +326,8 @@ class hmController(object):
     else:
       raise ValueError("_procpayload can't process field length")
   
-    if len(range) == 2 and isinstance(range[0], (int, long)) and isinstance(range[1], (int, long)):
-      if value < range[0] or value > range[1]:
+    if len(fieldrange) == 2 and isinstance(fieldrange[0], (int, long)) and isinstance(fieldrange[1], (int, long)):
+      if value < fieldrange[0] or value > fieldrange[1]:
         raise hmResponseError("Field value %i outside expected range"%value)
     
     if fieldname == 'DCBlen' and value != self.DCBlength:
@@ -395,7 +395,7 @@ class hmController(object):
       else:
         raise
   
-  def _comparecontrollertime(self):       
+  def _comparecontrollertime(self):
     # Now do same sanity checking
     # Check the time is within range
     # currentday is numbered 1-7 for M-S
@@ -418,7 +418,8 @@ class hmController(object):
     if (self.timeerr > TIME_ERR_LIMIT):
         raise hmControllerTimeError("C%2d Time Error %d greater than %d: local is %s, sensor is %s" % (self._address, self.timeerr, TIME_ERR_LIMIT, localweeksecs, remoteweeksecs))
 
-  def _localtimearray(self, timenow = time.time()):
+  @staticmethod
+  def _localtimearray(timenow = time.time()):
     #creates an array in heatmiser format for local time. Day 1-7, 1=Monday
     #input time.time() (not local)
     localtimenow = time.localtime(timenow)
@@ -442,7 +443,7 @@ class hmController(object):
     
     if len(fieldinfo) < FIELD_WRITE + 1 or fieldinfo[FIELD_WRITE] != 'W':
         #check that write is part of field info and is 'W'
-        raise ValueError("setField: field isn't writeable")        
+        raise ValueError("setField: field isn't writeable")
                
     self._checkPayloadValues(payload, fieldinfo)
 
@@ -473,7 +474,8 @@ class hmController(object):
     
     self._procpartpayload(payload,fieldname,fieldname)
     
-  def _checkPayloadValues(self, payload, fieldinfo):
+  @staticmethod
+  def _checkPayloadValues(payload, fieldinfo):
       #check the payload matches field details
       
       if fieldinfo[FIELD_LEN] in [1, 2] and not isinstance(payload, (int, long)):
@@ -483,7 +485,7 @@ class hmController(object):
           #greater than two byte field, payload length must match field length
           raise ValueError("setField: invalid payload length")
   
-      #checks the payload matches the ranges if ranges are defined 
+      #checks the payload matches the ranges if ranges are defined
       ranges = fieldinfo[FIELD_RANGE]
       if ranges != []:
           if isinstance(payload, (int, long)):
@@ -491,8 +493,8 @@ class hmController(object):
                   raise ValueError("setField: payload out of range")
           else:
               for i, item in enumerate(payload):
-                  range = ranges[i % len(ranges)]
-                  if item < range[0] or item > range[1]:
+                  r = ranges[i % len(ranges)]
+                  if item < r[0] or item > r[1]:
                       raise ValueError("setField: payload out of range")
   
   ## External functions for printing data
@@ -557,7 +559,7 @@ class hmController(object):
     else:
     
       if not self._check_data_age(['currenttime'],MAX_AGE_MEDIUM):
-        currenttime = self.readTime()
+        self.readTime()
       
       locatimenow = self._localtimearray()
       scheduletarget = self.heat_schedule.getCurrentScheduleItem(locatimenow)
@@ -580,7 +582,7 @@ class hmController(object):
     else:
     
       if not self._check_data_age(['currenttime'], MAX_AGE_MEDIUM):
-        currenttime = self.readTime()
+        self.readTime()
       
       locatimenow = self._localtimearray()
       scheduletarget = self.water_schedule.getCurrentScheduleItem(locatimenow)
@@ -603,7 +605,7 @@ class hmController(object):
       
   def readAirTemp(self):
     #if not read before read sensorsavaliable field
-    self.readField('sensorsavaliable',None) 
+    self.readField('sensorsavaliable',None)
     
     if self.sensorsavaliable == READ_SENSORS_AVALIABLE_INT_ONLY or self.sensorsavaliable == READ_SENSORS_AVALIABLE_INT_FLOOR:
       return self.readField('airtemp', self._max_age_temp)
@@ -645,8 +647,8 @@ class hmController(object):
       timenow = time.time() + 0.5 #allow a little time for any delay in setting
       return self.setField('currenttime',self._localtimearray(timenow))
 
-  #overriding      
-      
+  #overriding
+
   def setTemp(self, temp) :
     #sets the temperature demand overriding the program. Believe it returns at next prog change.
     if self.readField('tempholdmins') == 0: #check hold temp not applied
@@ -659,7 +661,7 @@ class hmController(object):
     if self.readField('tempholdmins') == 0: #check hold temp not applied
       return self.setField('tempholdmins',0)
     else:
-      logging.warn("%i address, temp hold applied so won't remove set temp"%(self._address))     
+      logging.warn("%i address, temp hold applied so won't remove set temp"%(self._address))
 
   def holdTemp(self, minutes, temp) :
     #sets the temperature demand overrding the program for a set time. Believe it then returns to program.
@@ -727,30 +729,30 @@ class hmBroadcastController(hmController):
       
     @func_on_all(_controllerlist)
     def readAirTemp(self):
-        logging.info("All reading AirTemps from %i controllers"%(len(self._controllerlist.list)))
+        pass
     
     @func_on_all(_controllerlist)
     def readTempState(self):
-        logging.info("All reading TempStates from %i controllers"%(len(self._controllerlist.list)))
+        pass
     
     @func_on_all(_controllerlist)
     def readWaterState(self):
-        logging.info("All reading WaterStates from %i controllers"%(len(self._controllerlist.list)))
+        pass
     
     @func_on_all(_controllerlist)
     def readAirSensorType(self):
-        logging.info("All reading AirSensorTypes from %i controllers"%(len(self._controllerlist.list)))
-    
+        pass
+        
     @func_on_all(_controllerlist)
     def readTime(self, maxage = 0):
-        logging.info("All reading Times from %i controllers"%(len(self._controllerlist.list)))
-        
+        pass
+    
     #run set functions which require a read on all stats
     @func_on_all(_controllerlist)
-    def setTemp(self, temp) :
-        logging.info("All set Temp on %i controllers"%(len(self._controllerlist.list)))
+    def setTemp(self, temp):
+        pass
     
     @func_on_all(_controllerlist)
-    def releaseTemp(self) :
-        logging.info("All release Temp on %i controllers"%(len(self._controllerlist.list)))
+    def releaseTemp(self):
+        pass
 

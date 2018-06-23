@@ -1,7 +1,3 @@
-"""
-
-
-"""
 
 import time
 import logging
@@ -21,11 +17,11 @@ dictionary with the following keys:
         'controller': a dictionary containing general settings
         'serial': a dictionary containing the serial port settings
         'devices': a dictionary containing the configuration of each remote device
-        'setup': 
+        'setup':
 
         The controller settings are:
         'loglevel': the logging level
-        
+
         ###interfacers and reporters are dictionaries with the following keys:
         ###'Type': class name
         ###'init_settings': dictionary with initialization settings
@@ -36,7 +32,7 @@ dictionary with the following keys:
 The run() method is supposed to be run regularly by the instantiator, to
 perform regular communication tasks.
 
-The check_settings() method is run regularly as well. It checks the settings 
+The check_settings() method is run regularly as well. It checks the settings
 and returns True is settings were changed.
 
 This almost empty class is meant to be inherited by subclasses specific to
@@ -47,16 +43,15 @@ each setup.
 class HeatmiserControllerSetup(object):
 
     def __init__(self):
-        
         # Initialize logger
         self._log = logging.getLogger("HeatmiserController")
-        
+
         # Initialize settings
         self.settings = None
 
     def run(self):
-        """Run in background. 
-        
+        """Run in background.
+
         To be implemented in child class.
 
         """
@@ -136,7 +131,7 @@ class HeatmiserControllerFileSetup(HeatmiserControllerSetup):
             self._settings_update_timestamp = now + self._c_retry_time_interval
             return
         except SyntaxError as e:
-            self._log.warning('Could not get settings: ' + 
+            self._log.warning('Could not get settings: ' +
                               'Error parsing config file: ' + str(e) + self.retry_msg)
             self._settings_update_timestamp = now + self._c_retry_time_interval
             return
@@ -164,7 +159,8 @@ class HeatmiserControllerFileSetup(HeatmiserControllerSetup):
 
             # Check the settings file sections exist
             for name in self._sections:
-                self.settings[name]
+                if not name in self.settings:
+                    raise KeyError("Section %s not defined"%name)
         except (ValueError, KeyError) as e:
             logging.warning("Configuration parse failed : " + str(e))
             raise

@@ -4,7 +4,6 @@
 
 import unittest
 import logging
-import serial
 
 from heatmisercontroller.framing import _hmCheckFrameCRC, _hmCheckResponseFrameLength, _hmCheckResponseFrameAddresses, _hmCheckResponseFrameFunc, _hmVerifyResponse, _hmFormFrame
 #from heatmisercontroller.framing import crc16
@@ -19,7 +18,7 @@ class test_framing(unittest.TestCase):
     self.goodresponsemessage = [129, 12, 0, 5, 0, 10, 0, 01, 00, 255, 145, 201]
     self.goodackmessage = [129, 7, 0, 5, 1, 116, 39]
     self.badackmessage = [129, 8, 0, 5, 1, 116, 39] # length doesn't match header and crc wrong
-  
+
   #crc
   def test_framecheckcrc_short(self):
 #    self.assertTrue(True)
@@ -70,7 +69,7 @@ class test_framing(unittest.TestCase):
   def test_framecheckaddresses_source_range(self):
     with self.assertRaises(hmResponseError):
       _hmCheckResponseFrameAddresses(HMV3_ID, 33, 129, [129, 7, 0, 33, 1, 116, 39])      
-      
+
   def test_framecheckaddresses_dest_range(self):
     with self.assertRaises(hmResponseError):
       _hmCheckResponseFrameAddresses(HMV3_ID, 5, 128, [128, 7, 0, 5, 1, 116, 39])
@@ -81,11 +80,11 @@ class test_framing(unittest.TestCase):
 
   def test_framecheckfunction_wrong(self):
     with self.assertRaises(hmResponseError):
-      _hmCheckResponseFrameFunc(HMV3_ID, 1, self.goodresponsemessage) 
+      _hmCheckResponseFrameFunc(HMV3_ID, 1, self.goodresponsemessage)
   
   def test_framecheckfunction_range(self):
     with self.assertRaises(hmResponseError):
-      _hmCheckResponseFrameFunc(HMV3_ID, 2, [129, 7, 0, 5, 2, 116, 39]) 
+      _hmCheckResponseFrameFunc(HMV3_ID, 2, [129, 7, 0, 5, 2, 116, 39])
   
   #verify
   def test_framecheck_good(self):
@@ -103,12 +102,12 @@ class test_framing(unittest.TestCase):
     
   def test_form_good_read(self):
     ret = _hmFormFrame(5, HMV3_ID, 129, 0, 34, 8, [])
-    self.assertEqual(ret, self.goodreadmessage)    
+    self.assertEqual(ret, self.goodreadmessage)
 
   def test_form_bad_length(self):
     with self.assertRaises(ValueError):
-      ret = _hmFormFrame(5, HMV3_ID, 129, 1, 34, 10, [255])
+      _hmFormFrame(5, HMV3_ID, 129, 1, 34, 10, [255])
       
   def test_form_bad_prot(self):
     with self.assertRaises(ValueError):
-      ret = _hmFormFrame(5, HMV3_ID+99, 129, 1, 34, 1, [255])
+      _hmFormFrame(5, HMV3_ID+99, 129, 1, 34, 1, [255])

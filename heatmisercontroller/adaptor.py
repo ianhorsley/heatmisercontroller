@@ -15,38 +15,38 @@ import serial
 from hm_constants import *
 import framing
 from .exceptions import hmResponseError, hmResponseErrorCRC
- 
+
 def retryer(max_retries=3):
     def wraps(func):
 
         def inner(*args, **kwargs):
+            lasterror = None
             for i in range(max_retries):
                 if i is not 0:
                     logging.warn("Gen retrying due to %s"%str(lasterror))
-                try:        
+                try:
                     result = func(*args, **kwargs)
                 except hmResponseError as e:
                     lasterror = e
                     continue
                 else:
                     return result
-            else:
-                raise hmResponseError("Failed after %i retries on %s"%(max_retries,str(lasterror))) 
+            raise hmResponseError("Failed after %i retries on %s"%(max_retries,str(lasterror)))
         return inner
     return wraps
-        
+
 class Heatmiser_Adaptor(object):
 
     def __init__(self, setup):
-    
+
         # Initialize setup and get settings
         self._setup = setup
         settings = self._setup.settings
         
         self.serport = serial.Serial()
-        self.serport.bytesize = COM_SIZE = serial.EIGHTBITS
-        self.serport.parity = COM_PARITY = serial.PARITY_NONE
-        self.serport.stopbits = COM_STOP = serial.STOPBITS_ONE
+        self.serport.bytesize = serial.EIGHTBITS #COM_SIZE
+        self.serport.parity = serial.PARITY_NONE #COM_PARITY
+        self.serport.stopbits = serial.STOPBITS_ONE #COM_STOP
         
         self.lastsendtime = None
         self.creationtime = time.time()
@@ -61,12 +61,12 @@ class Heatmiser_Adaptor(object):
 ###
 
     def _update_settings(self, settings):
-        """Check settings and update if needed."""     
+        """Check settings and update if needed."""
         
         for name, value in settings['controller'].iteritems():
             setattr(self, name, value)
         
-        # Configure serial settings         
+        # Configure serial settings
                 
         wasopen = False
         if self.serport.isOpen():
@@ -121,7 +121,7 @@ class Heatmiser_Adaptor(object):
             string = ''.join(map(chr,message))
 
             try:
-                written = self.serport.write(string)    # Write a string
+                self.serport.write(string)    # Write a string
             except serial.SerialTimeoutException as e:
                 self.serport.close() #need to close so that isOpen works correctly.
                 logging.warning("Write timeout error: %s, sending %s" % (e, ', '.join(str(x) for x in message)))
@@ -143,7 +143,7 @@ class Heatmiser_Adaptor(object):
             if self.serport.isOpen():
                 self.serport.reset_input_buffer() #reset input buffer and dump any contents
             logging.warning("Input buffer cleared")
-        except serial.SerialException as e:
+        except serial.SerialException:
             self.serport.close()
             logging.warning("Failed to clear input buffer")
             raise
@@ -197,7 +197,7 @@ class Heatmiser_Adaptor(object):
         
         try:
             self._hmSendMsg(msg)
-        except Exception as e:
+        except Exception:
             logging.warn("C%i writing to address, no message sent"%(network_address))
             raise
         else:
