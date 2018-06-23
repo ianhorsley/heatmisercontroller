@@ -15,7 +15,7 @@ import serial
 
 from hm_constants import *
 from .exceptions import HeatmiserResponseError, HeatmiserControllerTimeError
-from schedule_functions import schedulerdayheat, schedulerweekheat, schedulerdaywater, schedulerweekwater, SCH_ENT_TEMP
+from schedule_functions import SchedulerDayHeat, SchedulerWeekHeat, SchedulerDayWater, SchedulerWeekWater, SCH_ENT_TEMP
 from decorators import ListWrapperClass, run_function_on_all
 
 class HeatmiserDevice(object):
@@ -31,6 +31,8 @@ class HeatmiserDevice(object):
         self.water_schedule = None
                 
         #initialise data structures
+        self._uniquetodcb = []
+        self._fieldsvalid = []
         self._buildfieldtables()
         self.data = dict.fromkeys(self._fieldnametonum.keys(),None)
         self.datareadtime = dict.fromkeys(self._fieldnametonum.keys(),None)
@@ -50,13 +52,13 @@ class HeatmiserDevice(object):
             setattr(self, '_' + name, value)
             
         if self._expected_prog_mode == PROG_MODE_DAY:
-            self.heat_schedule = schedulerdayheat()
+            self.heat_schedule = SchedulerDayHeat()
             if self.isHotWater():
-                self.water_schedule = schedulerdaywater()
+                self.water_schedule = SchedulerDayWater()
         elif self._expected_prog_mode == PROG_MODE_WEEK:
-            self.heat_schedule = schedulerweekheat()
+            self.heat_schedule = SchedulerWeekHeat()
             if self.isHotWater():
-                self.water_schedule = schedulerweekwater()
+                self.water_schedule = SchedulerWeekWater()
         else:
             raise ValueError("Unknown program mode")
         
@@ -102,7 +104,7 @@ class HeatmiserDevice(object):
         for uniquemax, offsetsel in self.DCBmap:
                 self._uniquetodcb[0:uniquemax + 1] = [x - offsetsel for x in range(uniquemax + 1)] if not offsetsel is DCB_INVALID else [DCB_INVALID] * (uniquemax + 1)
         
-        #build list of valid fields for this stat
+        #build list of valid fields for this device
         self._fieldsvalid = [False] * len(fields)
         for first, last in self._fieldranges:
             self._fieldsvalid[self._fieldnametonum[first]: self._fieldnametonum[last] + 1] = [True] * (self._fieldnametonum[last] - self._fieldnametonum[first] + 1)

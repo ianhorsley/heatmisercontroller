@@ -189,8 +189,8 @@ class HeatmiserAdaptor(object):
     @retryer(max_retries = 3)
     def write_to_device(self, network_address, protocol, unique_address, length, payload):
         """Forms write frame and sends to serial link checking the acknowledgement"""
-        msg = framing._form_frame(network_address, protocol, self.my_master_addr, FUNC_WRITE, unique_address, length, payload)
-        
+        msg = framing.form_frame(network_address, protocol, self.my_master_addr,
+                                 FUNC_WRITE, unique_address, length, payload)
         try:
             self._send_message(msg)
         except Exception:
