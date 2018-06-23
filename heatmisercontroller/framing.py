@@ -7,10 +7,10 @@ from .exceptions import HeatmiserResponseError, HeatmiserResponseErrorCRC
 ### low level framing functions
 
 def _form_read_frame(destination, protocol, source, start, length):
-    return _form_frame(destination, protocol, source, FUNC_READ, start, length, [])
+    return form_frame(destination, protocol, source, FUNC_READ, start, length, [])
 
 # TODO check master address is in legal range
-def _form_frame(destination, protocol, source, function, start, length, payload):
+def form_frame(destination, protocol, source, function, start, length, payload):
     """Forms a message payload, including CRC"""
     if protocol != HMV3_ID:
         raise ValueError("Protocol unknown")

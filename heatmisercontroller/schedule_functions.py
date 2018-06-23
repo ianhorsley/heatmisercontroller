@@ -19,6 +19,7 @@ SCH_ENT_TEMP = 3
 HOUR_MINUTES = 60
 
 class Scheduler(object):
+    """General Schedule base class, providing a set of inherited methods"""
     #entry is a day or week/end, item is a part within the entry
     fieldbase = None
     fieldnames = ['mon', 'tues', 'wed', 'thurs', 'fri', 'sat', 'sun', 'wday', 'wend']
@@ -28,7 +29,7 @@ class Scheduler(object):
             self.entrynames = [x + self.fieldbase for x in self.entrynames]
             self.fieldnames = [x + self.fieldbase for x in self.fieldnames]
         self.entries = dict.fromkeys(self.fieldnames, None)
-        
+
     def set_raw_all(self, schedule):
         """Set all fields to same schedule"""
         for entry in self.fieldnames:
@@ -41,19 +42,19 @@ class Scheduler(object):
         if not len(schedule) is self.valuesperentry * self.entriesperday:
             raise ValueError('Schedule entry wrong length %i'%len(entry))
         self.entries[entry] = schedule
-        
+
     def pad_schedule(self, schedule):
         """Pads a partial schedule up to correct length"""
         if not len(schedule)%self.valuesperentry == 0:
             raise IndexError("Schedule length not multiple of %d"%self.valuesperentry)
         pad_item = [HOUR_UNUSED, 0, 12][0:self.valuesperentry]
-    
+
         return schedule + pad_item * ((self.valuesperentry * self.entriesperday - len(schedule))/self.valuesperentry)
-        
+
     def display(self):
         """Prints schedule to stdout"""
         print self.title + " Schedule"
-        
+
         for name, entry in itertools.izip(self.printnames, self.entrynames):
             if self.entries[entry] is None:
                 textstr = "None"
@@ -61,7 +62,7 @@ class Scheduler(object):
                 textstr = self.entry_text(self.entries[entry])
             print(name.ljust(10) + textstr)
             logging.info(textstr)
-    
+
     @staticmethod
     def _chunks(fulllist, chunklength):
         """Yield successive n-sized chunks from l."""
@@ -149,10 +150,9 @@ class Scheduler(object):
         #gets last valid schedule entry (not 24)
         scheduletarget = None
         for i in self._reversechunks(schedule, self.valuesperentry):
-                    if i[MAP_HOUR] != HOUR_UNUSED:
-                        scheduletarget = i
-                        break
-        
+            if i[MAP_HOUR] != HOUR_UNUSED:
+                scheduletarget = i
+                break
         return scheduletarget
 
 class SchedulerDay(Scheduler):
@@ -194,7 +194,7 @@ class SchedulerWater(Scheduler):
     entriesperday = 8
     fieldbase = '_water'
     
-    def entry_text(self,  data):
+    def entry_text(self, data):
         toggle = True
         count = 1
     

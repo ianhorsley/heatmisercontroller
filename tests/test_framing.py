@@ -5,7 +5,7 @@
 import unittest
 import logging
 
-from heatmisercontroller.framing import _check_frame_crc, _check_response_frame_length, _check_response_frame_addresses, _check_response_frame_function, _verify_response, _form_frame
+from heatmisercontroller.framing import _check_frame_crc, _check_response_frame_length, _check_response_frame_addresses, _check_response_frame_function, _verify_response, form_frame
 #from heatmisercontroller.framing import crc16
 from heatmisercontroller.exceptions import HeatmiserResponseError, HeatmiserResponseErrorCRC
 from heatmisercontroller.hm_constants import HMV3_ID
@@ -97,17 +97,17 @@ class test_framing(unittest.TestCase):
   #form
   def test_form_good_write(self):
   #self.goodwritemessage = [5, 11, 129, 1, 34, 0, 1, 0, 255, 193, 72] #sent message
-    ret = _form_frame(5, HMV3_ID, 129, 1, 34, 1, [255])
+    ret = form_frame(5, HMV3_ID, 129, 1, 34, 1, [255])
     self.assertEqual(ret, self.goodwritemessage)
     
   def test_form_good_read(self):
-    ret = _form_frame(5, HMV3_ID, 129, 0, 34, 8, [])
+    ret = form_frame(5, HMV3_ID, 129, 0, 34, 8, [])
     self.assertEqual(ret, self.goodreadmessage)
 
   def test_form_bad_length(self):
     with self.assertRaises(ValueError):
-      _form_frame(5, HMV3_ID, 129, 1, 34, 10, [255])
+      form_frame(5, HMV3_ID, 129, 1, 34, 10, [255])
       
   def test_form_bad_prot(self):
     with self.assertRaises(ValueError):
-      _form_frame(5, HMV3_ID+99, 129, 1, 34, 1, [255])
+      form_frame(5, HMV3_ID+99, 129, 1, 34, 1, [255])

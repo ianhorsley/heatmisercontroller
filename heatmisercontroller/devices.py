@@ -24,29 +24,29 @@ class HeatmiserDevice(object):
     lastreadtime = 0 #records last time of a successful read
 
     ## Initialisation functions and low level functions
-    def __init__(self, adaptor, devicesettings, generalsettings = None):
+    def __init__(self, adaptor, devicesettings, generalsettings=None):
         #address, protocol, short_name, long_name, model, mode
         self._adaptor = adaptor
 
         self.water_schedule = None
-                
+
         #initialise data structures
         self._uniquetodcb = []
         self._fieldsvalid = []
         self._buildfieldtables()
-        self.data = dict.fromkeys(self._fieldnametonum.keys(),None)
-        self.datareadtime = dict.fromkeys(self._fieldnametonum.keys(),None)
+        self.data = dict.fromkeys(self._fieldnametonum.keys(), None)
+        self.datareadtime = dict.fromkeys(self._fieldnametonum.keys(), None)
         
         self._update_settings(devicesettings, generalsettings)
 
-        self.rawdata = [None] * self.DCBlength
+        self.rawdata = [None] * self.dcb_length
     
     def _update_settings(self, settings, generalsettings):
         """Check settings and update if needed."""
         
         if not generalsettings is None:
-                for name, value in generalsettings.iteritems():
-                        setattr(self, '_' + name, value)
+            for name, value in generalsettings.iteritems():
+                setattr(self, '_' + name, value)
         
         for name, value in settings.iteritems():
             setattr(self, '_' + name, value)
@@ -70,41 +70,43 @@ class HeatmiserDevice(object):
         self._fieldranges = FIELDRANGES[self._expected_model][self._expected_prog_mode]
         
         if self._expected_model == 'prt_e_model':
-            self.DCBmap = PRTEmap[self._expected_prog_mode]
+            self.dcb_map = PRTEmap[self._expected_prog_mode]
         elif self._expected_model == 'prt_hw_model':
-            self.DCBmap = PRTHWmap[self._expected_prog_mode]
+            self.dcb_map = PRTHWmap[self._expected_prog_mode]
         elif self._expected_model == False:
-            self.DCBmap = STRAIGHTmap
+            self.dcb_map = STRAIGHTmap
         else:
             raise ValueError("Unknown model %s"%self._expected_model)
 
-        self._buildDCBtables()
+        self._build_dcb_tables()
         
         self._expected_model_number = DEVICE_MODELS[self._expected_model]
         
-        if self.DCBmap[0][1] != DCB_INVALID:
-            self.DCBlength = self.DCBmap[0][0] - self.DCBmap[0][1] + 1
-        elif self.DCBmap[1][1] != DCB_INVALID:
-            self.DCBlength = self.DCBmap[1][0] - self.DCBmap[1][1] + 1
+        if self.dcb_map[0][1] != DCB_INVALID:
+            self.dcb_length = self.dcb_map[0][0] - self.dcb_map[0][1] + 1
+        elif self.dcb_map[1][1] != DCB_INVALID:
+            self.dcb_length = self.dcb_map[1][0] - self.dcb_map[1][1] + 1
         else:
             raise ValueError("DCB map length not found")
 
-        self.fullreadtime = self._estimateReadTime(self.DCBlength)
+        self.fullreadtime = self._estimateReadTime(self.dcb_length)
         
-    def _getDCBaddress(self, uniqueaddress):
-        #get the DCB address for a controller from the unique address
+    def _get_dcb_address(self, uniqueaddress):
+        """get the DCB address for a controller from the unique address"""
         return self._uniquetodcb[uniqueaddress]
     
     def _buildfieldtables(self):
+        """build dict to map field name to index"""
         self._fieldnametonum = {}
         for key, data in enumerate(fields):
                 fieldname = data[FIELD_NAME]
                 self._fieldnametonum[fieldname] = key
                 
-    def _buildDCBtables(self):
-        #build a forward lookup table for the DCB values from uniqueaddress
+    def _build_dcb_tables(self):
+        """build list to map unique to dcb address and list of valid fields """
+        #build a forward lookup table for the DCB values from unique address
         self._uniquetodcb = range(MAX_UNIQUE_ADDRESS+1)
-        for uniquemax, offsetsel in self.DCBmap:
+        for uniquemax, offsetsel in self.dcb_map:
                 self._uniquetodcb[0:uniquemax + 1] = [x - offsetsel for x in range(uniquemax + 1)] if not offsetsel is DCB_INVALID else [DCB_INVALID] * (uniquemax + 1)
         
         #build list of valid fields for this device
@@ -115,11 +117,13 @@ class HeatmiserDevice(object):
         logging.debug("C%i Fieldsvalid %s"%(self.address,','.join(str(int(x)) for x in self._fieldsvalid)))
     
     def _check_data_age(self, fieldnames, maxagein = None):
-        #field data age is not more than maxage (in seconds)
-        #maxage = None, use the default from fields
-        #maxage = -1, only check if present
-        #maxage >=0, use maxage (0 is effectively always False)
-        #return False if old, True if recent
+        """Check field data age is not more than maxage (in seconds)
+        fieldnames can be list or string
+        
+        maxage = None, use the default from fields
+        maxage = -1, only check if present
+        maxage >=0, use maxage (0 is effectively always False)
+        return False if old, True if recent"""
         if len(fieldnames) == 0:
             raise ValueError("Must list at least one field")
         
@@ -142,6 +146,7 @@ class HeatmiserDevice(object):
         return True
         
     def _check_data_present(self, *fieldnames):
+        """Check field(s) has data"""
         if len(fieldnames) == 0:
             raise ValueError("Must list at least one field")
 
@@ -153,9 +158,9 @@ class HeatmiserDevice(object):
     
     ## Basic reading and getting functions
     
-    def readAll(self):
+    def read_all(self):
         try:
-            self.rawdata = self._adaptor.read_all_from_device(self.address, self._protocol, self.DCBlength)
+            self.rawdata = self._adaptor.read_all_from_device(self.address, self._protocol, self.dcb_length)
         except serial.SerialException as e:
 
             logging.warn("C%i Read all failed, Serial Port error %s"%(self.address, str(e)))
@@ -167,7 +172,8 @@ class HeatmiserDevice(object):
             self._procpayload(self.rawdata)
             return self.rawdata
 
-    def readField(self, fieldname, maxage = None):
+    def read_field(self, fieldname, maxage=None):
+        """Returns a fields value, gets from the device if to old"""
         #return field value
         #get field from network if
         # maxage = None, older than the default from fields
@@ -181,8 +187,8 @@ class HeatmiserDevice(object):
                 raise ValueError("Need to read %s first"%fieldname)
         return self.data[fieldname]
     
-    def readFields(self, fieldnames, maxage = None):
-     
+    def read_fields(self, fieldnames, maxage=None):
+        """Returns a list of field values, gets from the device if any are to old"""
         #find which fields need getting because to old
         fieldids = [self._fieldnametonum[fieldname] for fieldname in fieldnames if self._fieldsvalid[self._fieldnametonum[fieldname]] and (maxage == 0 or not self._check_data_age(fieldname, maxage))]
         
@@ -203,27 +209,27 @@ class HeatmiserDevice(object):
     def getFieldRange(self, firstfieldname, lastfieldname = None):
         #reads fieldrange from controller, safe for blocks crossing gaps in dcb
         if lastfieldname == None:
-                lastfieldname = firstfieldname
+            lastfieldname = firstfieldname
 
         blockstoread = self._getFieldBlocksFromRange(firstfieldname, lastfieldname)
         logging.debug(blockstoread)
         estimatedreadtime = self._estimateBlocksReadTime(blockstoread)
         
         if estimatedreadtime < self.fullreadtime - 0.02: #if to close to full read time, then read all
-                try:
-                        for firstfieldid, lastfieldid, blocklength in blockstoread:
-                                logging.debug("C%i Reading ui %i to %i len %i, proc %s to %s"%(self.address, fields[firstfieldid][FIELD_ADD],fields[lastfieldid][FIELD_ADD],blocklength,fields[firstfieldid][FIELD_NAME], fields[lastfieldid][FIELD_NAME]))
-                                rawdata = self._adaptor.read_from_device(self.address, self._protocol, fields[firstfieldid][FIELD_ADD], blocklength)
-                                self.lastreadtime = time.time()
-                                self._procpartpayload(rawdata, fields[firstfieldid][FIELD_NAME], fields[lastfieldid][FIELD_NAME])
-                except serial.SerialException as e:
-                        logging.warn("C%i Read failed of fields %s to %s, Serial Port error %s"%(self.address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH), str(e)))
-                        raise
-                else:
-                        logging.info("C%i Read fields %s to %s, in %i blocks"%(self.address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH),len(blockstoread)))
+            try:
+                for firstfieldid, lastfieldid, blocklength in blockstoread:
+                    logging.debug("C%i Reading ui %i to %i len %i, proc %s to %s"%(self.address, fields[firstfieldid][FIELD_ADD],fields[lastfieldid][FIELD_ADD],blocklength,fields[firstfieldid][FIELD_NAME], fields[lastfieldid][FIELD_NAME]))
+                    rawdata = self._adaptor.read_from_device(self.address, self._protocol, fields[firstfieldid][FIELD_ADD], blocklength)
+                    self.lastreadtime = time.time()
+                    self._procpartpayload(rawdata, fields[firstfieldid][FIELD_NAME], fields[lastfieldid][FIELD_NAME])
+            except serial.SerialException as e:
+                logging.warn("C%i Read failed of fields %s to %s, Serial Port error %s"%(self.address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH), str(e)))
+                raise
+            else:
+                logging.info("C%i Read fields %s to %s, in %i blocks"%(self.address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH),len(blockstoread)))
         else:
-                logging.debug("C%i Read fields %s to %s by readAll, %0.3f %0.3f"%(self.address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH), estimatedreadtime, self.fullreadtime))
-                self.readAll()
+            logging.debug("C%i Read fields %s to %s by read_all, %0.3f %0.3f"%(self.address, firstfieldname.ljust(FIELD_NAME_LENGTH),lastfieldname.ljust(FIELD_NAME_LENGTH), estimatedreadtime, self.fullreadtime))
+            self.read_all()
 
     def _getFields(self, fieldids):
         #reads fields from controller, safe for blocks crossing gaps in dcb
@@ -235,7 +241,7 @@ class HeatmiserDevice(object):
         if estimatedreadtime < self.fullreadtime - 0.02: #if to close to full read time, then read all
                 try:
                         for firstfieldid, lastfieldid, blocklength in blockstoread:
-                                logging.debug("C%i Reading ui %i to %i len %i, proc %s to %s"%(self.address, fields[firstfieldid][FIELD_ADD],fields[lastfieldid][FIELD_ADD],blocklength,fields[firstfieldid][FIELD_NAME], fields[lastfieldid][FIELD_NAME]))
+                                logging.debug("C%i Reading ui %i to %i len %i, proc %s to %s"%(self.address, fields[firstfieldid][FIELD_ADD], fields[lastfieldid][FIELD_ADD], blocklength, fields[firstfieldid][FIELD_NAME], fields[lastfieldid][FIELD_NAME]))
                                 rawdata = self._adaptor.read_from_device(self.address, self._protocol, fields[firstfieldid][FIELD_ADD], blocklength)
                                 self.lastreadtime = time.time()
                                 self._procpartpayload(rawdata, fields[firstfieldid][FIELD_NAME], fields[lastfieldid][FIELD_NAME])
@@ -246,8 +252,8 @@ class HeatmiserDevice(object):
                         logging.info("C%i Read fields %s in %i blocks"%(self.address, ', '.join(fields[id][FIELD_NAME] for id in fieldids),len(blockstoread)))
                         
         else:
-                logging.debug("C%i Read fields %s by readAll, %0.3f %0.3f"%(self.address, ', '.join(fields[id][FIELD_NAME] for id in fieldids), estimatedreadtime, self.fullreadtime))
-                self.readAll()
+                logging.debug("C%i Read fields %s by read_all, %0.3f %0.3f"%(self.address, ', '.join(fields[id][FIELD_NAME] for id in fieldids), estimatedreadtime, self.fullreadtime))
+                self.read_all()
                 
         #data can only be requested from the controller in contiguous blocks
         #functions takes a first and last field and separates out the individual blocks available for the controller type
@@ -333,7 +339,7 @@ class HeatmiserDevice(object):
             if value < fieldrange[0] or value > fieldrange[1]:
                 raise HeatmiserResponseError("Field value %i outside expected range"%value)
         
-        if fieldname == 'DCBlen' and value != self.DCBlength:
+        if fieldname == 'DCBlen' and value != self.dcb_length:
             raise HeatmiserResponseError('DCBlengh is unexpected')
         
         if fieldname == 'model' and value != self._expected_model_number:
@@ -367,13 +373,13 @@ class HeatmiserDevice(object):
     def _procpayload(self, rawdata, firstfieldid = 0, lastfieldid = len(fields)):
         logging.debug("C%i Processing Payload from field %i to %i"%(self.address,firstfieldid,lastfieldid) )
 
-        fullfirstdcbadd = self._getDCBaddress(fields[firstfieldid][FIELD_ADD])
+        fullfirstdcbadd = self._get_dcb_address(fields[firstfieldid][FIELD_ADD])
         
         for fieldinfo in fields[firstfieldid:lastfieldid + 1]:
             uniqueaddress = fieldinfo[FIELD_ADD]
             
             length = fieldinfo[FIELD_LEN]
-            dcbadd = self._getDCBaddress(uniqueaddress)
+            dcbadd = self._get_dcb_address(uniqueaddress)
 
             if dcbadd == DCB_INVALID:
                 setattr(self, fieldinfo[FIELD_NAME], None)
@@ -546,8 +552,8 @@ class HeatmiserDevice(object):
     TEMP_STATE_PROGRAM = 6 #following program
     
     def readTempState(self):
-        self.readFields(['mon_heat','tues_heat','wed_heat','thurs_heat','fri_heat','wday_heat','wend_heat'],-1)
-        self.readFields(['onoff','frostprot','holidayhours','runmode','tempholdmins','setroomtemp'])
+        self.read_fields(['mon_heat','tues_heat','wed_heat','thurs_heat','fri_heat','wday_heat','wend_heat'],-1)
+        self.read_fields(['onoff','frostprot','holidayhours','runmode','tempholdmins','setroomtemp'])
         
         if self.onoff == WRITE_ONOFF_OFF and self.frostprot == READ_FROST_PROT_OFF:
             return self.TEMP_STATE_OFF
@@ -575,8 +581,8 @@ class HeatmiserDevice(object):
     ### UNTESTED # last part about scheduletarget doesn't work
     def readWaterState(self):
         #does runmode affect hot water state?
-        self.readFields(['mon_water','tues_water','wed_water','thurs_water','fri_water','wday_water','wend_water'],-1)
-        self.readFields(['onoff','holidayhours','hotwaterdemand'])
+        self.read_fields(['mon_water','tues_water','wed_water','thurs_water','fri_water','wday_water','wend_water'],-1)
+        self.read_fields(['onoff','holidayhours','hotwaterdemand'])
         
         if self.onoff == WRITE_ONOFF_OFF:
             return self.TEMP_STATE_OFF
@@ -608,12 +614,12 @@ class HeatmiserDevice(object):
             
     def readAirTemp(self):
         #if not read before read sensorsavaliable field
-        self.readField('sensorsavaliable',None)
+        self.read_field('sensorsavaliable',None)
         
         if self.sensorsavaliable == READ_SENSORS_AVALIABLE_INT_ONLY or self.sensorsavaliable == READ_SENSORS_AVALIABLE_INT_FLOOR:
-            return self.readField('airtemp', self._max_age_temp)
+            return self.read_field('airtemp', self._max_age_temp)
         elif self.sensorsavaliable == READ_SENSORS_AVALIABLE_EXT_ONLY or self.sensorsavaliable == READ_SENSORS_AVALIABLE_EXT_FLOOR:
-            return self.readField('remoteairtemp', self._max_age_temp)
+            return self.read_field('remoteairtemp', self._max_age_temp)
         else:
             raise ValueError("sensorsavaliable field invalid")
     
@@ -621,10 +627,10 @@ class HeatmiserDevice(object):
         if startfieldname == None or endfieldname == None:
             return self.rawdata
         else:
-            return self.rawdata[self._getDCBaddress(uniadd[startfieldname][UNIADD_ADD]):self._getDCBaddress(uniadd[endfieldname][UNIADD_ADD])]
+            return self.rawdata[self._get_dcb_address(uniadd[startfieldname][UNIADD_ADD]):self._get_dcb_address(uniadd[endfieldname][UNIADD_ADD])]
         
     def readTime(self, maxage = 0):
-        return self.readField('currenttime', maxage)
+        return self.read_field('currenttime', maxage)
         
     ## External functions for setting data
 
@@ -654,14 +660,14 @@ class HeatmiserDevice(object):
 
     def setTemp(self, temp) :
         #sets the temperature demand overriding the program. Believe it returns at next prog change.
-        if self.readField('tempholdmins') == 0: #check hold temp not applied
+        if self.read_field('tempholdmins') == 0: #check hold temp not applied
             return self.setField('setroomtemp',temp)
         else:
             logging.warn("%i address, temp hold applied so won't set temp"%(self.address))
 
     def releaseTemp(self) :
         #release SetTemp back to the program, but only if temp isn't held
-        if self.readField('tempholdmins') == 0: #check hold temp not applied
+        if self.read_field('tempholdmins') == 0: #check hold temp not applied
             return self.setField('tempholdmins',0)
         else:
             logging.warn("%i address, temp hold applied so won't remove set temp"%(self.address))
@@ -724,11 +730,11 @@ class HeatmiserBroadcastDevice(HeatmiserDevice):
     
     #run read functions on all stats
     @run_function_on_all(_controllerlist)
-    def readField(self, fieldname, maxage = None):
+    def read_field(self, fieldname, maxage = None):
         logging.info("All reading %s from %i controllers"%(fieldname, len(self._controllerlist.list)))
             
     @run_function_on_all(_controllerlist)
-    def readFields(self, fieldnames, maxage = None):
+    def read_fields(self, fieldnames, maxage = None):
         logging.info("All reading %s from %i controllers"%(', '.join([fieldname for fieldname in fieldnames]), len(self._controllerlist.list)))
         
     @run_function_on_all(_controllerlist)

@@ -21,7 +21,7 @@ for current_controller in HMN.controllers:
     print "\r\nGetting all data control %2d in %s *****************************" %(current_controller.address, current_controller._long_name)
 
     try:
-        current_controller.readAll()
+        current_controller.read_all()
     except HeatmiserResponseError as err:
         print "C%d in %s Failed to Read due to %s" %(current_controller.address, current_controller._name.ljust(4), str(err))
     else:
@@ -47,8 +47,8 @@ while True:
     for current_controller in HMN.controllers:
         try:
             #read all fields at the same time allows for most efficient number of reads
-            current_controller.readFields(SCHEDULEFIELDS)
-            current_controller.readFields(FIELDNAMES, 0) #force get on these fields
+            current_controller.read_fields(SCHEDULEFIELDS)
+            current_controller.read_fields(FIELDNAMES, 0) #force get on these fields
         except HeatmiserResponseError as err:
             print "C%d in %s Failed to Read due to %s" %(current_controller.address, current_controller._name.ljust(4), str(err))
         else:

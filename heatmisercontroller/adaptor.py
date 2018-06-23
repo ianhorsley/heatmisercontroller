@@ -63,17 +63,17 @@ class HeatmiserAdaptor(object):
         if self.serport.isOpen():
             wasopen = True
             self.serport.close() # close port
-        
+
         for name, value in settings['serial'].iteritems():
             setattr(self.serport, name, value)
-        
+
         if not self.serport.isOpen() and wasopen:
             try:
                 self.serport.open()
             except serial.SerialException as err:
                 logging.error("Could not open serial port %s: %s" % (self.serport.portstr, err))
                 raise
-                
+
 ### low level serial commands
 
     def connect(self):
@@ -107,11 +107,11 @@ class HeatmiserAdaptor(object):
         #check time since last received to make sure bus has settled.
         waittime = self.serport.COM_BUS_RESET_TIME - (time.time() - self.lastreceivetime)
         if waittime > 0:
-            logging.debug("Gen waiting before sending %.2f"% ( waittime ))
+            logging.debug("Gen waiting before sending %.2f"% (waittime))
             time.sleep(waittime)
         
         # http://stackoverflow.com/questions/180606/how-do-i-convert-a-list-of-ascii-values-to-a-string-in-python
-        string = ''.join(map(chr,message))
+        string = ''.join(map(chr, message))
 
         try:
             self.serport.write(string)    # Write a string
@@ -125,7 +125,7 @@ class HeatmiserAdaptor(object):
             raise
         else:
             self.lastsendtime = time.strftime("%d %b %Y %H:%M:%S +0000", time.localtime(time.time())) #timezone is wrong
-            logging.debug("Gen sent %s",', '.join(str(x) for x in message))
+            logging.debug("Gen sent %s", ', '.join(str(x) for x in message))
 
     def _clear_input_buffer(self):
         """Clears input buffer
@@ -177,7 +177,7 @@ class HeatmiserAdaptor(object):
                 raise
 
             #Convert back to array
-            data = map(ord,firstbyteread) + map(ord,byteread)
+            data = map(ord, firstbyteread) + map(ord, byteread)
 
             return data
         finally:
@@ -186,7 +186,7 @@ class HeatmiserAdaptor(object):
 
 ### protocol functions
     
-    @retryer(max_retries = 3)
+    @retryer(max_retries=3)
     def write_to_device(self, network_address, protocol, unique_address, length, payload):
         """Forms write frame and sends to serial link checking the acknowledgement"""
         msg = framing.form_frame(network_address, protocol, self.my_master_addr,
@@ -212,8 +212,8 @@ class HeatmiserAdaptor(object):
         """Computes the minimum time that adaptor leaves between read commands"""
         return self.serport.COM_BUS_RESET_TIME
 
-    @retryer(max_retries = 2)
-    def read_from_device(self, network_address, protocol, unique_start_address, expected_length, readall = False):
+    @retryer(max_retries=2)
+    def read_from_device(self, network_address, protocol, unique_start_address, expected_length, readall=False):
         """Forms read frame and sends to serial link checking the response"""
         if readall:
             msg = framing._form_read_frame(network_address, protocol, self.my_master_addr, DCB_START, RW_LENGTH_ALL)
