@@ -1,10 +1,8 @@
 #!/usr/bin/env python
-#
-# Ian Horsley 2018
+"""Gets data from Heatmiser stats repeatedly and displays
+Ian Horsley 2018
+"""
 
-#
-# Gets data for all stats repeatedly and displays
-#
 import time
 import logging
 
