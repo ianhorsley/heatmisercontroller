@@ -217,10 +217,10 @@ class HeatmiserAdaptor(object):
         """Forms read frame and sends to serial link checking the response"""
         if readall:
             msg = framing.form_read_frame(network_address, protocol, self.my_master_addr, DCB_START, RW_LENGTH_ALL)
-            logging.debug("C %i read request to address %i length %i"%(network_address,DCB_START, RW_LENGTH_ALL))
+            logging.debug("C %i read request to address %i length %i"%(network_address, DCB_START, RW_LENGTH_ALL))
         else:
-            msg = framing.form_read_frame(network_address, protocol, self.my_master_addr, dcb_start_address, expected_length)
-            logging.debug("C %i read request to address %i length %i"%(network_address,dcb_start_address, expected_length))
+            msg = framing.form_read_frame(network_address, protocol, self.my_master_addr, unique_start_address, expected_length)
+            logging.debug("C %i read request to address %i length %i"%(network_address, unique_start_address, expected_length))
         
         try:
             self._send_message(msg)
@@ -233,10 +233,10 @@ class HeatmiserAdaptor(object):
             try:
                 response = self._receive_message(MIN_FRAME_READ_RESP_LENGTH + expected_length)
             except Exception as err:
-                logging.warn("C%i read failed from address %i length %i due to %s"%(network_address,unique_start_address, expected_length, str(err)))
+                logging.warn("C%i read failed from address %i length %i due to %s"%(network_address, unique_start_address, expected_length, str(err)))
                 raise
             else:
-                logging.debug("C%i read in %.2f s from address %i length %i response %s"%(network_address,time.time()-time1,unique_start_address, expected_length, ', '.join(str(x) for x in response)))
+                logging.debug("C%i read in %.2f s from address %i length %i response %s"%(network_address, time.time()-time1, unique_start_address, expected_length, ', '.join(str(x) for x in response)))
             
                 try:
                     framing.verify_response(protocol, network_address, self.my_master_addr, FUNC_READ, expected_length , response)

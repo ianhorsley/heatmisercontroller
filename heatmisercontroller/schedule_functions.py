@@ -72,7 +72,7 @@ class Scheduler(object):
     @staticmethod
     def _reversechunks(fulllist, chunklength):
         """Yield successive n-sized chunks from l."""
-        for pos in range(len(fulllist)-n, -1, -chunklength):
+        for pos in range(len(fulllist)-chunklength, -1, -chunklength):
             yield fulllist[pos:pos + chunklength]
             
     def get_current_schedule_item(self, timearray):

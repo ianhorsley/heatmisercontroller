@@ -55,6 +55,8 @@ class HeatmiserDevice(object):
 
         self.address = self._address #make externally available
         del self._address
+        self.long_name = self._long_name #make externally available
+        del self._long_name
 
         if self._expected_prog_mode == PROG_MODE_DAY:
             self.heat_schedule = SchedulerDayHeat()
@@ -239,7 +241,9 @@ class HeatmiserDevice(object):
             self.read_all()
 
     def _get_fields(self, fieldids):
-        #reads fields from controller, safe for blocks crossing gaps in dcb
+        """gets fields from device
+        
+        safe for blocks crossing gaps in dcb"""
         
         blockstoread = self._get_field_blocks_from_list_by_id(fieldids)
         logging.debug(blockstoread)
@@ -380,6 +384,7 @@ class HeatmiserDevice(object):
         ###todo, add range validation for other lengths
 
     def _procpartpayload(self, rawdata, firstfieldname, lastfieldname):
+        """Wraps procpayload by converting fieldnames to fieldids"""
         #rawdata must be a list
         #converts field names to unique addresses to allow process of shortened raw data
         logging.debug("C%i Processing Payload from field %s to %s"%(self.address, firstfieldname, lastfieldname) )
@@ -388,6 +393,7 @@ class HeatmiserDevice(object):
         self._procpayload(rawdata, firstfieldid, lastfieldid)
         
     def _procpayload(self, rawdata, firstfieldid=0, lastfieldid=len(fields)):
+        """Split payload with field information and processes each field"""
         logging.debug("C%i Processing Payload from field %i to %i"%(self.address, firstfieldid, lastfieldid) )
 
         fullfirstdcbadd = self._get_dcb_address(fields[firstfieldid][FIELD_ADD])
@@ -417,7 +423,7 @@ class HeatmiserDevice(object):
             self._comparecontrollertime()
         except HeatmiserControllerTimeError:
             if self._autocorrectime is True:
-                self.setTime()
+                self.set_time()
             else:
                 raise
     
@@ -447,7 +453,7 @@ class HeatmiserDevice(object):
 
     @staticmethod
     def _localtimearray(timenow = time.time()):
-        #creates an array in heatmiser format for local time. Day 1-7, 1=Monday
+        """creates an array in heatmiser format for local time. Day 1-7, 1=Monday"""
         #input time.time() (not local)
         localtimenow = time.localtime(timenow)
         nowday = localtimenow.tm_wday + 1    #python tm_wday, range [0, 6], Monday is 0
@@ -459,13 +465,13 @@ class HeatmiserDevice(object):
     HOURSECS = 3600
     MINSECS = 60
     def _weeksecs(self, localtimearray):
-        #calculates the time from the start of the week in seconds from a heatmiser time array
+        """calculates the time from the start of the week in seconds from a heatmiser time array"""
         return ( localtimearray[CURRENT_TIME_DAY] - 1 ) * self.DAYSECS + localtimearray[CURRENT_TIME_HOUR] * self.HOURSECS + localtimearray[CURRENT_TIME_MIN] * self.MINSECS + localtimearray[CURRENT_TIME_SEC]
     
     ## Basic set field functions
     
     def set_field(self, fieldname, payload):
-        #set a field (single member of fields) to a state or payload. Defined for all field lengths.
+        """Set a field (single member of fields) on a device to a state or payload. Defined for all known field lengths."""
         fieldinfo = fields[self._fieldnametonum[fieldname]]
         
         if len(fieldinfo) < FIELD_WRITE + 1 or fieldinfo[FIELD_WRITE] != 'W':
@@ -503,7 +509,7 @@ class HeatmiserDevice(object):
         
     @staticmethod
     def _checkPayloadValues(payload, fieldinfo):
-        #check the payload matches field details
+        """check a single field payload matches field spec"""
         
         if fieldinfo[FIELD_LEN] in [1, 2] and not isinstance(payload, (int, long)):
             #one or two byte field, not single length payload
@@ -526,14 +532,16 @@ class HeatmiserDevice(object):
     
     ## External functions for printing data
     def display_heating_schedule(self):
+        """Prints heating schedule to stdout"""
         self.heat_schedule.display()
             
     def display_water_schedule(self):
+        """Prints water schedule to stdout"""
         if not self.water_schedule is None:
             self.water_schedule.display()
 
     def printTarget(self):
-            
+        """Returns text describing current heating state"""    
         current_state = self.readTempState()
         
         if current_state == self.TEMP_STATE_OFF:
@@ -558,6 +566,7 @@ class HeatmiserDevice(object):
     ## External functions for reading data
 
     def isHotWater(self):
+        """Does device manage hotwater?"""
         #returns True if stat is a model with hotwater control, False otherwise
         return self._expected_model == 'prt_hw_model'
 
@@ -570,6 +579,7 @@ class HeatmiserDevice(object):
     TEMP_STATE_PROGRAM = 6 #following program
     
     def readTempState(self):
+        """Returns the current temperature control state from off to following program"""
         self.read_fields(['mon_heat', 'tues_heat', 'wed_heat', 'thurs_heat', 'fri_heat', 'wday_heat', 'wend_heat'], -1)
         self.read_fields(['onoff', 'frostprot', 'holidayhours', 'runmode', 'tempholdmins', 'setroomtemp'])
         
@@ -586,7 +596,7 @@ class HeatmiserDevice(object):
         else:
         
             if not self._check_data_age(['currenttime'], MAX_AGE_MEDIUM):
-                self.readTime()
+                self.read_time()
             
             locatimenow = self._localtimearray()
             scheduletarget = self.heat_schedule.get_current_schedule_item(locatimenow)
@@ -598,6 +608,7 @@ class HeatmiserDevice(object):
 
     ### UNTESTED # last part about scheduletarget doesn't work
     def readWaterState(self):
+        """Returns the current hot water control state from off to following program"""
         #does runmode affect hot water state?
         self.read_fields(['mon_water', 'tues_water', 'wed_water', 'thurs_water', 'fri_water', 'wday_water', 'wend_water'], -1)
         self.read_fields(['onoff', 'holidayhours', 'hotwaterdemand'])
@@ -609,7 +620,7 @@ class HeatmiserDevice(object):
         else:
         
             if not self._check_data_age(['currenttime'],  MAX_AGE_MEDIUM):
-                self.readTime()
+                self.read_time()
             
             locatimenow = self._localtimearray()
             scheduletarget = self.water_schedule.get_current_schedule_item(locatimenow)
@@ -620,6 +631,8 @@ class HeatmiserDevice(object):
                 return self.TEMP_STATE_PROGRAM
                 
     def readAirSensorType(self):
+        """Reports airsensor type"""
+        #1 local, 3 remote
         if not self._check_data_present('sensorsavaliable'):
             return False
 
@@ -631,6 +644,7 @@ class HeatmiserDevice(object):
             return 0
             
     def readAirTemp(self):
+        """Read the air temperature getting data from device if too old"""
         #if not read before read sensorsavaliable field
         self.read_field('sensorsavaliable', None)
         
@@ -642,21 +656,23 @@ class HeatmiserDevice(object):
             raise ValueError("sensorsavaliable field invalid")
     
     def readRawData(self, startfieldname=None, endfieldname=None):
+        """Return subset of raw data"""
         if startfieldname == None or endfieldname == None:
             return self.rawdata
         else:
             return self.rawdata[self._get_dcb_address(uniadd[startfieldname][UNIADD_ADD]):self._get_dcb_address(uniadd[endfieldname][UNIADD_ADD])]
         
-    def readTime(self, maxage=0):
+    def read_time(self, maxage=0):
+        """Readtime, getting from device if required"""
         return self.read_field('currenttime', maxage)
         
     ## External functions for setting data
 
-    def setHeatingSchedule(self, day, schedule):
+    def set_heating_schedule(self, day, schedule):
         padschedule = self.heat_schedule.pad_schedule(schedule)
         self.set_field(day, padschedule)
         
-    def setWaterSchedule(self, day, schedule):
+    def set_water_schedule(self, day, schedule):
         padschedule = self.water_schedule.pad_schedule(schedule)
         if day == 'all':
             self.set_field('mon_water', padschedule)
@@ -669,65 +685,72 @@ class HeatmiserDevice(object):
         else:
             self.set_field(day, padschedule)
 
-    def setTime(self) :
-            """set time on controller to match current localtime on server"""
-            timenow = time.time() + 0.5 #allow a little time for any delay in setting
-            return self.set_field('currenttime', self._localtimearray(timenow))
+    def set_time(self) :
+        """set time on device to match current localtime on server"""
+        timenow = time.time() + 0.5 #allow a little time for any delay in setting
+        return self.set_field('currenttime', self._localtimearray(timenow))
 
     #overriding
 
-    def setTemp(self, temp) :
-        #sets the temperature demand overriding the program. Believe it returns at next prog change.
+    def set_temp(self, temp) :
+        """sets the temperature demand overriding the program."""
+        #Believe it returns at next prog change.
         if self.read_field('tempholdmins') == 0: #check hold temp not applied
             return self.set_field('setroomtemp', temp)
         else:
             logging.warn("%i address, temp hold applied so won't set temp"%(self.address))
 
-    def releaseTemp(self) :
-        #release SetTemp back to the program, but only if temp isn't held
+    def release_temp(self) :
+        """release setTemp back to the program, but only if temp isn't held for a time (holdTemp)."""
         if self.read_field('tempholdmins') == 0: #check hold temp not applied
             return self.set_field('tempholdmins', 0)
         else:
             logging.warn("%i address, temp hold applied so won't remove set temp"%(self.address))
 
-    def holdTemp(self, minutes, temp) :
-        #sets the temperature demand overrding the program for a set time. Believe it then returns to program.
+    def hold_temp(self, minutes, temp) :
+        """sets the temperature demand overrding the program for a set time."""
+        #Believe it then returns to program.
         self.set_field('setroomtemp', temp)
         return self.set_field('tempholdmins', minutes)
         #didn't stay on if did minutes followed by temp.
         
-    def releaseHoldTemp(self) :
-        #release SetTemp or HoldTemp back to the program
+    def release_hold_temp(self) :
+        """release setTemp or holdTemp back to the program."""
         return self.set_field('tempholdmins', 0)
         
-    def setHoliday(self, hours) :
-        #sets holiday up for a defined number of hours
+    def set_holiday(self, hours) :
+        """sets holiday up for a defined number of hours."""
         return self.set_field('holidayhours', hours)
     
-    def releaseHoliday(self) :
-        #cancels holiday mode
+    def release_holiday(self) :
+        """cancels holiday mode"""
         return self.set_field('holidayhours', 0)
 
     #onoffs
 
-    def setOn(self):
+    def set_on(self):
+        """Switch stat on"""
         return self.set_field('onoff', WRITE_ONOFF_ON)
-    def setOff(self):
+    def set_off(self):
+        """Switch stat off"""
         return self.set_field('onoff', WRITE_ONOFF_OFF)
         
-    def setHeat(self):
+    def set_heat(self):
+        """Switch stat to follow heat program"""
         return self.set_field('runmode', WRITE_RUNMODE_HEATING)
-    def setFrost(self):
+    def set_frost(self):
+        """Switch stat to frost only"""
         return self.set_field('runmode', WRITE_RUNMODE_FROST)
         
-    def setLock(self):
+    def set_lock(self):
+        """Lock keypad"""
         return self.set_field('keylock', WRITE_KEYLOCK_ON)
-    def setUnlock(self):
+    def set_unlock(self):
+        """Unlock keypad"""
         return self.set_field('keylock', WRITE_KEYLOCK_OFF)
     
 #other
 #set floor limit
-#set holiday
 
 #create a controller that broadcasts or reads from multiple stats
 class HeatmiserBroadcastDevice(HeatmiserDevice):
@@ -772,15 +795,15 @@ class HeatmiserBroadcastDevice(HeatmiserDevice):
         pass
             
     @run_function_on_all(_controllerlist)
-    def readTime(self, maxage=0):
+    def read_time(self, maxage=0):
         pass
     
     #run set functions which require a read on all stats
     @run_function_on_all(_controllerlist)
-    def setTemp(self, temp):
+    def set_temp(self, temp):
         pass
     
     @run_function_on_all(_controllerlist)
-    def releaseTemp(self):
+    def release_temp(self):
         pass
 

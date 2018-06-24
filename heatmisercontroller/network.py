@@ -49,11 +49,11 @@ class HeatmiserNetwork(object):
 
         self.controllers = range(self._statnum)
         for name, controllersettings in statlist.iteritems():
-            controllersettings['name'] = name
             if hasattr(self, name):
                 print "error duplicate stat name"
             else:
                 setattr(self, name, HeatmiserDevice(self.adaptor, controllersettings, generalsettings))
+                setattr(getattr(self, name), 'name', name) #make name avaliable when accessing by id
                 self.controllers[controllersettings['display_order']-1] = getattr(self, name)
 
         self._current = self.controllers[0]

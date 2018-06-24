@@ -53,8 +53,8 @@ class TestReadingData(unittest.TestCase):
             
     def test_procfield(self):
         #unique_address, length, divisor, valid range
-        self.func._procfield([1], ['test', 0,  1,  1,  []])
-        self.func._procfield([1], ['test', 0,  1,  1,  [0, 1]])
+        self.func._procfield([1], ['test', 0,  1,  1, []])
+        self.func._procfield([1], ['test', 0,  1,  1, [0, 1]])
         self.func._procfield([1, 1], ['test', 0, 2, 1, [0, 257]])
         self.func._procfield([4], ['model', 0, 1, 1, []])
         self.func._procfield([PROG_MODES[PROG_MODE_DAY]], ['programmode', 0, 1, 1, []])
@@ -85,88 +85,83 @@ class TestReadingData(unittest.TestCase):
     def test_readall(self):
         pass
         # setup = setupTestClass()
-        # self.adaptor = MockHeatmiserAdaptor(setup)
-        # self.func = HeatmiserDevice(self.adaptor, self.settings)
+        # adaptor = MockHeatmiserAdaptor(setup)
+        # self.func = HeatmiserDevice(adaptor, self.settings)
         # basetime = (6 - 2) * 86400 + 53376.0 + year2000
         # self.func.lastreadtime = basetime - get_offset(basetime)
         # responses = [[1, 37, 0, 22, 4, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 38, 1, 9, 12, 28, 1, 1, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 220, 0, 0, 0, 3, 14, 49, 36, 7, 0, 19, 9, 30, 10, 17, 0, 19, 21, 30, 10, 7, 0, 19, 21, 30, 10, 24, 0, 5, 24, 0, 5, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 8, 0, 9, 0, 18, 0, 19, 0, 24, 0, 24, 0, 24, 0, 24, 0, 7, 0, 20, 21, 30, 12, 24, 0, 12, 24, 0, 12, 7, 0, 20, 21, 30, 12, 24, 0, 12, 24, 0, 12, 7, 0, 19, 8, 30, 12, 16, 30, 20, 21, 0, 12, 7, 0, 20, 12, 0, 12, 17, 0, 20, 21, 30, 12, 5, 0, 20, 21, 30, 12, 24, 0, 12, 24, 0, 12, 7, 0, 20, 12, 0, 12, 17, 0, 20, 21, 30, 12, 7, 0, 12, 24, 0, 12, 24, 0, 12, 24, 0, 12, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0]]
-        # self.adaptor.setresponse(responses)
+        # adaptor.setresponse(responses)
         # self.func.read_all()
-        # self.assertEqual([(1, 3, 18, 0, True)],self.adaptor.arguments)
+        # self.assertEqual([(1, 3, 18, 0, True)],adaptor.arguments)
         
     def test_readvariables(self):
         setup = setupTestClass()
-        self.adaptor = MockHeatmiserAdaptor(setup)
-        self.func = HeatmiserDevice(self.adaptor, self.settings)
+        adaptor = MockHeatmiserAdaptor(setup)
+        self.func = HeatmiserDevice(adaptor, self.settings)
         
         #queue some data to recieve
         responses = [[17, 30, 1, 1, 1, 1, 0, 0], [0, 0, 17, 0, 17, 0, 17, 0, 0, 0, 0]]
-        self.adaptor.setresponse(responses)
+        adaptor.setresponse(responses)
         #run command
         self.func.get_variables()
-        self.assertEqual([(1, 3, 18, 8, False), (1, 3, 32, 11, False)], self.adaptor.arguments)
+        self.assertEqual([(1, 3, 18, 8, False), (1, 3, 32, 11, False)], adaptor.arguments)
         self.assertEqual(17, self.func.setroomtemp)
         self.assertEqual(0, self.func.hotwaterdemand)
 
     def test_read_fields(self):
         setup = setupTestClass()
-        self.adaptor = MockHeatmiserAdaptor(setup)
-        self.func = HeatmiserDevice(self.adaptor, self.settings2)
+        adaptor = MockHeatmiserAdaptor(setup)
+        self.func = HeatmiserDevice(adaptor, self.settings2)
         print
         responses = [[0, 0, 0, 0, 0, 0, 0, 170]]
-        self.adaptor.setresponse(responses)
+        adaptor.setresponse(responses)
         self.assertEqual([0, 17], self.func.read_fields(['tempholdmins', 'airtemp'], 0))
         responses = [[3], [0, 100]]
-        self.adaptor.setresponse(responses)
+        adaptor.setresponse(responses)
         self.assertEqual([3, 10], self.func.read_fields(['model', 'airtemp'], 0))
         responses = [[3], [0, 100, 0, 1]]
-        self.adaptor.setresponse(responses)
+        adaptor.setresponse(responses)
         print self.func.read_fields(['model', 'airtemp', 'heatingdemand'], 0)
         responses = [[3], [0, 100, 0, 1]]
-        self.adaptor.setresponse(responses)
+        adaptor.setresponse(responses)
         print self.func.read_fields(['model', 'airtemp', 'hotwaterdemand'], 0)
-        responses = [[3, 0, 1, 0, 0, 0, 0, 4, 0, 0, 0, 0, 1, 7, 5, 20, 0, 0, 0],[0,100,0,1]]
-        self.adaptor.setresponse(responses)
+        responses = [[3, 0, 1, 0, 0, 0, 0, 4, 0, 0, 0, 0, 1, 7, 5, 20, 0, 0, 0], [0,100,0,1]]
+        adaptor.setresponse(responses)
         print self.func.read_fields(['model', 'airtemp', 'hotwaterdemand', 'keylock'], 0)
         responses = [[0, 3, 0, 1, 0, 0, 0, 0, 4, 0, 0, 0, 0, 1, 7, 5, 20, 0, 0, 0, 0, 0, 0, 0]]
-        self.adaptor.setresponse(responses)
+        adaptor.setresponse(responses)
         print self.func.read_fields(['holidayhours', 'version'], 0)
-        responses = [[0, 3, 0, 1, 0, 0, 0, 0, 4, 0, 0, 0],[0, 3, 0, 1, 0, 0, 0, 0, 4, 0, 0, 0]]
-        self.adaptor.setresponse(responses)
+        responses = [[0, 3, 0, 1, 0, 0, 0, 0, 4, 0, 0, 0], [0, 3, 0, 1, 0, 0, 0, 0, 4, 0, 0, 0]]
+        adaptor.setresponse(responses)
         print self.func.read_fields(['mon_heat', 'sun_heat'], 0)
         
 class TestOtherFunctions(unittest.TestCase):
     """Unittests for other functions"""
     def setUp(self):
         self.settings = {'address':1, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_e_model', 'expected_prog_mode':PROG_MODE_DAY}
+        self.func = HeatmiserDevice(None, self.settings)
     
     def test_get_dcb_address(self):
-        self.func = HeatmiserDevice(None, self.settings)
         self.assertEqual(0, self.func._get_dcb_address(0))
         self.assertEqual(24, self.func._get_dcb_address(24))
         self.assertEqual(DCB_INVALID, self.func._get_dcb_address(26))
         
     def test_getfieldblocks(self):
-        self.func = HeatmiserDevice(None, self.settings)
-        from heatmisercontroller.hm_constants import fields
-        print fields[25],fields[29]
-        print self.func._fieldsvalid[25], self.func._fieldsvalid[30]
         self.assertEqual([[25, 29, 8]], self.func._get_field_blocks_from_range('remoteairtemp', 'hotwaterdemand'))
         self.assertEqual([[31, 31, 4]], self.func._get_field_blocks_from_range('hotwaterdemand', 'currenttime'))
         self.assertEqual([[0, 22, 26], [24, 29, 10], [31, 31, 4]], self.func._get_field_blocks_from_range('DCBlen', 'currenttime'))
         self.assertEqual([[0, 22, 26], [24, 29, 10], [31, 33, 28], [36, 42, 84]], self.func._get_field_blocks_from_range('DCBlen', 'sun_water'))
         
     def test_checkblock4(self):
-        self.func = HeatmiserDevice(None, self.settings)
         #print 'DCBlen','sun_water'
         #print self.func._getFieldBlocks('DCBlen','sun_water')
         #from timeit import default_timer as timer
         #start = timer()
-        for _ in range(1):self.func._get_field_blocks_from_range('DCBlen', 'sun_water')
+        for _ in range(1):
+            self.func._get_field_blocks_from_range('DCBlen', 'sun_water')
         #print (timer()-start)/1000
         
-    def test_buildDCBtables(self):
-        self.func = HeatmiserDevice(None, self.settings)
+    def test_build_dcb_tables(self):
         self.func._build_dcb_tables()
         expected = [[0, 0], [25, 25], [26, None], [31, None], [32, 26], [186, 147], [187, None], [298, None]]
         for u, d in expected:
@@ -191,14 +186,14 @@ class TestTimeFunctions(unittest.TestCase):
             self.func._comparecontrollertime()
             
     def test_comparecontrollertime_bad(self):
-        basetime = ( 1 + 1) * 86400 + 9 * 3600 + 33 * 60 + 0 + year2000
+        basetime = (1 + 1) * 86400 + 9 * 3600 + 33 * 60 + 0 + year2000
         self.func.datareadtime['currenttime'] = basetime - get_offset(basetime) #has been read
         self.func.data['currenttime'] = self.func.currenttime = [1, 0, 0, 0]
         with self.assertRaises(HeatmiserControllerTimeError):
             self.func._comparecontrollertime()
         
     def test_comparecontrollertime_1(self):
-        basetime = ( 4 + 1) * 86400 + 9 * 3600 + 33 * 60 + 5 + year2000
+        basetime = (4 + 1) * 86400 + 9 * 3600 + 33 * 60 + 5 + year2000
         self.func.datareadtime['currenttime'] = basetime - get_offset(basetime) #has been read
         self.func.data['currenttime'] = self.func.currenttime = [4, 9, 33, 0]
         #print "s ", self.func._localtimearray(self.func.datareadtime['currenttime']), self.func.data['currenttime'], self.func.datareadtime['currenttime'], time.localtime(self.func.datareadtime['currenttime']).tm_hour, time.localtime(self.func.datareadtime['currenttime']), "e"
@@ -207,7 +202,7 @@ class TestTimeFunctions(unittest.TestCase):
         
     def test_comparecontrollertime_2(self):
         #self.func.datareadtime['currenttime'] = ( 7 + 3) * 86400 + 23 * 3600 + 59 * 60 + 55 - self.utc_offset #has been read
-        basetime = ( 7 + 1) * 86400 + 23 * 3600 + 59 * 60 + 55 + year2000
+        basetime = (7 + 1) * 86400 + 23 * 3600 + 59 * 60 + 55 + year2000
         self.func.datareadtime['currenttime'] = basetime - get_offset(basetime) #has been read
         self.func.data['currenttime'] = self.func.currenttime = [1, 0, 0, 0]
         self.func._comparecontrollertime()
@@ -218,7 +213,7 @@ class TestTimeFunctions(unittest.TestCase):
         self.assertEqual([4, hour, 48, 47], self.func._localtimearray(1528350527))
         self.assertEqual([7, hour, 48, 47], self.func._localtimearray(1528350527-86400*4))
 
-class test_protocol(unittest.TestCase):
+class TestProtocol(unittest.TestCase):
     def setUp(self):
         logging.basicConfig(level=logging.ERROR)
         self.settings = {'address':5, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_e_model', 'expected_prog_mode':PROG_MODE_DAY}
@@ -229,7 +224,7 @@ class test_protocol(unittest.TestCase):
     def test_setfield_1(self):
         #checks the arguments sent to write_to_device
         #fieldname, payload
-        self.func.set_field('frosttemp', 7 )
+        self.func.set_field('frosttemp', 7)
         self.assertEqual(self.tester.arguments, (5, 3, 17, 1, [7]))
         
     def test_setfield_2(self):
@@ -238,18 +233,17 @@ class test_protocol(unittest.TestCase):
         self.func.lastreadtime = time.time()
         loctime = self.func._localtimearray(self.func.lastreadtime)
         self.func.set_field('currenttime', loctime )
-        self.assertEqual(self.tester.arguments,(5, 3, 43, 4, loctime))
+        self.assertEqual(self.tester.arguments, (5, 3, 43, 4, loctime))
         
     def test_setfield_errors(self):
         with self.assertRaises(ValueError):
-            self.func.set_field('frosttemp', 3 )
+            self.func.set_field('frosttemp', 3)
         with self.assertRaises(TypeError):
-            self.func.set_field('frosttemp', [3, 3] )
+            self.func.set_field('frosttemp', [3, 3])
         with self.assertRaises(ValueError):
-            self.func.set_field('currenttime', [8, 7, 7, 7] )
+            self.func.set_field('currenttime', [8, 7, 7, 7])
         with self.assertRaises(TypeError):
             self.func.set_field('currenttime', 7)
     
 if __name__ == '__main__':
-        unittest.main()
-
+    unittest.main()
