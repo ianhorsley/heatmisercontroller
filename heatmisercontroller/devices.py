@@ -227,7 +227,7 @@ class HeatmiserDevice(object):
         if estimatedreadtime < self.fullreadtime - 0.02: #if to close to full read time, then read all
             try:
                 for firstfieldid, lastfieldid, blocklength in blockstoread:
-                    logging.debug("C%i Reading ui %i to %i len %i, proc %s to %s"%(self.address, fields[firstfieldid][FIELD_ADD], fields[lastfieldid][FIELD_ADD], blocklength,fields[firstfieldid][FIELD_NAME], fields[lastfieldid][FIELD_NAME]))
+                    logging.debug("C%i Reading ui %i to %i len %i, proc %s to %s"%(self.address, fields[firstfieldid][FIELD_ADD], fields[lastfieldid][FIELD_ADD], blocklength, fields[firstfieldid][FIELD_NAME], fields[lastfieldid][FIELD_NAME]))
                     rawdata = self._adaptor.read_from_device(self.address, self._protocol, fields[firstfieldid][FIELD_ADD], blocklength)
                     self.lastreadtime = time.time()
                     self._procpartpayload(rawdata, fields[firstfieldid][FIELD_NAME], fields[lastfieldid][FIELD_NAME])
@@ -286,20 +286,20 @@ class HeatmiserDevice(object):
             if previousfieldvalid is False and not fieldvalid is False:
                 start = fieldnum
             elif not previousfieldvalid is False and fieldvalid is False:
-                blocks.append([start,fieldnum - 1,fields[fieldnum - 1][FIELD_ADD] + fields[fieldnum - 1][FIELD_LEN] - fields[start][FIELD_ADD]])
+                blocks.append([start, fieldnum - 1, fields[fieldnum - 1][FIELD_ADD] + fields[fieldnum - 1][FIELD_LEN] - fields[start][FIELD_ADD]])
             
             previousfieldvalid = fieldvalid
 
         if not previousfieldvalid is False:
-            blocks.append([start,lastfieldid,fields[lastfieldid][FIELD_ADD] + fields[lastfieldid][FIELD_LEN] - fields[start][FIELD_ADD]])
+            blocks.append([start, lastfieldid, fields[lastfieldid][FIELD_ADD] + fields[lastfieldid][FIELD_LEN] - fields[start][FIELD_ADD]])
         return blocks
     
-    def _get_field_blocks_from_list_by_id(self,fieldids):
+    def _get_field_blocks_from_list_by_id(self, fieldids):
         """Takes range of fieldids and returns field blocks
         
         Splits by invalid fields. Uses timing to determine the optimum blocking"""
         #find blocks between lowest and highest field
-        fieldblocks = self._get_field_blocks_from_range_by_id(min(fieldids),max(fieldids))
+        fieldblocks = self._get_field_blocks_from_range_by_id(min(fieldids), max(fieldids))
         
         readblocks = []
         for block in fieldblocks:
@@ -308,14 +308,14 @@ class HeatmiserDevice(object):
             if len(inblock) > 0:
                 #if single read is shorter than individual
                 readlen = fields[max(inblock)][FIELD_LEN] + fields[max(inblock)][FIELD_ADD] - fields[min(inblock)][FIELD_ADD]
-                if self._estimate_read_time(readlen) < sum([ self._estimate_read_time(fields[id][FIELD_LEN]) for id in inblock]):
-                    readblocks.append([min(inblock),max(inblock),readlen])
+                if self._estimate_read_time(readlen) < sum([self._estimate_read_time(fields[id][FIELD_LEN]) for id in inblock]):
+                    readblocks.append([min(inblock), max(inblock), readlen])
                 else:
                     for ids in inblock:
-                        readblocks.append([ids,ids,fields[ids][FIELD_LEN]])
+                        readblocks.append([ids, ids, fields[ids][FIELD_LEN]])
         return readblocks
     
-    def _estimate_blocks_read_time(self,blocks):
+    def _estimate_blocks_read_time(self, blocks):
         """estimates read time for a set of blocks, including the COM_BUS_RESET_TIME between blocks
         
         excludes the COM_BUS_RESET_TIME before first block"""
@@ -348,10 +348,10 @@ class HeatmiserDevice(object):
         elif length == 4:
             value = data
         elif length == 12:
-            self.heat_schedule.set_raw(fieldname,data)
+            self.heat_schedule.set_raw(fieldname, data)
             value = data
         elif length == 16:
-            self.water_schedule.set_raw(fieldname,data)
+            self.water_schedule.set_raw(fieldname, data)
             value = data
         else:
             raise ValueError("_procpayload can't process field length")
@@ -443,7 +443,7 @@ class HeatmiserDevice(object):
         directdifference = abs(localweeksecs - remoteweeksecs)
         wrappeddifference = abs(self.DAYSECS * 7 - directdifference) #compute the difference on rollover
         self.timeerr = min(directdifference, wrappeddifference)
-        logging.debug("Local time %i, remote time %i, error %i"%(localweeksecs,remoteweeksecs,self.timeerr))
+        logging.debug("Local time %i, remote time %i, error %i"%(localweeksecs, remoteweeksecs, self.timeerr))
 
         if self.timeerr > self.DAYSECS:
             raise HeatmiserControllerTimeError("C%2d Incorrect day : local is %s, sensor is %s" % (self.address, localtimearray[CURRENT_TIME_DAY], self.data['currenttime'][CURRENT_TIME_DAY]))
@@ -452,11 +452,11 @@ class HeatmiserDevice(object):
             raise HeatmiserControllerTimeError("C%2d Time Error %d greater than %d: local is %s, sensor is %s" % (self.address, self.timeerr, TIME_ERR_LIMIT, localweeksecs, remoteweeksecs))
 
     @staticmethod
-    def _localtimearray(timenow = time.time()):
+    def _localtimearray(timenow=time.time()):
         """creates an array in heatmiser format for local time. Day 1-7, 1=Monday"""
         #input time.time() (not local)
         localtimenow = time.localtime(timenow)
-        nowday = localtimenow.tm_wday + 1    #python tm_wday, range [0, 6], Monday is 0
+        nowday = localtimenow.tm_wday + 1 #python tm_wday, range [0, 6], Monday is 0
         nowsecs = min(localtimenow.tm_sec, 59) #python tm_sec range[0, 61]
         
         return [nowday, localtimenow.tm_hour, localtimenow.tm_min, nowsecs]
@@ -466,7 +466,7 @@ class HeatmiserDevice(object):
     MINSECS = 60
     def _weeksecs(self, localtimearray):
         """calculates the time from the start of the week in seconds from a heatmiser time array"""
-        return ( localtimearray[CURRENT_TIME_DAY] - 1 ) * self.DAYSECS + localtimearray[CURRENT_TIME_HOUR] * self.HOURSECS + localtimearray[CURRENT_TIME_MIN] * self.MINSECS + localtimearray[CURRENT_TIME_SEC]
+        return (localtimearray[CURRENT_TIME_DAY] - 1) * self.DAYSECS + localtimearray[CURRENT_TIME_HOUR] * self.HOURSECS + localtimearray[CURRENT_TIME_MIN] * self.MINSECS + localtimearray[CURRENT_TIME_SEC]
     
     ## Basic set field functions
     
@@ -506,7 +506,13 @@ class HeatmiserDevice(object):
                 payload[0] = READ_HOTWATERDEMAND_OFF
         
         self._procpartpayload(payload, fieldname, fieldname)
-        
+    
+    def set_fields(self, fieldnames, payloads):
+        """Set multiple fields on a device to a state or payload."""
+        #Must be contiguous fields, or maybe not, it could group adjacent
+        #inputs must be mathcing length lists
+        pass
+    
     @staticmethod
     def _checkPayloadValues(payload, fieldinfo):
         """check a single field payload matches field spec"""
@@ -522,7 +528,7 @@ class HeatmiserDevice(object):
         ranges = fieldinfo[FIELD_RANGE]
         if ranges != []:
             if isinstance(payload, (int, long)):
-                if ( payload < ranges[0] or payload > ranges[1] ):
+                if payload < ranges[0] or payload > ranges[1]:
                     raise ValueError("set_field: payload out of range")
             else:
                 for i, item in enumerate(payload):
@@ -685,14 +691,14 @@ class HeatmiserDevice(object):
         else:
             self.set_field(day, padschedule)
 
-    def set_time(self) :
+    def set_time(self):
         """set time on device to match current localtime on server"""
         timenow = time.time() + 0.5 #allow a little time for any delay in setting
         return self.set_field('currenttime', self._localtimearray(timenow))
 
     #overriding
 
-    def set_temp(self, temp) :
+    def set_temp(self, temp):
         """sets the temperature demand overriding the program."""
         #Believe it returns at next prog change.
         if self.read_field('tempholdmins') == 0: #check hold temp not applied
@@ -700,29 +706,29 @@ class HeatmiserDevice(object):
         else:
             logging.warn("%i address, temp hold applied so won't set temp"%(self.address))
 
-    def release_temp(self) :
+    def release_temp(self):
         """release setTemp back to the program, but only if temp isn't held for a time (holdTemp)."""
         if self.read_field('tempholdmins') == 0: #check hold temp not applied
             return self.set_field('tempholdmins', 0)
         else:
             logging.warn("%i address, temp hold applied so won't remove set temp"%(self.address))
 
-    def hold_temp(self, minutes, temp) :
+    def hold_temp(self, minutes, temp):
         """sets the temperature demand overrding the program for a set time."""
         #Believe it then returns to program.
         self.set_field('setroomtemp', temp)
         return self.set_field('tempholdmins', minutes)
         #didn't stay on if did minutes followed by temp.
         
-    def release_hold_temp(self) :
+    def release_hold_temp(self):
         """release setTemp or holdTemp back to the program."""
         return self.set_field('tempholdmins', 0)
         
-    def set_holiday(self, hours) :
+    def set_holiday(self, hours):
         """sets holiday up for a defined number of hours."""
         return self.set_field('holidayhours', hours)
     
-    def release_holiday(self) :
+    def release_holiday(self):
         """cancels holiday mode"""
         return self.set_field('holidayhours', 0)
 

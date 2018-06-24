@@ -7,6 +7,7 @@ from .exceptions import HeatmiserResponseError, HeatmiserResponseErrorCRC
 ### low level framing functions
 
 def form_read_frame(destination, protocol, source, start, length):
+    """Forms a read message payload, including CRC"""
     return form_frame(destination, protocol, source, FUNC_READ, start, length, [])
 
 # TODO check master address is in legal range
@@ -51,7 +52,7 @@ def _check_frame_crc(protocol, data):
     if expectedchecksum != checksum:
         raise HeatmiserResponseErrorCRC("CRC is incorrect")
 
-def _check_response_frame_length(protocol, data, expectedLength):
+def _check_response_frame_length(protocol, data, expected_length):
     """Takes frame and checks length, must be a receive frame"""
     if protocol != HMV3_ID:
         raise ValueError("Protocol unknown")
@@ -67,15 +68,15 @@ def _check_response_frame_length(protocol, data, expectedLength):
     if len(data) != frame_len:
         raise HeatmiserResponseError("Frame length does not match header: %s %s" %(len(data), frame_len))
 
-    if expectedLength != RW_LENGTH_ALL and func_code == FUNC_READ and frame_len != MIN_FRAME_READ_RESP_LENGTH + expectedLength:
+    if expected_length != RW_LENGTH_ALL and func_code == FUNC_READ and frame_len != MIN_FRAME_READ_RESP_LENGTH + expected_length:
         # Read response length is wrong
-        raise HeatmiserResponseError("Response length %s not EXPECTED value %s + %s given read request" %(frame_len, MIN_FRAME_READ_RESP_LENGTH, expectedLength ))
+        raise HeatmiserResponseError("Response length %s not EXPECTED value %s + %s given read request" %(frame_len, MIN_FRAME_READ_RESP_LENGTH, expected_length))
     if func_code == FUNC_WRITE and frame_len != FRAME_WRITE_RESP_LENGTH:
         # Reply to Write is always 7 long
-        raise HeatmiserResponseError("Response length %s not EXPECTED value %s given write request" %(frame_len, FRAME_WRITE_RESP_LENGTH ))
+        raise HeatmiserResponseError("Response length %s not EXPECTED value %s given write request" %(frame_len, FRAME_WRITE_RESP_LENGTH))
             
 def _check_response_frame_addresses(protocol, source, destination, data):
-
+    """Takes frame and checks addresses are correct"""
     if protocol != HMV3_ID:
         raise ValueError("Protocol unknown")
         
@@ -92,7 +93,7 @@ def _check_response_frame_addresses(protocol, source, destination, data):
         raise HeatmiserResponseError("Source address does not match %i" % source_addr)
             
 def _check_response_frame_function(protocol, expected_function, data):
-
+    """Takes frame and read or write bit is set correctly"""
     if protocol != HMV3_ID:
         raise ValueError("Protocol unknown")
 
@@ -107,13 +108,13 @@ def verify_write_ack(protocol, source, destination, data):
     """Verifies message response to write is correct"""
     return verify_response(protocol, source, destination, FUNC_WRITE, DONT_CARE_LENGTH, data)
  
-def verify_response(protocol, source, destination, expected_function, expectedLength, data):
+def verify_response(protocol, source, destination, expected_function, expected_length, data):
     """Verifies response frame appears legal"""
     try:
         # check CRC
         _check_frame_crc(protocol, data)
         # check length
-        _check_response_frame_length(protocol, data, expectedLength)
+        _check_response_frame_length(protocol, data, expected_length)
         # check addresses
         _check_response_frame_addresses(protocol, source, destination, data)
         # check function
@@ -129,6 +130,7 @@ def verify_response(protocol, source, destination, expected_function, expectedLe
 # This is the CRC function converted directly from the Heatmiser C code
 # provided in their API
 class crc16:
+    """Computes CRC for Heatmiser Message"""
     LookupHigh = [
     0x00, 0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70,
     0x81, 0x91, 0xa1, 0xb1, 0xc1, 0xd1, 0xe1, 0xf1

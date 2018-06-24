@@ -8,7 +8,7 @@ from heatmisercontroller.hm_constants import HMV3_ID, PROG_MODES, PROG_MODE_DAY,
 from heatmisercontroller.exceptions import HeatmiserResponseError, HeatmiserControllerTimeError
 from heatmisercontroller.adaptor import HeatmiserAdaptor
 
-from mock_serial import setupTestClass
+from mock_serial import SetupTestClass
 
 class ArgumentStore(object):
     """Class used to replace class method allowing arguments to be captured"""
@@ -84,7 +84,7 @@ class TestReadingData(unittest.TestCase):
         
     def test_readall(self):
         pass
-        # setup = setupTestClass()
+        # setup = SetupTestClass()
         # adaptor = MockHeatmiserAdaptor(setup)
         # self.func = HeatmiserDevice(adaptor, self.settings)
         # basetime = (6 - 2) * 86400 + 53376.0 + year2000
@@ -95,7 +95,7 @@ class TestReadingData(unittest.TestCase):
         # self.assertEqual([(1, 3, 18, 0, True)],adaptor.arguments)
         
     def test_readvariables(self):
-        setup = setupTestClass()
+        setup = SetupTestClass()
         adaptor = MockHeatmiserAdaptor(setup)
         self.func = HeatmiserDevice(adaptor, self.settings)
         
@@ -109,7 +109,7 @@ class TestReadingData(unittest.TestCase):
         self.assertEqual(0, self.func.hotwaterdemand)
 
     def test_read_fields(self):
-        setup = setupTestClass()
+        setup = SetupTestClass()
         adaptor = MockHeatmiserAdaptor(setup)
         self.func = HeatmiserDevice(adaptor, self.settings2)
         print
@@ -213,7 +213,8 @@ class TestTimeFunctions(unittest.TestCase):
         self.assertEqual([4, hour, 48, 47], self.func._localtimearray(1528350527))
         self.assertEqual([7, hour, 48, 47], self.func._localtimearray(1528350527-86400*4))
 
-class TestProtocol(unittest.TestCase):
+class TestSettingData(unittest.TestCase):
+    """Unittests for setting data functions"""
     def setUp(self):
         logging.basicConfig(level=logging.ERROR)
         self.settings = {'address':5, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_e_model', 'expected_prog_mode':PROG_MODE_DAY}

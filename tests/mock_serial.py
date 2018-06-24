@@ -1,8 +1,9 @@
+"""Lookbock self class for overloading serial port in unitests"""
 import serial
 
 class SerialTestClass(object):
     """A mock serial port test class"""
-    def __init__(self, noTimeOut = None):
+    def __init__(self, noTimeOut=None):
         """Creates a mock serial port which is a loopback object"""
         self._port = "loop://"
         self._timeout = 0
@@ -22,7 +23,8 @@ class SerialTestClass(object):
             self.serialPort.COM_TIMEOUT = noTimeOut
             self.serialPort.COM_MIN_TIMEOUT = noTimeOut
 
-class setupTestClass(object):
+class SetupTestClass(object):
+    """Dummy serial config for unittesting"""
     def __init__(self):
         self.settings = {}
         self.settings['controller'] = {'my_master_addr':129}
