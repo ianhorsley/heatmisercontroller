@@ -12,8 +12,8 @@ initialize_logger('logs', logging.WARN, True)
 HMN = HeatmiserNetwork()
 
 STAT = HMN.B1
-address = STAT.address
-bcdlen = STAT.dcb_length
+ADDRESS = STAT.address
+DCBLEN = STAT.dcb_length
 
 #field = 'tempholdmins' #Kit
 #field = 'currenttime' #Others
@@ -30,7 +30,7 @@ def testall():
     for _ in range(TESTS):
         try:
             start = timer()
-            HMN.adaptor.read_all_from_device(address, HMV3_ID, bcdlen)
+            HMN.adaptor.read_all_from_device(ADDRESS, HMV3_ID, DCBLEN)
             times.append(timer() - start - HMN.adaptor.serport.COM_BUS_RESET_TIME) 
         except hmResponseError:
             print "errored"
@@ -43,7 +43,7 @@ def test(number):
     for _ in range(TESTS):
         try:
             start = timer()
-            HMN.adaptor.hmReadFromController(address, HMV3_ID, uniadd[field][UNIADD_ADD], number)
+            HMN.adaptor.hmReadFromController(ADDRESS, HMV3_ID, uniadd[field][UNIADD_ADD], number)
             times.append(timer() - start - HMN.adaptor.serport.COM_BUS_RESET_TIME) 
         except hmResponseError:
             print "errored"

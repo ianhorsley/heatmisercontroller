@@ -76,6 +76,7 @@ class Scheduler(object):
             yield fulllist[pos:pos + chunklength]
             
     def get_current_schedule_item(self, timearray):
+        """Gets the current item from schedule"""
         ####check time and vars current
         
         todayschedule = self._get_schedule_entry(timearray[CURRENT_TIME_DAY])
@@ -90,7 +91,7 @@ class Scheduler(object):
             return [timearray[CURRENT_TIME_DAY]] + scheduletarget
             
     def get_next_schedule_item(self, timearray):
-
+        """Gets the next item from schedule"""
         todayschedule = self._get_schedule_entry(timearray[CURRENT_TIME_DAY])
         
         scheduletarget = self._get_next_item_from_an_entry(todayschedule, timearray)
@@ -103,6 +104,7 @@ class Scheduler(object):
             return [timearray[CURRENT_TIME_DAY]] + scheduletarget
             
     def _get_next_item_from_an_entry(self, schedule, timearray):
+        """Gets the next item from a days schedule"""
         scheduletarget = None
         dayminutes = timearray[CURRENT_TIME_HOUR] * HOUR_MINUTES + timearray[CURRENT_TIME_MIN]
 
@@ -113,6 +115,7 @@ class Scheduler(object):
         return scheduletarget
     
     def _get_current_item_from_an_entry(self, schedule, timearray):
+        """Gets the current item from a days schedule"""
         scheduletarget = None
         dayminutes = timearray[CURRENT_TIME_HOUR] * HOUR_MINUTES + timearray[CURRENT_TIME_MIN]
         
@@ -123,22 +126,27 @@ class Scheduler(object):
         return scheduletarget
         
     def _get_previous_schedule_entry(self, timearray):
+        """Get previous days schedule"""
         return self._get_schedule_entry(self._get_previous_day(timearray))
 
     def _get_next_schedule_entry(self, timearray):
+        """Get next days schedule"""
         return self._get_schedule_entry(self._get_next_day(timearray))
 
     @staticmethod
     def _get_previous_day(timearray):
+        """Get day number for previous day"""
         #shift from 1-7 to 0-6, subtract 1, modulo, shift back to 1-7
         return ((timearray[CURRENT_TIME_DAY] - 1 - 1) % 7) + 1
         
     @staticmethod
     def _get_next_day(timearray):
+        """Get next days schedule"""
         #shift from 1-7 to 0-6, add 1, modulo, shift back to 1-7
         return ((timearray[CURRENT_TIME_DAY] - 1 + 1) % 7) + 1
         
     def _get_first_item_from_an_entry(self, schedule):
+        """Gets the first item from a days schedule"""
         #gets first schedule entry if valid (not 24)
         firstentry = self._chunks(schedule, self.valuesperentry).next()
         if firstentry[MAP_HOUR] != HOUR_UNUSED:
@@ -147,6 +155,7 @@ class Scheduler(object):
             return None
 
     def _get_last_item_from_an_entry(self, schedule):
+        """Gets the last item from a days schedule"""
         #gets last valid schedule entry (not 24)
         scheduletarget = None
         for i in self._reversechunks(schedule, self.valuesperentry):
@@ -156,6 +165,7 @@ class Scheduler(object):
         return scheduletarget
 
 class SchedulerDay(Scheduler):
+    """Inherited class with day variables and methods"""
     entrynames = ['mon', 'tues', 'wed', 'thurs', 'fri', 'sat', 'sun']
     printnames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
     
@@ -163,6 +173,7 @@ class SchedulerDay(Scheduler):
         return self.entries[self.entrynames[day - 1]]
 
 class SchedulerWeek(Scheduler):
+    """Inherited class with week variables and methods"""
     entrynames = ['wday', 'wend']
     printnames = ['Weekdays', 'Weekends']
     
@@ -175,6 +186,7 @@ class SchedulerWeek(Scheduler):
             raise ValueError("Day not recognised")
             
 class SchedulerHeat(Scheduler):
+    """Inherited class with heating variables and methods"""
     title = 'Heating'
     valuesperentry = 3
     entriesperday = 4
@@ -189,6 +201,7 @@ class SchedulerHeat(Scheduler):
         return tempstr
     
 class SchedulerWater(Scheduler):
+    """Inherited class with hot water variables and methods"""
     title = 'Hot Water'
     valuesperentry = 2
     entriesperday = 8
@@ -211,10 +224,14 @@ class SchedulerWater(Scheduler):
         return tempstr
     
 class SchedulerDayHeat(SchedulerDay, SchedulerHeat):
+    """Class for day based heating schedule"""
     pass
 class SchedulerWeekHeat(SchedulerWeek, SchedulerHeat):
+    """Class for week based heating schedule"""
     pass
 class SchedulerDayWater(SchedulerDay, SchedulerWater):
+    """Class for day based hot water schedule"""
     pass
 class SchedulerWeekWater(SchedulerWeek, SchedulerWater):
+    """Class for wee based hot water schedule"""
     pass

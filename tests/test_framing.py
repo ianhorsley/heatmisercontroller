@@ -26,13 +26,13 @@ class TestFraming(unittest.TestCase):
             
     def test_framecheckcrc_bad_CRC(self):
         with self.assertRaises(HeatmiserResponseErrorCRC):
-            _check_frame_crc(HMV3_ID,self.badackmessage)
+            _check_frame_crc(HMV3_ID, self.badackmessage)
             
     def test_framecheckcrc_good(self):
-        _check_frame_crc(HMV3_ID,self.goodreadmessage)
-        _check_frame_crc(HMV3_ID,[255,255]) #only crc
-        _check_frame_crc(HMV3_ID,self.goodresponsemessage)
-        _check_frame_crc(HMV3_ID,self.goodackmessage)
+        _check_frame_crc(HMV3_ID, self.goodreadmessage)
+        _check_frame_crc(HMV3_ID, [255, 255]) #only crc
+        _check_frame_crc(HMV3_ID, self.goodresponsemessage)
+        _check_frame_crc(HMV3_ID, self.goodackmessage)
     
     #length
     def test_framechecklength(self):

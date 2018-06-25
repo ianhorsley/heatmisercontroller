@@ -54,10 +54,10 @@ class TestBroadcastController(unittest.TestCase):
         #network, address, protocol, short_name, long_name, model, mode
         #self.func = HeatmiserDevice(None, 1, HMV3_ID, 'test', 'test controller', 'prt_hw_model', PROG_MODE_DAY)
         self.settings = {'address':1, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_hw_model', 'expected_prog_mode':PROG_MODE_DAY, 'autoreadall':True}
-        Dev1 = HeatmiserDevice(self.adaptor, self.settings)
+        dev1 = HeatmiserDevice(self.adaptor, self.settings)
         self.settings2 = {'address':2, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_hw_model', 'expected_prog_mode':PROG_MODE_DAY, 'autoreadall':True}
-        Dev2 = HeatmiserDevice(self.adaptor, self.settings)
-        self.func = HeatmiserBroadcastDevice(self.adaptor, 'Broadcaster', [Dev1, Dev2])
+        dev2 = HeatmiserDevice(self.adaptor, self.settings)
+        self.func = HeatmiserBroadcastDevice(self.adaptor, 'Broadcaster', [dev1, dev2])
             
     def test_read_fields(self):
         print
@@ -116,7 +116,7 @@ class TestReadingData(unittest.TestCase):
         # responses = [[1, 37, 0, 22, 4, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 38, 1, 9, 12, 28, 1, 1, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 220, 0, 0, 0, 3, 14, 49, 36, 7, 0, 19, 9, 30, 10, 17, 0, 19, 21, 30, 10, 7, 0, 19, 21, 30, 10, 24, 0, 5, 24, 0, 5, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 8, 0, 9, 0, 18, 0, 19, 0, 24, 0, 24, 0, 24, 0, 24, 0, 7, 0, 20, 21, 30, 12, 24, 0, 12, 24, 0, 12, 7, 0, 20, 21, 30, 12, 24, 0, 12, 24, 0, 12, 7, 0, 19, 8, 30, 12, 16, 30, 20, 21, 0, 12, 7, 0, 20, 12, 0, 12, 17, 0, 20, 21, 30, 12, 5, 0, 20, 21, 30, 12, 24, 0, 12, 24, 0, 12, 7, 0, 20, 12, 0, 12, 17, 0, 20, 21, 30, 12, 7, 0, 12, 24, 0, 12, 24, 0, 12, 24, 0, 12, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0]]
         # adaptor.setresponse(responses)
         # self.func.read_all()
-        # self.assertEqual([(1, 3, 18, 0, True)],adaptor.arguments)
+        # self.assertEqual([(1, 3, 18, 0, True)], adaptor.arguments)
         
     def test_readvariables(self):
         setup = SetupTestClass()
@@ -149,7 +149,7 @@ class TestReadingData(unittest.TestCase):
         responses = [[3], [0, 100, 0, 1]]
         adaptor.setresponse(responses)
         print self.func.read_fields(['model', 'airtemp', 'hotwaterdemand'], 0)
-        responses = [[3, 0, 1, 0, 0, 0, 0, 4, 0, 0, 0, 0, 1, 7, 5, 20, 0, 0, 0], [0,100,0,1]]
+        responses = [[3, 0, 1, 0, 0, 0, 0, 4, 0, 0, 0, 0, 1, 7, 5, 20, 0, 0, 0], [0, 100, 0, 1]]
         adaptor.setresponse(responses)
         print self.func.read_fields(['model', 'airtemp', 'hotwaterdemand', 'keylock'], 0)
         responses = [[0, 3, 0, 1, 0, 0, 0, 0, 4, 0, 0, 0, 0, 1, 7, 5, 20, 0, 0, 0, 0, 0, 0, 0]]
@@ -190,7 +190,7 @@ class TestOtherFunctions(unittest.TestCase):
         self.func._build_dcb_tables()
         expected = [[0, 0], [25, 25], [26, None], [31, None], [32, 26], [186, 147], [187, None], [298, None]]
         for u, d in expected:
-            self.assertEqual(d,self.func._uniquetodcb[u])
+            self.assertEqual(d, self.func._uniquetodcb[u])
 
 def get_offset(timenum):
     #gettime zone offset for that date

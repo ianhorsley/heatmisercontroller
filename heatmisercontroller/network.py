@@ -40,7 +40,7 @@ class HeatmiserNetwork(object):
         self._set_stat_list(settings['devices'], settings['devicesgeneral'])
         
         # Create a broadcast device
-        setattr(self,"All",HeatmiserBroadcastDevice(self.adaptor,"Broadcast to All", self.controllers))
+        setattr(self, "All", HeatmiserBroadcastDevice(self.adaptor, "Broadcast to All", self.controllers))
         self._current = self.All
       
     def _set_stat_list(self, statlist, generalsettings):
@@ -62,8 +62,7 @@ class HeatmiserNetwork(object):
     def get_stat_address(self, shortname):
         """Get network address from device name."""
         if isinstance(shortname, basestring):
-            shorts = [row[SL_SHORT_NAME] for row in self._statlist]
-            return self.statlist[shorts.index(shortname)]['address']
+            return self._statlist[shortname]['address']
         else:
             return shortname
 

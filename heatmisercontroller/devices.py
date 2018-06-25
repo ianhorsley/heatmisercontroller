@@ -409,14 +409,14 @@ class HeatmiserDevice(object):
         """Wraps procpayload by converting fieldnames to fieldids"""
         #rawdata must be a list
         #converts field names to unique addresses to allow process of shortened raw data
-        logging.debug("C%i Processing Payload from field %s to %s"%(self.address, firstfieldname, lastfieldname) )
+        logging.debug("C%i Processing Payload from field %s to %s"%(self.address, firstfieldname, lastfieldname))
         firstfieldid = self._fieldnametonum[firstfieldname]
         lastfieldid = self._fieldnametonum[lastfieldname]
         self._procpayload(rawdata, firstfieldid, lastfieldid, sentpayload)
         
     def _procpayload(self, rawdata, firstfieldid=0, lastfieldid=len(fields), sentpayload=False):
         """Split payload with field information and processes each field"""
-        logging.debug("C%i Processing Payload from field %i to %i"%(self.address, firstfieldid, lastfieldid) )
+        logging.debug("C%i Processing Payload from field %i to %i"%(self.address, firstfieldid, lastfieldid))
 
         fullfirstdcbadd = self._get_dcb_address(fields[firstfieldid][FIELD_ADD])
         
@@ -509,7 +509,7 @@ class HeatmiserDevice(object):
         try:
             self._adaptor.write_to_device(self.address, self._protocol, fieldinfo[FIELD_ADD], fieldinfo[FIELD_LEN], payloadbytes)
         except serial.SerialException as err:
-            logging.warn("C%i failed to set field %s to %s, due to %s"%(self.address, fieldname.ljust(FIELD_NAME_LENGTH), ', '.join(str(x) for x in payload),str(err)))
+            logging.warn("C%i failed to set field %s to %s, due to %s"%(self.address, fieldname.ljust(FIELD_NAME_LENGTH), ', '.join(str(x) for x in payload), str(err)))
             raise
         else:
             logging.info("C%i set field %s to %s"%(self.address, fieldname.ljust(FIELD_NAME_LENGTH), ', '.join(str(x) for x in payload)))
@@ -518,11 +518,11 @@ class HeatmiserDevice(object):
         self._procpartpayload(payloadbytes, fieldname, fieldname, True)
     
     @staticmethod
-    def _format_payload(payload, FIELD_LEN):
+    def _format_payload(payload, field_len):
         """Convert fields to byte form for writting to device"""
-        if FIELD_LEN == 1:
+        if field_len == 1:
             return [payload]
-        elif FIELD_LEN == 2:
+        elif field_len == 2:
             pay_lo = (payload & BYTEMASK)
             pay_hi = (payload >> 8) & BYTEMASK
             return [pay_lo, pay_hi]
@@ -576,7 +576,7 @@ class HeatmiserDevice(object):
                 fieldinfo = fields[fieldid]
                 self._is_writable(fieldinfo)
                 self._check_payload_values(payloadscopy[orginalindex], fieldinfo)
-                sorteddata.append([fieldid,fieldinfo,payloadscopy[orginalindex]]) 
+                sorteddata.append([fieldid, fieldinfo, payloadscopy[orginalindex]]) 
         
         #Groups and map to unique addresses
         outputdata = []
@@ -612,8 +612,8 @@ class HeatmiserDevice(object):
                     raise ValueError("set_field: payload out of range")
             else:
                 for i, item in enumerate(payload):
-                    r = ranges[i % len(ranges)]
-                    if item < r[0] or item > r[1]:
+                    range = ranges[i % len(ranges)]
+                    if item < range[0] or item > range[1]:
                         raise ValueError("set_field: payload out of range")
     
     ## External functions for printing data
