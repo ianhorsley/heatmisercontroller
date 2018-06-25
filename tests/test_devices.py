@@ -61,9 +61,9 @@ class TestBroadcastController(unittest.TestCase):
             
     def test_read_fields(self):
         print
-        responses = [[0, 0, 0, 0, 0, 0, 0, 170],[0, 1, 0, 0, 0, 0, 0, 180]]
+        responses = [[0, 0, 0, 0, 0, 0, 0, 170], [0, 1, 0, 0, 0, 0, 0, 180]]
         self.adaptor.setresponse(responses)
-        self.assertEqual([[0, 17],[1, 18]], self.func.read_fields(['tempholdmins', 'airtemp'], 0))
+        self.assertEqual([[0, 17], [1, 18]], self.func.read_fields(['tempholdmins', 'airtemp'], 0))
         
 class TestReadingData(unittest.TestCase):
     """Unittests for reading data functions"""
@@ -208,7 +208,7 @@ def get_offset(timenum):
     utc_offset = - (time.altzone if is_dst else time.timezone)
     return utc_offset
     
-year2000 = (30 * 365 + 7) * 86400 #get some funny effects if you use times from 1970
+YEAR2000 = (30 * 365 + 7) * 86400 #get some funny effects if you use times from 1970
         
 class TestTimeFunctions(unittest.TestCase):
     """Unittests for time functions"""
@@ -222,14 +222,14 @@ class TestTimeFunctions(unittest.TestCase):
             self.func._comparecontrollertime()
             
     def test_comparecontrollertime_bad(self):
-        basetime = (1 + 1) * 86400 + 9 * 3600 + 33 * 60 + 0 + year2000
+        basetime = (1 + 1) * 86400 + 9 * 3600 + 33 * 60 + 0 + YEAR2000
         self.func.datareadtime['currenttime'] = basetime - get_offset(basetime) #has been read
         self.func.data['currenttime'] = self.func.currenttime = [1, 0, 0, 0]
         with self.assertRaises(HeatmiserControllerTimeError):
             self.func._comparecontrollertime()
         
     def test_comparecontrollertime_1(self):
-        basetime = (4 + 1) * 86400 + 9 * 3600 + 33 * 60 + 5 + year2000
+        basetime = (4 + 1) * 86400 + 9 * 3600 + 33 * 60 + 5 + YEAR2000
         self.func.datareadtime['currenttime'] = basetime - get_offset(basetime) #has been read
         self.func.data['currenttime'] = self.func.currenttime = [4, 9, 33, 0]
         #print "s ", self.func._localtimearray(self.func.datareadtime['currenttime']), self.func.data['currenttime'], self.func.datareadtime['currenttime'], time.localtime(self.func.datareadtime['currenttime']).tm_hour, time.localtime(self.func.datareadtime['currenttime']), "e"
@@ -238,7 +238,7 @@ class TestTimeFunctions(unittest.TestCase):
         
     def test_comparecontrollertime_2(self):
         #self.func.datareadtime['currenttime'] = ( 7 + 3) * 86400 + 23 * 3600 + 59 * 60 + 55 - self.utc_offset #has been read
-        basetime = (7 + 1) * 86400 + 23 * 3600 + 59 * 60 + 55 + year2000
+        basetime = (7 + 1) * 86400 + 23 * 3600 + 59 * 60 + 55 + YEAR2000
         self.func.datareadtime['currenttime'] = basetime - get_offset(basetime) #has been read
         self.func.data['currenttime'] = self.func.currenttime = [1, 0, 0, 0]
         self.func._comparecontrollertime()
@@ -271,7 +271,7 @@ class TestSettingData(unittest.TestCase):
         #self.func.lastreadtime = 7 * 86400 + 7 *3600 + 7 * 60 - 3600
         self.func.lastreadtime = time.time()
         loctime = self.func._localtimearray(self.func.lastreadtime)
-        self.func.set_field('currenttime', loctime )
+        self.func.set_field('currenttime', loctime)
         self.assertEqual(self.tester.arguments, [(5, 3, 43, 4, loctime)])
 
     def test_setfield_notvalid(self):
@@ -315,16 +315,16 @@ class TestSettingData(unittest.TestCase):
         self.assertEqual(self.func.mon_heat, setarray)
         
     def test_setfields_3(self):
-        setarray = [[1, 0, 17, 9, 0, 20, 13, 0, 17, 20, 0, 20],[1, 0, 17, 9, 0, 20, 13, 0, 17, 20, 0, 20]]
+        setarray = [[1, 0, 17, 9, 0, 20, 13, 0, 17, 20, 0, 20], [1, 0, 17, 9, 0, 20, 13, 0, 17, 20, 0, 20]]
         self.func.set_fields(['mon_heat','wed_heat'], setarray)
-        self.assertEqual(self.tester.arguments, [(5, 3, 103, 12, setarray[0]),(5, 3, 127, 12, setarray[0])])
+        self.assertEqual(self.tester.arguments, [(5, 3, 103, 12, setarray[0]), (5, 3, 127, 12, setarray[0])])
         self.assertEqual(self.func.mon_heat, setarray[0])
         self.assertEqual(self.func.wed_heat, setarray[1])  
 
     def test_setfields_4(self):
-        indata = [[1, 0, 17, 9, 0, 20, 13, 0, 17, 20, 0, 20],[1, 0, 17, 9, 0, 20, 13, 0, 17, 20, 0, 20]]
+        indata = [[1, 0, 17, 9, 0, 20, 13, 0, 17, 20, 0, 20], [1, 0, 17, 9, 0, 20, 13, 0, 17, 20, 0, 20]]
         flat_list = [item for sublist in indata for item in sublist]
-        self.func.set_fields(['mon_heat','tues_heat'], indata)
+        self.func.set_fields(['mon_heat', 'tues_heat'], indata)
         self.assertEqual(self.tester.arguments, [(5, 3, 103, 24, flat_list)])
         self.assertEqual(self.func.mon_heat, indata[0])
         self.assertEqual(self.func.tues_heat, indata[1])           

@@ -22,7 +22,7 @@ class TestFraming(unittest.TestCase):
     #crc
     def test_framecheckcrc_short(self):
         with self.assertRaises(HeatmiserResponseError):
-            _check_frame_crc(HMV3_ID,[0])
+            _check_frame_crc(HMV3_ID, [0])
             
     def test_framecheckcrc_bad_CRC(self):
         with self.assertRaises(HeatmiserResponseErrorCRC):

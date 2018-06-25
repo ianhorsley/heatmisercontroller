@@ -9,6 +9,7 @@ from heatmisercontroller.hm_constants import HMV3_ID
 from heatmisercontroller.framing import crc16
 
 class TestSerial(unittest.TestCase):
+    """Low level serial send and recieve message tests"""
     def setUp(self):
         self.serialport = SerialTestClass()
         logging.basicConfig(level=logging.ERROR)
@@ -73,6 +74,7 @@ class TestSerial(unittest.TestCase):
         self.func._update_settings(self.setup.settings)
 
 class TestReadWrite(unittest.TestCase):
+    """Tests for write to and read from device"""
     def setUp(self):
         self.serialport = SerialTestClass(0)
         logging.basicConfig(level=logging.DEBUG)
@@ -102,7 +104,7 @@ class TestReadWrite(unittest.TestCase):
     def test_sendto_2(self):
         """Not good test as triggers retries but fails."""
         goodresponse = [129, 7, 0, 5, 1, 0, 0, 129, 7, 0, 5, 1, 116, 39]
-        goodrequest = [5, 11, 129, 1, 12, 0, 1, 0, 1, 19, 67]
+        #goodrequest = [5, 11, 129, 1, 12, 0, 1, 0, 1, 19, 67]
         # Setup response
         self.serialport.serialPort.write(goodresponse)
         # Send message
