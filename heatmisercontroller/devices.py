@@ -708,7 +708,7 @@ class HeatmiserDevice(object):
             return self.TEMP_STATE_HOLIDAY
         else:
         
-            if not self._check_data_age(['currenttime'],     MAX_AGE_MEDIUM):
+            if not self._check_data_age(['currenttime'], MAX_AGE_MEDIUM):
                 self.read_time()
             
             locatimenow = self._localtimearray()

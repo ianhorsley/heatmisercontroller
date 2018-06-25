@@ -104,49 +104,49 @@ class HeatmiserControllerFileSetup(HeatmiserControllerSetup):
         # create a timeout message if time out is set (>0)
         self.retry_msg = " Retry in " + str(self._c_retry_time_interval) + " seconds" if self._c_retry_time_interval <= 0 else ""
 
-    def reload_settings(self):
-        """Reload and check settings
+    # def reload_settings(self):
+        # """Reload and check settings
 
-        Update attribute settings and return True if modified. Return False if failed to load new settings. Return None if nothing new or not checked
+        # Update attribute settings and return True if modified. Return False if failed to load new settings. Return None if nothing new or not checked
 
-        """
+        # """
         
-        # Check settings only once per second
-        now = time.time()
-        if now - self._settings_update_timestamp < 0:
-            return
-        # Update timestamp
-        self._settings_update_timestamp = now + self._c_check_time_interval
+        # # Check settings only once per second
+        # now = time.time()
+        # if now - self._settings_update_timestamp < 0:
+            # return
+        # # Update timestamp
+        # self._settings_update_timestamp = now + self._c_check_time_interval
         
-        # Backup settings
-        settings = dict(self.settings)
+        # # Backup settings
+        # settings = dict(self.settings)
         
-        # Get settings from file
-        try:
-            self.settings.reload()
-        except IOError as e:
-            self._log.warning('Could not get settings: ' + str(e) + self.retry_msg)
-            self._settings_update_timestamp = now + self._c_retry_time_interval
-            return
-        except SyntaxError as e:
-            self._log.warning('Could not get settings: ' +
-                              'Error parsing config file: ' + str(e) + self.retry_msg)
-            self._settings_update_timestamp = now + self._c_retry_time_interval
-            return
-        except Exception:
-            import traceback
-            self._log.warning("Couldn't get settings, Exception: " +
-                              traceback.format_exc() + self.retry_msg)
-            self._settings_update_timestamp = now + self._c_retry_time_interval
-            return
+        # # Get settings from file
+        # try:
+            # self.settings.reload()
+        # except IOError as e:
+            # self._log.warning('Could not get settings: ' + str(e) + self.retry_msg)
+            # self._settings_update_timestamp = now + self._c_retry_time_interval
+            # return
+        # except SyntaxError as e:
+            # self._log.warning('Could not get settings: ' +
+                              # 'Error parsing config file: ' + str(e) + self.retry_msg)
+            # self._settings_update_timestamp = now + self._c_retry_time_interval
+            # return
+        # except Exception:
+            # import traceback
+            # self._log.warning("Couldn't get settings, Exception: " +
+                              # traceback.format_exc() + self.retry_msg)
+            # self._settings_update_timestamp = now + self._c_retry_time_interval
+            # return
 
-        if self.settings != settings:
-            try:
-                self._check_settings()
-            except (ValueError, KeyError):
-                self.settings = settings
-                return False
-            return True
+        # if self.settings != settings:
+            # try:
+                # self._check_settings()
+            # except (ValueError, KeyError):
+                # self.settings = settings
+                # return False
+            # return True
             
     def _check_settings(self):
         try:

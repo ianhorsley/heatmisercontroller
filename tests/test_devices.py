@@ -77,8 +77,8 @@ class TestReadingData(unittest.TestCase):
             
     def test_procfield(self):
         #unique_address, length, divisor, valid range
-        self.func._procfield([1], ['test', 0,  1,  1, []])
-        self.func._procfield([1], ['test', 0,  1,  1, [0, 1]])
+        self.func._procfield([1], ['test', 0, 1, 1, []])
+        self.func._procfield([1], ['test', 0, 1, 1, [0, 1]])
         self.func._procfield([1, 1], ['test', 0, 2, 1, [0, 257]])
         self.func._procfield([4], ['model', 0, 1, 1, []])
         self.func._procfield([PROG_MODES[PROG_MODE_DAY]], ['programmode', 0, 1, 1, []])
