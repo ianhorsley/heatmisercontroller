@@ -5,7 +5,8 @@ import os
 
 from logging.handlers import RotatingFileHandler
 
-def initialize_logger(output_dir, screenlevel, debug_log = None):
+def initialize_logger(output_dir, screenlevel, debug_log=None):
+    """Class to initialise loggers to screen and files"""
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
 

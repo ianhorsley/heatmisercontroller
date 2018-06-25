@@ -25,8 +25,8 @@ for current_controller in HMN.controllers:
     except HeatmiserResponseError as err:
         print "C%d in %s Failed to Read due to %s" %(current_controller.address, current_controller.name.ljust(4), str(err))
     else:
-        disptext = "C%d Air Temp is %.1f from type %.f and Target set to %d    Boiler Demand %d" % (current_controller.address, current_controller.readAirTemp(), current_controller.readAirSensorType(), current_controller.setroomtemp, current_controller.heatingdemand)
-        if current_controller.isHotWater():
+        disptext = "C%d Air Temp is %.1f from type %.f and Target set to %d    Boiler Demand %d" % (current_controller.address, current_controller.read_air_temp(), current_controller.read_air_sensor_type(), current_controller.setroomtemp, current_controller.heatingdemand)
+        if current_controller.is_hot_water():
             print "%s Hot Water Demand %d" %(disptext, current_controller.hotwaterdemand)
         else:
             print disptext
@@ -52,10 +52,10 @@ while True:
         except HeatmiserResponseError as err:
             print "C%d in %s Failed to Read due to %s" %(current_controller.address, current_controller.name.ljust(4), str(err))
         else:
-            targettext = current_controller.printTarget()
-            disptext = "C%d in %s Air Temp is %.1f from type %.f, %s, Heat %d" %(current_controller.address, current_controller.name.ljust(4), current_controller.readAirTemp(), current_controller.readAirSensorType(), targettext, current_controller.heatingdemand)
+            targettext = current_controller.print_target()
+            disptext = "C%d in %s Air Temp is %.1f from type %.f, %s, Heat %d" %(current_controller.address, current_controller.name.ljust(4), current_controller.read_air_temp(), current_controller.read_air_sensor_type(), targettext, current_controller.heatingdemand)
 
-            if current_controller.isHotWater():
+            if current_controller.is_hot_water():
                 print "%s Water %d" % (disptext, current_controller.hotwaterdemand)
             else:
                 print disptext

@@ -60,11 +60,11 @@ class HeatmiserDevice(object):
 
         if self._expected_prog_mode == PROG_MODE_DAY:
             self.heat_schedule = SchedulerDayHeat()
-            if self.isHotWater():
+            if self.is_hot_water():
                 self.water_schedule = SchedulerDayWater()
         elif self._expected_prog_mode == PROG_MODE_WEEK:
             self.heat_schedule = SchedulerWeekHeat()
-            if self.isHotWater():
+            if self.is_hot_water():
                 self.water_schedule = SchedulerWeekWater()
         else:
             raise ValueError("Unknown program mode")
@@ -343,7 +343,7 @@ class HeatmiserDevice(object):
             value = data[0]/factor
         elif length == 2:
             val_high = data[0]
-            val_low    = data[1]
+            val_low = data[1]
             value = 1.0*(val_high*256 + val_low)/factor #force float, although always returns integer temps.
         elif length == 4:
             value = data
@@ -448,7 +448,7 @@ class HeatmiserDevice(object):
         if self.timeerr > self.DAYSECS:
             raise HeatmiserControllerTimeError("C%2d Incorrect day : local is %s, sensor is %s" % (self.address, localtimearray[CURRENT_TIME_DAY], self.data['currenttime'][CURRENT_TIME_DAY]))
 
-        if (self.timeerr > TIME_ERR_LIMIT):
+        if self.timeerr > TIME_ERR_LIMIT:
             raise HeatmiserControllerTimeError("C%2d Time Error %d greater than %d: local is %s, sensor is %s" % (self.address, self.timeerr, TIME_ERR_LIMIT, localweeksecs, remoteweeksecs))
 
     @staticmethod
@@ -478,7 +478,7 @@ class HeatmiserDevice(object):
             #check that write is part of field info and is 'W'
             raise ValueError("set_field: field isn't writeable")
                              
-        self._checkPayloadValues(payload, fieldinfo)
+        self._check_payload_values(payload, fieldinfo)
 
         if fieldinfo[FIELD_LEN] == 1:
             payload = [payload]
@@ -514,7 +514,7 @@ class HeatmiserDevice(object):
         pass
     
     @staticmethod
-    def _checkPayloadValues(payload, fieldinfo):
+    def _check_payload_values(payload, fieldinfo):
         """check a single field payload matches field spec"""
         
         if fieldinfo[FIELD_LEN] in [1, 2] and not isinstance(payload, (int, long)):
@@ -546,9 +546,9 @@ class HeatmiserDevice(object):
         if not self.water_schedule is None:
             self.water_schedule.display()
 
-    def printTarget(self):
+    def print_target(self):
         """Returns text describing current heating state"""    
-        current_state = self.readTempState()
+        current_state = self.read_temp_state()
         
         if current_state == self.TEMP_STATE_OFF:
             return "controller off without frost protection"
@@ -571,7 +571,7 @@ class HeatmiserDevice(object):
     
     ## External functions for reading data
 
-    def isHotWater(self):
+    def is_hot_water(self):
         """Does device manage hotwater?"""
         #returns True if stat is a model with hotwater control, False otherwise
         return self._expected_model == 'prt_hw_model'
@@ -584,7 +584,7 @@ class HeatmiserDevice(object):
     TEMP_STATE_OVERRIDDEN = 5 #temperature overridden until next program time
     TEMP_STATE_PROGRAM = 6 #following program
     
-    def readTempState(self):
+    def read_temp_state(self):
         """Returns the current temperature control state from off to following program"""
         self.read_fields(['mon_heat', 'tues_heat', 'wed_heat', 'thurs_heat', 'fri_heat', 'wday_heat', 'wend_heat'], -1)
         self.read_fields(['onoff', 'frostprot', 'holidayhours', 'runmode', 'tempholdmins', 'setroomtemp'])
@@ -613,7 +613,7 @@ class HeatmiserDevice(object):
                 return self.TEMP_STATE_PROGRAM
 
     ### UNTESTED # last part about scheduletarget doesn't work
-    def readWaterState(self):
+    def read_water_state(self):
         """Returns the current hot water control state from off to following program"""
         #does runmode affect hot water state?
         self.read_fields(['mon_water', 'tues_water', 'wed_water', 'thurs_water', 'fri_water', 'wday_water', 'wend_water'], -1)
@@ -636,7 +636,7 @@ class HeatmiserDevice(object):
             else:
                 return self.TEMP_STATE_PROGRAM
                 
-    def readAirSensorType(self):
+    def read_air_sensor_type(self):
         """Reports airsensor type"""
         #1 local, 3 remote
         if not self._check_data_present('sensorsavaliable'):
@@ -649,7 +649,7 @@ class HeatmiserDevice(object):
         else:
             return 0
             
-    def readAirTemp(self):
+    def read_air_temp(self):
         """Read the air temperature getting data from device if too old"""
         #if not read before read sensorsavaliable field
         self.read_field('sensorsavaliable', None)
@@ -661,7 +661,7 @@ class HeatmiserDevice(object):
         else:
             raise ValueError("sensorsavaliable field invalid")
     
-    def readRawData(self, startfieldname=None, endfieldname=None):
+    def read_raw_data(self, startfieldname=None, endfieldname=None):
         """Return subset of raw data"""
         if startfieldname == None or endfieldname == None:
             return self.rawdata
@@ -675,10 +675,12 @@ class HeatmiserDevice(object):
     ## External functions for setting data
 
     def set_heating_schedule(self, day, schedule):
+        """Set heating schedule for a single day"""
         padschedule = self.heat_schedule.pad_schedule(schedule)
         self.set_field(day, padschedule)
-        
+            
     def set_water_schedule(self, day, schedule):
+        """Set water schedule for a single day"""
         padschedule = self.water_schedule.pad_schedule(schedule)
         if day == 'all':
             self.set_field('mon_water', padschedule)

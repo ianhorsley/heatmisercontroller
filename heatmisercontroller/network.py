@@ -15,7 +15,8 @@ from adaptor import HeatmiserAdaptor
 import setup as hms
 
 class HeatmiserNetwork(object):
-### stat list setup
+    """Class that connects a set of devices (from configuration) and an adpator."""
+    ### stat list setup
 
     def __init__(self, configfile = None):
         
@@ -43,7 +44,7 @@ class HeatmiserNetwork(object):
         self._current = self.All
       
     def _set_stat_list(self, statlist, generalsettings):
-        # Store list of stats
+        """Store list of devives and create objects for each"""
         self._statlist = statlist
         self._statnum = len(self._statlist)
 
@@ -59,6 +60,7 @@ class HeatmiserNetwork(object):
         self._current = self.controllers[0]
       
     def get_stat_address(self, shortname):
+        """Get network address from device name."""
         if isinstance(shortname, basestring):
             shorts = [row[SL_SHORT_NAME] for row in self._statlist]
             return self.statlist[shorts.index(shortname)]['address']
@@ -66,15 +68,19 @@ class HeatmiserNetwork(object):
             return shortname
 
     def set_current_controller_by_name(self, name):
+        """Set the current device by name"""
         self._current = getattr(self, name)
         
     def set_current_controller_by_index(self, index):
+        """Set the current device by id"""
         self._current = self.controllers[index]
         
     def get_controller_by_name(self, name):
+        """Get device if from name"""
         return getattr(self, name)
         
     def run_method_on_all(self, method, *args, **kwargs):
+        """Run a method on all devices"""
         results = []
         for obj in self.controllers:
             results.append(getattr(obj, method)(*args, **kwargs))

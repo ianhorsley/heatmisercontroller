@@ -142,7 +142,7 @@ class HeatmiserAdaptor(object):
             logging.warning("Failed to clear input buffer")
             raise
                     
-    def _receive_message(self, length = MAX_FRAME_RESP_LENGTH):
+    def _receive_message(self, length=MAX_FRAME_RESP_LENGTH):
         """Receive message from serial port and log errors
         
         Uses two time outs, one on the first byte and another for full data"""
@@ -197,7 +197,7 @@ class HeatmiserAdaptor(object):
             logging.warn("C%i writing to address, no message sent"%(network_address))
             raise
         else:
-            logging.debug("C%i written to address %i length %i payload %s"%(network_address,unique_address, length, ', '.join(str(x) for x in payload)))
+            logging.debug("C%i written to address %i length %i payload %s"%(network_address, unique_address, length, ', '.join(str(x) for x in payload)))
             if network_address == BROADCAST_ADDR:
                 self.lastreceivetime = time.time() + self.serport.COM_SEND_MIN_TIME - self.serport.COM_BUS_RESET_TIME # if broadcasting force it to wait longer until next send
             else:
@@ -239,7 +239,7 @@ class HeatmiserAdaptor(object):
                 logging.debug("C%i read in %.2f s from address %i length %i response %s"%(network_address, time.time()-time1, unique_start_address, expected_length, ', '.join(str(x) for x in response)))
             
                 try:
-                    framing.verify_response(protocol, network_address, self.my_master_addr, FUNC_READ, expected_length , response)
+                    framing.verify_response(protocol, network_address, self.my_master_addr, FUNC_READ, expected_length, response)
                 except HeatmiserResponseErrorCRC:
                     self._clear_input_buffer()
                     raise

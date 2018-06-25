@@ -1,3 +1,4 @@
+"""Decorators meethods to support broadcast controller running functions on multiple devices"""
 import logging
 import serial
 
@@ -29,7 +30,7 @@ def run_function_on_all(liststore):
             """Decorator internal"""
             if liststore.list is None:
                 raise ValueError("liststore contains no list")
-            logging.info("All running %s for %i controllers"%(func.__name__,len(liststore.list)))
+            logging.info("All running %s for %i controllers"%(func.__name__, len(liststore.list)))
             func(self, *args, **kwargs)
             results = [None] * len(liststore.list)
             lasterror = None

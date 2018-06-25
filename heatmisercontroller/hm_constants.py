@@ -162,7 +162,7 @@ DEFAULT_PROG_MODE = PROG_MODE_DAY #allows broadcast to program both modes.
 PROG_MODES = {'week':0, 'day':1}
 
 #models
-DEVICE_MODELS = {'prt_e_model': 3,  'prt_hw_model': 4,  False: 0}
+DEVICE_MODELS = {'prt_e_model': 3, 'prt_hw_model': 4, False: 0}
 #PRT-E DCB map
 DCB_INVALID = None
 PRTEmap = {}

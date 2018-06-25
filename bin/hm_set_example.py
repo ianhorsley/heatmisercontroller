@@ -61,18 +61,18 @@ HMN.Kit.set_heating_schedule('fri_heat', WKEND_ZEARLY)
 HMN.Kit.set_heating_schedule('sat_heat', WKEND_ZOFF)
 HMN.Kit.set_heating_schedule('sun_heat', WKEND_ZOFF)
 
-eveningwater = [17, 30, 18, 0]
-nowater = []
-HMN.Kit.set_water_schedule('all', eveningwater)
+EVENINGWATER = [17, 30, 18, 0]
+NOWATER = []
+HMN.Kit.set_water_schedule('all', EVENINGWATER)
 
 UPSLEEP = 16
 UPAWAKE = 18
-upwkday_zearly = [5, 0, UPAWAKE, 7, 00, FROST, 20, 30, UPAWAKE, 21, 30, UPSLEEP]
-upwkday_zlate = [7, 0, UPAWAKE, 8, 00, FROST, 21, 30, UPAWAKE, 22, 30, UPSLEEP]
-upwkday = [7, 0, UPAWAKE, 8, 30, FROST, 21, 00, UPAWAKE, 21, 30, UPSLEEP]
-upwkend_zearly = [5, 0, UPAWAKE, 8, 00, FROST, 20, 30, UPAWAKE, 21, 30, UPSLEEP]
-upwkend_zlate = [7, 0, UPAWAKE, 9, 30, FROST, 21, 30, UPAWAKE, 22, 30, UPSLEEP]
-upwkend = [7, 0, UPAWAKE, 9, 30, FROST, 21, 00, UPAWAKE, 22, 00, UPSLEEP]
+UPWKDAY_ZEARLY = [5, 0, UPAWAKE, 7, 00, FROST, 20, 30, UPAWAKE, 21, 30, UPSLEEP]
+UPWKDAY_ZLATE = [7, 0, UPAWAKE, 8, 00, FROST, 21, 30, UPAWAKE, 22, 30, UPSLEEP]
+UPWKDAY = [7, 0, UPAWAKE, 8, 30, FROST, 21, 00, UPAWAKE, 21, 30, UPSLEEP]
+UPWKEND_ZEARLY = [5, 0, UPAWAKE, 8, 00, FROST, 20, 30, UPAWAKE, 21, 30, UPSLEEP]
+UPWKEND_ZLATE = [7, 0, UPAWAKE, 9, 30, FROST, 21, 30, UPAWAKE, 22, 30, UPSLEEP]
+UPWKEND = [7, 0, UPAWAKE, 9, 30, FROST, 21, 00, UPAWAKE, 22, 00, UPSLEEP]
 DAYFROST = [7, 0, FROST]
 
 HMN.B1.set_heating_schedule('mon_heat', DAYFROST)
