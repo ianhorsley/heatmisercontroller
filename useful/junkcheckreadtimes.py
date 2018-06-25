@@ -1,45 +1,38 @@
-#!/usr/bin/python
-#
-# Ian Horsley 2018
-
-#
-# Sets a bunch of different configurations on stats
-#
+#!/usr/bin/env python
+"""Script to time the responses from the stats for different read lengths"""
 from timeit import default_timer as timer
 import logging
 
 from heatmisercontroller.logging_setup import initialize_logger
 from heatmisercontroller.hm_constants import *
-from heatmisercontroller.network import *
+from heatmisercontroller.network import HeatmiserNetwork
 from heatmisercontroller.exceptions import hmResponseError
 
-
-
 initialize_logger('logs', logging.WARN, True)
-hmn1 = HeatmiserNetwork()
+HMN = HeatmiserNetwork()
 
-stat = hmn1.B1
-address = stat._address
-bcdlen = stat.DCBlength
+STAT = HMN.B1
+ADDRESS = STAT.address
+DCBLEN = STAT.dcb_length
 
 #field = 'tempholdmins' #Kit
 #field = 'currenttime' #Others
 field = 'mon_heat' #Others on day
 
-print stat._getFieldBlocks('DCBlen','sun_water')
-print stat.DCBlength
+#print STAT._getFieldBlocks('DCBlen','sun_water')
+print STAT.dcb_length
 
 import numpy as np
 
-def all():
+def testall():
     print "All No proc"
     times = []
-    for i in range(tests):
+    for _ in range(TESTS):
         try:
             start = timer()
-            hmn1.adaptor.hmReadAllFromController(address, HMV3_ID, bcdlen)
-            times.append(timer() - start - hmn1.adaptor.serport.COM_BUS_RESET_TIME) 
-        except:
+            HMN.adaptor.read_all_from_device(ADDRESS, HMV3_ID, DCBLEN)
+            times.append(timer() - start - HMN.adaptor.serport.COM_BUS_RESET_TIME) 
+        except hmResponseError:
             print "errored"
             time.sleep(5)
     print "%.3f"%np.median(times), len(times)
@@ -47,18 +40,18 @@ def all():
 def test(number):
     print "%i No proc"%number
     times = []
-    for i in range(tests):
+    for _ in range(TESTS):
         try:
             start = timer()
-            hmn1.adaptor.hmReadFromController(address, HMV3_ID, uniadd[field][UNIADD_ADD], number)
-            times.append(timer() - start - hmn1.adaptor.serport.COM_BUS_RESET_TIME) 
-        except:
-            pass        
+            HMN.adaptor.hmReadFromController(ADDRESS, HMV3_ID, uniadd[field][UNIADD_ADD], number)
+            times.append(timer() - start - HMN.adaptor.serport.COM_BUS_RESET_TIME) 
+        except hmResponseError:
+            print "errored"
     print "%.3f"%np.median(times), len(times)
 
 
-tests = 30
-cases = [1,150,200,250]
-for i in cases:
+TESTS = 30
+CASES = [1, 150, 200, 250]
+for i in CASES:
     test(i)
-all()
+testall()

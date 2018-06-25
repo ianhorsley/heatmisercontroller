@@ -1,9 +1,5 @@
-"""
+"""User interface to setup the contoller."""
 
-
-"""
-
-import time
 import logging
 import os
 from configobj import ConfigObj
@@ -11,52 +7,45 @@ from validate import Validator
 
 from .exceptions import HeatmiserControllerSetupInitError
 
-"""class HeatmiserControllerSetup
+# The settings attribute stores the settings of the hub. It is a
+# dictionary with the following keys:
 
-User interface to setup the contoller.
+        # 'controller': a dictionary containing general settings
+        # 'serial': a dictionary containing the serial port settings
+        # 'devices': a dictionary containing the configuration of each remote device
+        # 'setup':
 
-The settings attribute stores the settings of the hub. It is a
-dictionary with the following keys:
+        # The controller settings are:
+        # 'loglevel': the logging level
 
-        'controller': a dictionary containing general settings
-        'serial': a dictionary containing the serial port settings
-        'devices': a dictionary containing the configuration of each remote device
-        'setup': 
+        # ###interfacers and reporters are dictionaries with the following keys:
+        # ###'Type': class name
+        # ###'init_settings': dictionary with initialization settings
+        # ###'runtimesettings': dictionary with runtime settings
+        # ###Initialization and runtime settings depend on the interfacer and
+        # ###reporter type.
 
-        The controller settings are:
-        'loglevel': the logging level
-        
-        ###interfacers and reporters are dictionaries with the following keys:
-        ###'Type': class name
-        ###'init_settings': dictionary with initialization settings
-        ###'runtimesettings': dictionary with runtime settings
-        ###Initialization and runtime settings depend on the interfacer and
-        ###reporter type.
+# The run() method is supposed to be run regularly by the instantiator, to
+# perform regular communication tasks.
 
-The run() method is supposed to be run regularly by the instantiator, to
-perform regular communication tasks.
+# The check_settings() method is run regularly as well. It checks the settings
+# and returns True is settings were changed.
 
-The check_settings() method is run regularly as well. It checks the settings 
-and returns True is settings were changed.
-
-This almost empty class is meant to be inherited by subclasses specific to
-each setup.
-
-"""
+# This almost empty class is meant to be inherited by subclasses specific to
+# each setup."""
 
 class HeatmiserControllerSetup(object):
-
+    """Inherited base class"""
     def __init__(self):
-        
         # Initialize logger
         self._log = logging.getLogger("HeatmiserController")
-        
+
         # Initialize settings
         self.settings = None
 
     def run(self):
-        """Run in background. 
-        
+        """Run in background.
+
         To be implemented in child class.
 
         """
@@ -72,7 +61,7 @@ class HeatmiserControllerSetup(object):
         """
 
 class HeatmiserControllerFileSetup(HeatmiserControllerSetup):
-
+    """Handles importing confiugration from file"""
     def __init__(self, filename):
         
         # Initialization
@@ -89,14 +78,14 @@ class HeatmiserControllerFileSetup(HeatmiserControllerSetup):
         try:
             self.settings = ConfigObj(filename, file_error=True, configspec=specpath)
             self._validator = Validator()
-        except IOError as e:
-            raise HeatmiserControllerSetupInitError(e)
-        except SyntaxError as e:
+        except IOError as err:
+            raise HeatmiserControllerSetupInitError(err)
+        except SyntaxError as err:
             raise HeatmiserControllerSetupInitError(
-                'Error parsing config file \"%s\": ' % filename + str(e))
-        except KeyError as e:
+                'Error parsing config file \"%s\": ' % filename + str(err))
+        except KeyError as err:
             raise HeatmiserControllerSetupInitError(
-                'Configuration file error - section missing: ' + str(e))
+                'Configuration file error - section missing: ' + str(err))
         
         #check settings and add any default values
         self._check_settings()
@@ -111,51 +100,52 @@ class HeatmiserControllerFileSetup(HeatmiserControllerSetup):
         # create a timeout message if time out is set (>0)
         self.retry_msg = " Retry in " + str(self._c_retry_time_interval) + " seconds" if self._c_retry_time_interval <= 0 else ""
 
-    def reload_settings(self):
-        """Reload and check settings
+    # def reload_settings(self):
+        # """Reload and check settings
 
-        Update attribute settings and return True if modified. Return False if failed to load new settings. Return None if nothing new or not checked
+        # Update attribute settings and return True if modified. Return False if failed to load new settings. Return None if nothing new or not checked
 
-        """
+        # """
         
-        # Check settings only once per second
-        now = time.time()
-        if now - self._settings_update_timestamp < 0:
-            return
-        # Update timestamp
-        self._settings_update_timestamp = now + self._c_check_time_interval
+        # # Check settings only once per second
+        # now = time.time()
+        # if now - self._settings_update_timestamp < 0:
+            # return
+        # # Update timestamp
+        # self._settings_update_timestamp = now + self._c_check_time_interval
         
-        # Backup settings
-        settings = dict(self.settings)
+        # # Backup settings
+        # settings = dict(self.settings)
         
-        # Get settings from file
-        try:
-            self.settings.reload()
-        except IOError as e:
-            self._log.warning('Could not get settings: ' + str(e) + self.retry_msg)
-            self._settings_update_timestamp = now + self._c_retry_time_interval
-            return
-        except SyntaxError as e:
-            self._log.warning('Could not get settings: ' + 
-                              'Error parsing config file: ' + str(e) + self.retry_msg)
-            self._settings_update_timestamp = now + self._c_retry_time_interval
-            return
-        except Exception:
-            import traceback
-            self._log.warning("Couldn't get settings, Exception: " +
-                              traceback.format_exc() + self.retry_msg)
-            self._settings_update_timestamp = now + self._c_retry_time_interval
-            return
+        # # Get settings from file
+        # try:
+            # self.settings.reload()
+        # except IOError as err:
+            # self._log.warning('Could not get settings: ' + str(err) + self.retry_msg)
+            # self._settings_update_timestamp = now + self._c_retry_time_interval
+            # return
+        # except SyntaxError as err:
+            # self._log.warning('Could not get settings: ' +
+                              # 'Error parsing config file: ' + str(err) + self.retry_msg)
+            # self._settings_update_timestamp = now + self._c_retry_time_interval
+            # return
+        # except Exception:
+            # import traceback
+            # self._log.warning("Couldn't get settings, Exception: " +
+                              # traceback.format_exc() + self.retry_msg)
+            # self._settings_update_timestamp = now + self._c_retry_time_interval
+            # return
 
-        if self.settings != settings:
-            try:
-                self._check_settings()
-            except (ValueError, KeyError):
-                self.settings = settings
-                return False
-            return True
+        # if self.settings != settings:
+            # try:
+                # self._check_settings()
+            # except (ValueError, KeyError):
+                # self.settings = settings
+                # return False
+            # return True
             
     def _check_settings(self):
+        """Function validates configuration against specification."""
         try:
             # Validate the configuration file and copy any missing defaults
             returnval = self.settings.validate(self._validator, preserve_errors=True, copy=True)
@@ -164,9 +154,10 @@ class HeatmiserControllerFileSetup(HeatmiserControllerSetup):
 
             # Check the settings file sections exist
             for name in self._sections:
-                self.settings[name]
-        except (ValueError, KeyError) as e:
-            logging.warning("Configuration parse failed : " + str(e))
+                if not name in self.settings:
+                    raise KeyError("Section %s not defined"%name)
+        except (ValueError, KeyError) as err:
+            logging.warning("Configuration parse failed : " + str(err))
             raise
 
 

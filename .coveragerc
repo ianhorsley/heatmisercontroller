@@ -1,0 +1,17 @@
+# .coveragerc to control coverage.py
+[run]
+branch = True
+omit =
+omit =
+    # omit anything in a .local directory anywhere
+    */.local/*
+    # omit everything in /usr
+    /usr/*
+    # omit this single file
+    tests/*
+
+[report]
+ignore_errors = True
+
+[html]
+directory = coverage_html_report
