@@ -132,11 +132,21 @@ class TestReadingData(unittest.TestCase):
         self.assertEqual(17, self.func.setroomtemp)
         self.assertEqual(0, self.func.hotwaterdemand)
 
+    def test_read_field(self):
+        setup = SetupTestClass()
+        adaptor = MockHeatmiserAdaptor(setup)
+        self.func = HeatmiserDevice(adaptor, self.settings2)
+        responses = [[0, 170]]
+        adaptor.setresponse(responses)
+        self.assertEqual(17, self.func.read_field('airtemp', 1))
+        
     def test_read_fields(self):
         setup = SetupTestClass()
         adaptor = MockHeatmiserAdaptor(setup)
         self.func = HeatmiserDevice(adaptor, self.settings2)
-        print
+        responses = [[0, 170]]
+        adaptor.setresponse(responses)
+        self.assertEqual([17], self.func.read_fields(['airtemp'], 1))
         responses = [[0, 0, 0, 0, 0, 0, 0, 170]]
         adaptor.setresponse(responses)
         self.assertEqual([0, 17], self.func.read_fields(['tempholdmins', 'airtemp'], 0))

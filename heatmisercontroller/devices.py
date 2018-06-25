@@ -197,6 +197,9 @@ class HeatmiserDevice(object):
     def read_fields(self, fieldnames, maxage=None):
         """Returns a list of field values, gets from the device if any are to old"""
         #find which fields need getting because to old
+        if not isinstance(fieldnames, list):
+            raise TypeError("fieldnames must be a list")
+        
         fieldids = [self._fieldnametonum[fieldname] for fieldname in fieldnames if self._fieldsvalid[self._fieldnametonum[fieldname]] and (maxage == 0 or not self._check_data_age(fieldname, maxage))]
         
         fieldids = list(set(fieldids)) #remove duplicates, ordering doesn't matter
@@ -247,7 +250,7 @@ class HeatmiserDevice(object):
         
         safe for blocks crossing gaps in dcb"""
         
-        blockstoread = self._get_field_blocks_from_list_by_id(fieldids)
+        blockstoread = self._get_field_blocks_from_id_list(fieldids)
         logging.debug(blockstoread)
         estimatedreadtime = self._estimate_blocks_read_time(blockstoread)
         
@@ -275,9 +278,9 @@ class HeatmiserDevice(object):
         """Takes range of fieldnames and returns field blocks"""
         firstfieldid = self._fieldnametonum[firstfieldname]
         lastfieldid = self._fieldnametonum[lastfieldname]
-        return self._get_field_blocks_from_range_by_id(firstfieldid, lastfieldid)
+        return self._get_field_blocks_from_id_range(firstfieldid, lastfieldid)
         
-    def _get_field_blocks_from_range_by_id(self, firstfieldid, lastfieldid):
+    def _get_field_blocks_from_id_range(self, firstfieldid, lastfieldid):
         """Takes range of fieldids and returns field blocks
         
         Splits by invalid fields"""
@@ -296,12 +299,12 @@ class HeatmiserDevice(object):
             blocks.append([start, lastfieldid, fields[lastfieldid][FIELD_ADD] + fields[lastfieldid][FIELD_LEN] - fields[start][FIELD_ADD]])
         return blocks
     
-    def _get_field_blocks_from_list_by_id(self, fieldids):
+    def _get_field_blocks_from_id_list(self, fieldids):
         """Takes range of fieldids and returns field blocks
         
         Splits by invalid fields. Uses timing to determine the optimum blocking"""
         #find blocks between lowest and highest field
-        fieldblocks = self._get_field_blocks_from_range_by_id(min(fieldids), max(fieldids))
+        fieldblocks = self._get_field_blocks_from_id_range(min(fieldids), max(fieldids))
         
         readblocks = []
         for block in fieldblocks:
@@ -612,8 +615,8 @@ class HeatmiserDevice(object):
                     raise ValueError("set_field: payload out of range")
             else:
                 for i, item in enumerate(payload):
-                    range = ranges[i % len(ranges)]
-                    if item < range[0] or item > range[1]:
+                    rangepair = ranges[i % len(ranges)]
+                    if item < rangepair[0] or item > rangepair[1]:
                         raise ValueError("set_field: payload out of range")
     
     ## External functions for printing data
@@ -705,7 +708,7 @@ class HeatmiserDevice(object):
             return self.TEMP_STATE_HOLIDAY
         else:
         
-            if not self._check_data_age(['currenttime'],  MAX_AGE_MEDIUM):
+            if not self._check_data_age(['currenttime'],     MAX_AGE_MEDIUM):
                 self.read_time()
             
             locatimenow = self._localtimearray()
@@ -867,19 +870,19 @@ class HeatmiserBroadcastDevice(HeatmiserDevice):
         logging.info("All reading %s from %i controllers"%(', '.join([fieldname for fieldname in fieldnames]), len(self._controllerlist.list)))
         
     @run_function_on_all(_controllerlist)
-    def readAirTemp(self):
+    def read_air_temp(self):
         pass
     
     @run_function_on_all(_controllerlist)
-    def readTempState(self):
+    def read_temp_state(self):
         pass
     
     @run_function_on_all(_controllerlist)
-    def readWaterState(self):
+    def read_water_state(self):
         pass
     
     @run_function_on_all(_controllerlist)
-    def readAirSensorType(self):
+    def read_air_sensor_type(self):
         pass
             
     @run_function_on_all(_controllerlist)
