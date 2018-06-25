@@ -100,7 +100,7 @@ fields = [
 ['airtemp', 38, 2, 10, [], MAX_AGE_USHORT],  #ffff if no sensor
 ['errorcode', 40, 1, 1, [0, 3], MAX_AGE_SHORT],  # 0 is no error # errors,  0 built in,  1,  floor,  2 remote
 ['heatingdemand', 41, 1, 1, [0, 1], MAX_AGE_USHORT],  #0 none,  1 heating currently
-['hotwaterdemand', 42, 1, 1, [0, 3], MAX_AGE_USHORT, 'W'],  # read [0=off, 1=on],  write [0=as prog, 1=override on, 2=overide off]
+['hotwaterdemand', 42, 1, 1, [0, 2], MAX_AGE_USHORT, 'W'],  # read [0=off, 1=on],  write [0=as prog, 1=override on, 2=overide off]
 ['currenttime', 43, 4, 1, [[1, 7], [0, 23], [0, 59], [0, 59]], MAX_AGE_USHORT, 'W'],  #day (Mon - Sun),  hour,  min,  sec.
 #5/2 progamming #if hour = 24 entry not used
 ['wday_heat', 47, 12, 1, [[0, 24], [0, 59], [5, 35]], MAX_AGE_MEDIUM, "W"],  #hour,  min,  temp  (should minutes be only 0 and 30?)

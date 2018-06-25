@@ -3,8 +3,8 @@ import unittest
 import logging
 import time
 
-from heatmisercontroller.devices import HeatmiserDevice
-from heatmisercontroller.hm_constants import HMV3_ID, PROG_MODES, PROG_MODE_DAY, DCB_INVALID
+from heatmisercontroller.devices import HeatmiserDevice, HeatmiserBroadcastDevice
+from heatmisercontroller.hm_constants import HMV3_ID, PROG_MODES, PROG_MODE_DAY, DCB_INVALID, WRITE_HOTWATERDEMAND_OVER_OFF, READ_HOTWATERDEMAND_OFF, WRITE_HOTWATERDEMAND_PROG
 from heatmisercontroller.exceptions import HeatmiserResponseError, HeatmiserControllerTimeError
 from heatmisercontroller.adaptor import HeatmiserAdaptor
 
@@ -22,10 +22,14 @@ class ArgumentStore(object):
 class MockHeatmiserAdaptor(HeatmiserAdaptor):
     """Modified HeatmiserAdaptor that stores writes and and provide read responses."""
     def __init__(self, setup):
+        super(MockHeatmiserAdaptor, self).__init__(setup)
+        self.reset()
+    
+    def reset(self):
+        """Resets input and output arrays"""
         self.arguments = []
         self.outputs = []
-        super(MockHeatmiserAdaptor, self).__init__(setup)
-
+        
     def write_to_device(self, network_address, protocol, unique_address, length, payload):
         """Stores the arguments sent to write"""
         self.arguments.append((network_address, protocol, unique_address, length, payload))
@@ -40,11 +44,31 @@ class MockHeatmiserAdaptor(HeatmiserAdaptor):
         """Stores the arguments sent to read and provides a response"""
         self.arguments.append((network_address, protocol, unique_start_address, expected_length, readall))
         return self.outputs.pop(0)
-                
+
+class TestBroadcastController(unittest.TestCase):
+    """Unittests for reading data functions"""
+    def setUp(self):
+        logging.basicConfig(level=logging.ERROR)
+        setup = SetupTestClass()
+        self.adaptor = MockHeatmiserAdaptor(setup)
+        #network, address, protocol, short_name, long_name, model, mode
+        #self.func = HeatmiserDevice(None, 1, HMV3_ID, 'test', 'test controller', 'prt_hw_model', PROG_MODE_DAY)
+        self.settings = {'address':1, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_hw_model', 'expected_prog_mode':PROG_MODE_DAY, 'autoreadall':True}
+        Dev1 = HeatmiserDevice(self.adaptor, self.settings)
+        self.settings2 = {'address':2, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_hw_model', 'expected_prog_mode':PROG_MODE_DAY, 'autoreadall':True}
+        Dev2 = HeatmiserDevice(self.adaptor, self.settings)
+        self.func = HeatmiserBroadcastDevice(self.adaptor, 'Broadcaster', [Dev1, Dev2])
+            
+    def test_read_fields(self):
+        print
+        responses = [[0, 0, 0, 0, 0, 0, 0, 170],[0, 1, 0, 0, 0, 0, 0, 180]]
+        self.adaptor.setresponse(responses)
+        self.assertEqual([[0, 17],[1, 18]], self.func.read_fields(['tempholdmins', 'airtemp'], 0))
+        
 class TestReadingData(unittest.TestCase):
     """Unittests for reading data functions"""
     def setUp(self):
-        logging.basicConfig(level=logging.WARN)
+        logging.basicConfig(level=logging.ERROR)
         #network, address, protocol, short_name, long_name, model, mode
         #self.func = HeatmiserDevice(None, 1, HMV3_ID, 'test', 'test controller', 'prt_hw_model', PROG_MODE_DAY)
         self.settings = {'address':1, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_hw_model', 'expected_prog_mode':PROG_MODE_DAY}
@@ -138,6 +162,7 @@ class TestReadingData(unittest.TestCase):
 class TestOtherFunctions(unittest.TestCase):
     """Unittests for other functions"""
     def setUp(self):
+        logging.basicConfig(level=logging.ERROR)
         self.settings = {'address':1, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_e_model', 'expected_prog_mode':PROG_MODE_DAY}
         self.func = HeatmiserDevice(None, self.settings)
     
@@ -178,6 +203,7 @@ year2000 = (30 * 365 + 7) * 86400 #get some funny effects if you use times from 
 class TestTimeFunctions(unittest.TestCase):
     """Unittests for time functions"""
     def setUp(self):
+        logging.basicConfig(level=logging.ERROR)
         self.settings = {'address':1, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_hw_model', 'expected_prog_mode':PROG_MODE_DAY}
         self.func = HeatmiserDevice(None, self.settings)
         
@@ -218,15 +244,17 @@ class TestSettingData(unittest.TestCase):
     def setUp(self):
         logging.basicConfig(level=logging.ERROR)
         self.settings = {'address':5, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_e_model', 'expected_prog_mode':PROG_MODE_DAY}
-        self.tester = ArgumentStore()
-        self.tester.write_to_device = self.tester.store
+        setup = SetupTestClass()
+        self.tester = MockHeatmiserAdaptor(setup)
+        #self.tester.write_to_device = self.tester.store
         self.func = HeatmiserDevice(self.tester, self.settings)
         
     def test_setfield_1(self):
         #checks the arguments sent to write_to_device
         #fieldname, payload
         self.func.set_field('frosttemp', 7)
-        self.assertEqual(self.tester.arguments, (5, 3, 17, 1, [7]))
+        self.assertEqual(self.tester.arguments, [(5, 3, 17, 1, [7])])
+        self.assertEqual(self.func.frosttemp, 7)
         
     def test_setfield_2(self):
         self.func.autocorrectime = False
@@ -234,7 +262,26 @@ class TestSettingData(unittest.TestCase):
         self.func.lastreadtime = time.time()
         loctime = self.func._localtimearray(self.func.lastreadtime)
         self.func.set_field('currenttime', loctime )
-        self.assertEqual(self.tester.arguments, (5, 3, 43, 4, loctime))
+        self.assertEqual(self.tester.arguments, [(5, 3, 43, 4, loctime)])
+
+    def test_setfield_notvalid(self):
+        with self.assertRaises(IndexError):
+            self.func.set_field('hotwaterdemand', WRITE_HOTWATERDEMAND_OVER_OFF)
+        
+    def test_setfield_3(self):
+        """Check hotwaterdemand mapping"""
+        settings2 = {'address':1, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_hw_model', 'expected_prog_mode':PROG_MODE_DAY}
+        self.func._update_settings(settings2, None)
+        #make sure read time is set and check value
+        self.func.set_field('hotwaterdemand', WRITE_HOTWATERDEMAND_OVER_OFF)
+        self.assertNotEqual(self.func.datareadtime['hotwaterdemand'], None)
+        self.assertEqual(self.func.data['hotwaterdemand'], READ_HOTWATERDEMAND_OFF)
+        self.func._adaptor.reset()
+        #check releasing works
+        self.func.set_field('hotwaterdemand', WRITE_HOTWATERDEMAND_PROG)
+        self.assertEqual(self.tester.arguments, [(1, 3, 42, 1, [WRITE_HOTWATERDEMAND_PROG])])
+        self.assertEqual(self.func.hotwaterdemand, None)
+        self.assertEqual(self.func.datareadtime['hotwaterdemand'], None)
         
     def test_setfield_errors(self):
         with self.assertRaises(ValueError):
@@ -245,6 +292,32 @@ class TestSettingData(unittest.TestCase):
             self.func.set_field('currenttime', [8, 7, 7, 7])
         with self.assertRaises(TypeError):
             self.func.set_field('currenttime', 7)
+    
+    def test_setfields_1(self):
+        self.func.set_fields(['frosttemp'], [7])
+        self.assertEqual(self.tester.arguments, [(5, 3, 17, 1, [7])])
+        self.assertEqual(self.func.frosttemp, 7)
+        
+    def test_setfields_2(self):
+        setarray = [1, 0, 17, 9, 0, 20, 13, 0, 17, 20, 0, 20]
+        self.func.set_fields(['mon_heat'], [setarray])
+        self.assertEqual(self.tester.arguments, [(5, 3, 103, 12, setarray)])
+        self.assertEqual(self.func.mon_heat, setarray)
+        
+    def test_setfields_3(self):
+        setarray = [[1, 0, 17, 9, 0, 20, 13, 0, 17, 20, 0, 20],[1, 0, 17, 9, 0, 20, 13, 0, 17, 20, 0, 20]]
+        self.func.set_fields(['mon_heat','wed_heat'], setarray)
+        self.assertEqual(self.tester.arguments, [(5, 3, 103, 12, setarray[0]),(5, 3, 127, 12, setarray[0])])
+        self.assertEqual(self.func.mon_heat, setarray[0])
+        self.assertEqual(self.func.wed_heat, setarray[1])  
+
+    def test_setfields_4(self):
+        indata = [[1, 0, 17, 9, 0, 20, 13, 0, 17, 20, 0, 20],[1, 0, 17, 9, 0, 20, 13, 0, 17, 20, 0, 20]]
+        flat_list = [item for sublist in indata for item in sublist]
+        self.func.set_fields(['mon_heat','tues_heat'], indata)
+        self.assertEqual(self.tester.arguments, [(5, 3, 103, 24, flat_list)])
+        self.assertEqual(self.func.mon_heat, indata[0])
+        self.assertEqual(self.func.tues_heat, indata[1])           
     
 if __name__ == '__main__':
     unittest.main()

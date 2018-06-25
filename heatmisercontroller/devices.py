@@ -12,11 +12,13 @@ Ian Horsley 2018
 import logging
 import time
 import serial
+import copy
 
 from hm_constants import *
 from .exceptions import HeatmiserResponseError, HeatmiserControllerTimeError
 from schedule_functions import SchedulerDayHeat, SchedulerWeekHeat, SchedulerDayWater, SchedulerWeekWater, SCH_ENT_TEMP
 from decorators import ListWrapperClass, run_function_on_all
+from operator import itemgetter
 
 class HeatmiserDevice(object):
     """General device class for thermostats"""
@@ -329,7 +331,7 @@ class HeatmiserDevice(object):
         based on empirical measurements of one prt_hw_model and 5 prt_e_model"""
         return length * 0.002075 + 0.070727
     
-    def _procfield(self, data, fieldinfo):
+    def _procfield(self, data, fieldinfo, sentpayload=False):
         """Process data for a single field storing in relevant.
         
         Converts from bytes to integers/floats
@@ -339,7 +341,12 @@ class HeatmiserDevice(object):
         factor = fieldinfo[FIELD_DIV]
         fieldrange = fieldinfo[FIELD_RANGE]
         #logging.debug("Processing %s %s"%(fieldinfo[FIELD_NAME],', '.join(str(x) for x in data)))
-        if length == 1:
+        if sentpayload: #some mapping required if was a sent payload
+            data = self._map_write_to_read_payload(data, fieldname)
+        
+        if data is None:
+            value = None
+        elif length == 1:
             value = data[0]/factor
         elif length == 2:
             val_high = data[0]
@@ -356,7 +363,7 @@ class HeatmiserDevice(object):
         else:
             raise ValueError("_procpayload can't process field length")
     
-        if len(fieldrange) == 2 and isinstance(fieldrange[0], (int, long)) and isinstance(fieldrange[1], (int, long)):
+        if len(fieldrange) == 2 and isinstance(fieldrange[0], (int, long)) and isinstance(fieldrange[1], (int, long)) and not value is None:
             if value < fieldrange[0] or value > fieldrange[1]:
                 raise HeatmiserResponseError("Field value %i outside expected range"%value)
         
@@ -376,23 +383,38 @@ class HeatmiserDevice(object):
         
         self.data[fieldname] = value
         setattr(self, fieldname, value)
-        self.datareadtime[fieldname] = self.lastreadtime
+        self.datareadtime[fieldname] = self.lastreadtime if not value is None else None #unless sent payload and don't know the read value
         
         if fieldname == 'currenttime':
             self._checkcontrollertime()
         
         ###todo, add range validation for other lengths
 
-    def _procpartpayload(self, rawdata, firstfieldname, lastfieldname):
+    @staticmethod
+    def _map_write_to_read_payload(data, fieldname):
+        """Maps written payload to equvialent read payload"""
+        #returns None if unknown result.
+        #handle odd effect on WRITE_hotwaterdemand_PROG
+        if fieldname == 'hotwaterdemand':
+            if data[0] == WRITE_HOTWATERDEMAND_PROG: #returned to program so outcome is unknown
+                return None
+            elif data[0] == WRITE_HOTWATERDEMAND_OVER_OFF: #if overridden off store the off read value
+                return [READ_HOTWATERDEMAND_OFF]
+            else:
+                return data
+        else:
+            return data
+
+    def _procpartpayload(self, rawdata, firstfieldname, lastfieldname, sentpayload=False):
         """Wraps procpayload by converting fieldnames to fieldids"""
         #rawdata must be a list
         #converts field names to unique addresses to allow process of shortened raw data
         logging.debug("C%i Processing Payload from field %s to %s"%(self.address, firstfieldname, lastfieldname) )
         firstfieldid = self._fieldnametonum[firstfieldname]
         lastfieldid = self._fieldnametonum[lastfieldname]
-        self._procpayload(rawdata, firstfieldid, lastfieldid)
+        self._procpayload(rawdata, firstfieldid, lastfieldid, sentpayload)
         
-    def _procpayload(self, rawdata, firstfieldid=0, lastfieldid=len(fields)):
+    def _procpayload(self, rawdata, firstfieldid=0, lastfieldid=len(fields), sentpayload=False):
         """Split payload with field information and processes each field"""
         logging.debug("C%i Processing Payload from field %i to %i"%(self.address, firstfieldid, lastfieldid) )
 
@@ -411,7 +433,7 @@ class HeatmiserDevice(object):
                 dcbadd -= fullfirstdcbadd #adjust for the start of the request
                 
                 try:
-                    self._procfield(rawdata[dcbadd:dcbadd+length], fieldinfo)
+                    self._procfield(rawdata[dcbadd:dcbadd+length], fieldinfo, sentpayload)
                 except HeatmiserResponseError as err:
                     logging.warn("C%i Field %s process failed due to %s"%(self.address, fieldinfo[FIELD_NAME], str(err)))
 
@@ -472,46 +494,104 @@ class HeatmiserDevice(object):
     
     def set_field(self, fieldname, payload):
         """Set a field (single member of fields) on a device to a state or payload. Defined for all known field lengths."""
-        fieldinfo = fields[self._fieldnametonum[fieldname]]
+        #Payload must not be list for field length 1 or 2
+        fieldid = self._fieldnametonum[fieldname]
+        if not self._fieldsvalid[fieldid]:
+            raise IndexError('Field not valid for this device')
+        fieldinfo = fields[fieldid]
         
-        if len(fieldinfo) < FIELD_WRITE + 1 or fieldinfo[FIELD_WRITE] != 'W':
-            #check that write is part of field info and is 'W'
-            raise ValueError("set_field: field isn't writeable")
-                             
+        self._is_writable(fieldinfo)
         self._check_payload_values(payload, fieldinfo)
-
-        if fieldinfo[FIELD_LEN] == 1:
+        payloadbytes = self._format_payload(payload, fieldinfo[FIELD_LEN])
+        
+        if not isinstance(payload, list): #adjust for the 
             payload = [payload]
-        elif fieldinfo[FIELD_LEN] == 2:
-            pay_lo = (payload & BYTEMASK)
-            pay_hi = (payload >> 8) & BYTEMASK
-            payload = [pay_lo, pay_hi]
         try:
-            self._adaptor.write_to_device(self.address, self._protocol, fieldinfo[FIELD_ADD], fieldinfo[FIELD_LEN], payload)
-        except:
-            logging.info("C%i failed to set field %s to %s"%(self.address, fieldname.ljust(FIELD_NAME_LENGTH), ', '.join(str(x) for x in payload)))
+            self._adaptor.write_to_device(self.address, self._protocol, fieldinfo[FIELD_ADD], fieldinfo[FIELD_LEN], payloadbytes)
+        except serial.SerialException as err:
+            logging.warn("C%i failed to set field %s to %s, due to %s"%(self.address, fieldname.ljust(FIELD_NAME_LENGTH), ', '.join(str(x) for x in payload),str(err)))
             raise
         else:
             logging.info("C%i set field %s to %s"%(self.address, fieldname.ljust(FIELD_NAME_LENGTH), ', '.join(str(x) for x in payload)))
         
         self.lastreadtime = time.time()
-        
-        ###should really be handled by a specific overriding function, rather than in here.
-        #handle odd effect on WRITE_hotwaterdemand_PROG
-        if fieldname == 'hotwaterdemand':
-            if payload[0] == WRITE_HOTWATERDEMAND_PROG: #returned to program so outcome is unknown
-                self.datareadtime[fieldname] = None
-                return
-            elif payload[0] == WRITE_HOTWATERDEMAND_OFF: #if overridden off store the off read value
-                payload[0] = READ_HOTWATERDEMAND_OFF
-        
-        self._procpartpayload(payload, fieldname, fieldname)
+        self._procpartpayload(payloadbytes, fieldname, fieldname, True)
+    
+    @staticmethod
+    def _format_payload(payload, FIELD_LEN):
+        """Convert fields to byte form for writting to device"""
+        if FIELD_LEN == 1:
+            return [payload]
+        elif FIELD_LEN == 2:
+            pay_lo = (payload & BYTEMASK)
+            pay_hi = (payload >> 8) & BYTEMASK
+            return [pay_lo, pay_hi]
+        else:
+            return payload
+    
+    @staticmethod
+    def _is_writable(fieldinfo):
+        """Checks if field is writable"""
+        if len(fieldinfo) < FIELD_WRITE + 1 or fieldinfo[FIELD_WRITE] != 'W':
+            #check that write is part of field info and is 'W'
+            raise ValueError("set_field: field isn't writeable")
     
     def set_fields(self, fieldnames, payloads):
         """Set multiple fields on a device to a state or payload."""
-        #Must be contiguous fields, or maybe not, it could group adjacent
+        #It groups adjacent fields and issues multiple sets if required.
         #inputs must be mathcing length lists
-        pass
+        if not isinstance(fieldnames, list) or not isinstance(payloads, list):
+            raise ValueError("fieldnames and payloads must be lists")
+        if len(fieldnames) != len(payloads):
+            raise IndexError("fields and payloads don't match")
+        if len(fieldnames) != len(set(fieldnames)):
+            raise ValueError("duplicated fieldnames")
+        
+        #Get field ids
+        fieldids = [self._fieldnametonum[fieldname] for fieldname in fieldnames]
+        outputdata = self._get_payload_blocks_from_list(fieldids, payloads)
+        try:
+            for unique_start_address, lengthbytes, payloadbytes, firstfieldname, lastfieldname in outputdata:
+                logging.debug("C%i Setting ui %i len %i, proc %s to %s"%(self.address, unique_start_address, lengthbytes, firstfieldname, lastfieldname))
+                self._adaptor.write_to_device(self.address, self._protocol, unique_start_address, lengthbytes, payloadbytes)
+                self.lastreadtime = time.time()
+                self._procpartpayload(payloadbytes, firstfieldname, lastfieldname, True)
+        except serial.SerialException as err:
+            logging.warn("C%i settings failed of fields %s, Serial Port error %s"%(self.address, ', '.join(fields[id][FIELD_NAME] for id in fieldids), str(err)))
+            raise
+        else:
+            logging.info("C%i set fields %s in %i blocks"%(self.address, ', '.join(fields[id][FIELD_NAME] for id in fieldids), len(outputdata)))
+
+    def _get_payload_blocks_from_list(self, fieldids, payloads):
+        """Converts list of fields and payloads into groups of payload data"""
+        #returns unique_start_address, lengthbytes, payloadbytes, firstfieldname, lastfieldname
+        sortedfields = sorted(enumerate(fieldids), key=itemgetter(0))
+        
+        payloadscopy = copy.deepcopy(payloads) #force copy of payloads so doesn't get changed later.
+        
+        #Check field data and sort payloads
+        sorteddata = []
+        for orginalindex, fieldid in sortedfields:
+            if self._fieldsvalid[fieldid]:
+                fieldinfo = fields[fieldid]
+                self._is_writable(fieldinfo)
+                self._check_payload_values(payloadscopy[orginalindex], fieldinfo)
+                sorteddata.append([fieldid,fieldinfo,payloadscopy[orginalindex]]) 
+        
+        #Groups and map to unique addresses
+        outputdata = []
+        previousfield = None
+        for fieldid, fieldinfo, payload in sorteddata:
+            if not previousfield is None and fieldid - previousfield == 1: #if follows previousfield
+                outputdata[-1][1] += fieldinfo[FIELD_LEN]
+                outputdata[-1][2].extend(self._format_payload(payload, fieldinfo[FIELD_LEN]))
+                outputdata[-1][4] = fieldinfo[FIELD_NAME]
+            else:
+                #unique_start_address, bytelength, payloadbytes, firstfieldname, lastfieldname
+                outputdata.append([fieldinfo[FIELD_ADD], fieldinfo[FIELD_LEN], self._format_payload(payload, fieldinfo[FIELD_LEN]), fieldinfo[FIELD_NAME], fieldinfo[FIELD_NAME]])
+            previousfield = fieldid
+
+        return outputdata
     
     @staticmethod
     def _check_payload_values(payload, fieldinfo):
