@@ -1,15 +1,11 @@
+"""User interface to setup the contoller."""
 
-import time
 import logging
 import os
 from configobj import ConfigObj
 from validate import Validator
 
 from .exceptions import HeatmiserControllerSetupInitError
-
-"""class HeatmiserControllerSetup
-
-User interface to setup the contoller."""
 
 # The settings attribute stores the settings of the hub. It is a
 # dictionary with the following keys:
@@ -39,7 +35,7 @@ User interface to setup the contoller."""
 # each setup."""
 
 class HeatmiserControllerSetup(object):
-
+    """Inherited base class"""
     def __init__(self):
         # Initialize logger
         self._log = logging.getLogger("HeatmiserController")
@@ -65,7 +61,7 @@ class HeatmiserControllerSetup(object):
         """
 
 class HeatmiserControllerFileSetup(HeatmiserControllerSetup):
-
+    """Handles importing confiugration from file"""
     def __init__(self, filename):
         
         # Initialization
@@ -82,14 +78,14 @@ class HeatmiserControllerFileSetup(HeatmiserControllerSetup):
         try:
             self.settings = ConfigObj(filename, file_error=True, configspec=specpath)
             self._validator = Validator()
-        except IOError as e:
-            raise HeatmiserControllerSetupInitError(e)
-        except SyntaxError as e:
+        except IOError as err:
+            raise HeatmiserControllerSetupInitError(err)
+        except SyntaxError as err:
             raise HeatmiserControllerSetupInitError(
-                'Error parsing config file \"%s\": ' % filename + str(e))
-        except KeyError as e:
+                'Error parsing config file \"%s\": ' % filename + str(err))
+        except KeyError as err:
             raise HeatmiserControllerSetupInitError(
-                'Configuration file error - section missing: ' + str(e))
+                'Configuration file error - section missing: ' + str(err))
         
         #check settings and add any default values
         self._check_settings()
@@ -124,13 +120,13 @@ class HeatmiserControllerFileSetup(HeatmiserControllerSetup):
         # # Get settings from file
         # try:
             # self.settings.reload()
-        # except IOError as e:
-            # self._log.warning('Could not get settings: ' + str(e) + self.retry_msg)
+        # except IOError as err:
+            # self._log.warning('Could not get settings: ' + str(err) + self.retry_msg)
             # self._settings_update_timestamp = now + self._c_retry_time_interval
             # return
-        # except SyntaxError as e:
+        # except SyntaxError as err:
             # self._log.warning('Could not get settings: ' +
-                              # 'Error parsing config file: ' + str(e) + self.retry_msg)
+                              # 'Error parsing config file: ' + str(err) + self.retry_msg)
             # self._settings_update_timestamp = now + self._c_retry_time_interval
             # return
         # except Exception:
@@ -149,6 +145,7 @@ class HeatmiserControllerFileSetup(HeatmiserControllerSetup):
             # return True
             
     def _check_settings(self):
+        """Function validates configuration against specification."""
         try:
             # Validate the configuration file and copy any missing defaults
             returnval = self.settings.validate(self._validator, preserve_errors=True, copy=True)
@@ -159,8 +156,8 @@ class HeatmiserControllerFileSetup(HeatmiserControllerSetup):
             for name in self._sections:
                 if not name in self.settings:
                     raise KeyError("Section %s not defined"%name)
-        except (ValueError, KeyError) as e:
-            logging.warning("Configuration parse failed : " + str(e))
+        except (ValueError, KeyError) as err:
+            logging.warning("Configuration parse failed : " + str(err))
             raise
 
 

@@ -77,7 +77,7 @@ class TestReadWrite(unittest.TestCase):
     """Tests for write to and read from device"""
     def setUp(self):
         self.serialport = SerialTestClass(0)
-        logging.basicConfig(level=logging.DEBUG)
+        logging.basicConfig(level=logging.ERROR)
         self.setup = SetupTestClass()
         self.func = HeatmiserAdaptor(self.setup)
         self.func.serport = self.serialport.serialPort
