@@ -10,8 +10,10 @@ import logging
 import sys
 
 # Import our own stuff
-from devices import HeatmiserDevice, HeatmiserBroadcastDevice
+from devices import HeatmiserDevice, HeatmiserUnknownDevice, HeatmiserBroadcastDevice
 from adaptor import HeatmiserAdaptor
+from hm_constants import SLAVE_ADDR_MIN, SLAVE_ADDR_MAX
+from .exceptions import HeatmiserResponseError
 import setup as hms
 
 class HeatmiserNetwork(object):
@@ -37,7 +39,13 @@ class HeatmiserNetwork(object):
         self.adaptor = HeatmiserAdaptor(self._setup)
         self.adaptor.connect()
         
-        self._set_stat_list(settings['devices'], settings['devicesgeneral'])
+        # Load device list from settings or find devices if none listed
+        self.controllers = []
+        self._addresses_in_use = []
+        if 'devices' in settings and len(settings['devices']):
+            self._set_stat_list(settings['devices'], settings['devicesgeneral'])
+        else:
+            self.find_devices()
         
         # Create a broadcast device
         setattr(self, "All", HeatmiserBroadcastDevice(self.adaptor, "Broadcast to All", self.controllers))
@@ -55,10 +63,28 @@ class HeatmiserNetwork(object):
             else:
                 setattr(self, name, HeatmiserDevice(self.adaptor, controllersettings, generalsettings))
                 setattr(getattr(self, name), 'name', name) #make name avaliable when accessing by id
-                self.controllers[controllersettings['display_order']-1] = getattr(self, name)
+                self.controllers[controllersettings['display_order'] - 1] = getattr(self, name)
+                self._addresses_in_use.append(controllersettings['address'])
 
         self._current = self.controllers[0]
-      
+    
+    def find_devices(self):
+        
+        for address in range(SLAVE_ADDR_MIN, SLAVE_ADDR_MAX):
+            if not address in self._addresses_in_use:
+                print address
+                try:
+                    settings = {'address': address}
+                    test_device = HeatmiserUnknownDevice(self.adaptor, settings, self._setup.settings['devicesgeneral'])
+                except HeatmiserResponseError as err:
+                    logging.info("C%i device not found, library error %s"%(address, err))
+                else:
+                    logging.info("C%i device %s found, with program %s"%(address, test_device._expected_model, test_device._expected_prog_mode))
+                    setattr(test_device, 'name', 'None') #make name avaliable when accessing by id
+                    self.controllers.append(test_device)
+                    self._addresses_in_use.append(address)
+                #test_device.read_all()
+    
     def get_stat_address(self, shortname):
         """Get network address from device name."""
         if isinstance(shortname, basestring):
