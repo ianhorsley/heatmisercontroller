@@ -26,7 +26,7 @@ class TestSerial(unittest.TestCase):
         self.func._send_message(self.goodmessage)
         # Use serial to receive raw transmission
         ret = self.serialport.serialPort.read(len(self.goodmessage))
-        retasarray = map(ord,ret)
+        retasarray = map(ord, ret)
 
         # Check that the returned data from the serial port == goodmessage
         self.assertEqual(retasarray, self.goodmessage)

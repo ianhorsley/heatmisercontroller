@@ -7,7 +7,6 @@ import time
 import logging
 
 from heatmisercontroller.logging_setup import initialize_logger
-from heatmisercontroller.hm_constants import *
 from heatmisercontroller.network import HeatmiserNetwork
 from heatmisercontroller.exceptions import HeatmiserResponseError
 
@@ -61,4 +60,3 @@ while True:
                 print disptext
 
     time.sleep(5) # sleep before next cycle
-

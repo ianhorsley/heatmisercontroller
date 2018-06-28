@@ -1,6 +1,8 @@
+"""Build setup for package"""
 from setuptools import setup
 
 def readme():
+    """Method to add readme file as long_description."""
     with open('README.rst') as f:
         return f.read()
 
