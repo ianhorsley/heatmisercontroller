@@ -8,7 +8,7 @@ from heatmisercontroller.hm_constants import HMV3_ID, PROG_MODES, PROG_MODE_DAY,
 from heatmisercontroller.exceptions import HeatmiserResponseError, HeatmiserControllerTimeError
 from heatmisercontroller.adaptor import HeatmiserAdaptor
 
-from mock_serial import SetupTestClass
+from mock_serial import SetupTestClass, MockHeatmiserAdaptor
 
 class ArgumentStore(object):
     """Class used to replace class method allowing arguments to be captured"""
@@ -18,32 +18,6 @@ class ArgumentStore(object):
     def store(self, *args):
         """Method used to replace other writing methods"""
         self.arguments = args
-
-class MockHeatmiserAdaptor(HeatmiserAdaptor):
-    """Modified HeatmiserAdaptor that stores writes and and provide read responses."""
-    def __init__(self, setup):
-        super(MockHeatmiserAdaptor, self).__init__(setup)
-        self.reset()
-    
-    def reset(self):
-        """Resets input and output arrays"""
-        self.arguments = []
-        self.outputs = []
-        
-    def write_to_device(self, network_address, protocol, unique_address, length, payload):
-        """Stores the arguments sent to write"""
-        self.arguments.append((network_address, protocol, unique_address, length, payload))
-
-    def setresponse(self, inputs):
-        """Sets responses to read from device.
-        
-        Expects a list of lists"""
-        self.outputs = inputs
-
-    def read_from_device(self, network_address, protocol, unique_start_address, expected_length, readall=False):
-        """Stores the arguments sent to read and provides a response"""
-        self.arguments.append((network_address, protocol, unique_start_address, expected_length, readall))
-        return self.outputs.pop(0)
 
 class TestBroadcastController(unittest.TestCase):
     """Unittests for reading data functions"""
@@ -60,7 +34,6 @@ class TestBroadcastController(unittest.TestCase):
         self.func = HeatmiserBroadcastDevice(self.adaptor, 'Broadcaster', [dev1, dev2])
             
     def test_read_fields(self):
-        print
         responses = [[0, 0, 0, 0, 0, 0, 0, 170], [0, 1, 0, 0, 0, 0, 0, 180]]
         self.adaptor.setresponse(responses)
         self.assertEqual([[0, 17], [1, 18]], self.func.read_fields(['tempholdmins', 'airtemp'], 0))
@@ -68,7 +41,7 @@ class TestBroadcastController(unittest.TestCase):
 class TestReadingData(unittest.TestCase):
     """Unittests for reading data functions"""
     def setUp(self):
-        logging.basicConfig(level=logging.ERROR)
+        logging.basicConfig(level=logging.DEBUG)
         #network, address, protocol, short_name, long_name, model, mode
         #self.func = HeatmiserDevice(None, 1, HMV3_ID, 'test', 'test controller', 'prt_hw_model', PROG_MODE_DAY)
         self.settings = {'address':1, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_hw_model', 'expected_prog_mode':PROG_MODE_DAY}
@@ -107,16 +80,17 @@ class TestReadingData(unittest.TestCase):
         self.assertEqual(1, self.func.tempholdmins)
         
     def test_readall(self):
-        pass
-        # setup = SetupTestClass()
-        # adaptor = MockHeatmiserAdaptor(setup)
-        # self.func = HeatmiserDevice(adaptor, self.settings)
-        # basetime = (6 - 2) * 86400 + 53376.0 + YEAR2000
-        # self.func.lastreadtime = basetime - get_offset(basetime)
-        # responses = [[1, 37, 0, 22, 4, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 38, 1, 9, 12, 28, 1, 1, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 220, 0, 0, 0, 3, 14, 49, 36, 7, 0, 19, 9, 30, 10, 17, 0, 19, 21, 30, 10, 7, 0, 19, 21, 30, 10, 24, 0, 5, 24, 0, 5, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 8, 0, 9, 0, 18, 0, 19, 0, 24, 0, 24, 0, 24, 0, 24, 0, 7, 0, 20, 21, 30, 12, 24, 0, 12, 24, 0, 12, 7, 0, 20, 21, 30, 12, 24, 0, 12, 24, 0, 12, 7, 0, 19, 8, 30, 12, 16, 30, 20, 21, 0, 12, 7, 0, 20, 12, 0, 12, 17, 0, 20, 21, 30, 12, 5, 0, 20, 21, 30, 12, 24, 0, 12, 24, 0, 12, 7, 0, 20, 12, 0, 12, 17, 0, 20, 21, 30, 12, 7, 0, 12, 24, 0, 12, 24, 0, 12, 24, 0, 12, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0]]
-        # adaptor.setresponse(responses)
-        # self.func.read_all()
-        # self.assertEqual([(1, 3, 18, 0, True)], adaptor.arguments)
+        setup = SetupTestClass()
+        adaptor = MockHeatmiserAdaptor(setup)
+        self.func = HeatmiserDevice(adaptor, self.settings)
+        #basetime = (6 - 2) * 86400 + 53376.0 + YEAR2000
+        #self.func.lastreadtime = basetime - get_offset(basetime)
+        lta = self.func._localtimearray()
+        #, 3, 14, 49, 36,
+        responses = [[1, 37, 0, 22, 4, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 38, 1, 9, 12, 28, 1, 1, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 220, 0, 0, 0] + lta + [7, 0, 19, 9, 30, 10, 17, 0, 19, 21, 30, 10, 7, 0, 19, 21, 30, 10, 24, 0, 5, 24, 0, 5, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 8, 0, 9, 0, 18, 0, 19, 0, 24, 0, 24, 0, 24, 0, 24, 0, 7, 0, 20, 21, 30, 12, 24, 0, 12, 24, 0, 12, 7, 0, 20, 21, 30, 12, 24, 0, 12, 24, 0, 12, 7, 0, 19, 8, 30, 12, 16, 30, 20, 21, 0, 12, 7, 0, 20, 12, 0, 12, 17, 0, 20, 21, 30, 12, 5, 0, 20, 21, 30, 12, 24, 0, 12, 24, 0, 12, 7, 0, 20, 12, 0, 12, 17, 0, 20, 21, 30, 12, 7, 0, 12, 24, 0, 12, 24, 0, 12, 24, 0, 12, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0]]
+        adaptor.setresponse(responses)
+        self.func.read_all()
+        self.assertEqual([(1, 3, 0, 293, True)], adaptor.arguments)
         
     def test_readvariables(self):
         setup = SetupTestClass()
@@ -136,9 +110,12 @@ class TestReadingData(unittest.TestCase):
         setup = SetupTestClass()
         adaptor = MockHeatmiserAdaptor(setup)
         self.func = HeatmiserDevice(adaptor, self.settings2)
-        responses = [[0, 170]]
+        responses = [[0, 170],[0, 180]]
         adaptor.setresponse(responses)
         self.assertEqual(17, self.func.read_field('airtemp', 1))
+        self.assertEqual(17, self.func.read_field('airtemp', -1)) #only check presence
+        self.func.datareadtime['airtemp'] = 0 #force reread
+        self.assertEqual(18, self.func.read_field('airtemp', None))
         
     def test_read_fields(self):
         setup = SetupTestClass()

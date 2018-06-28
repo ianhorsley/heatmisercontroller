@@ -33,7 +33,7 @@ class HeatmiserNetwork(object):
             settings = self._setup.settings
         except hms.HeatmiserControllerSetupInitError as err:
             logging.error(err)
-            sys.exit("Unable to load configuration file: " + configfile)
+            raise
         
         # Initialize and connect to heatmiser network, probably through serial port
         self.adaptor = HeatmiserAdaptor(self._setup)
@@ -42,9 +42,10 @@ class HeatmiserNetwork(object):
         # Load device list from settings or find devices if none listed
         self.controllers = []
         self._addresses_in_use = []
-        if 'devices' in settings and len(settings['devices']):
-            self._set_stat_list(settings['devices'], settings['devicesgeneral'])
-        else:
+        if 'devices' in settings:
+            if len(settings['devices']):
+                self._set_stat_list(settings['devices'], settings['devicesgeneral'])
+        else: #if devices not defined then auto run find devices.
             self.find_devices()
         
         # Create a broadcast device
@@ -59,7 +60,7 @@ class HeatmiserNetwork(object):
         self.controllers = range(self._statnum)
         for name, controllersettings in statlist.iteritems():
             if hasattr(self, name):
-                print "error duplicate stat name"
+                logging.warn("error duplicate stat name")
             else:
                 setattr(self, name, HeatmiserDevice(self.adaptor, controllersettings, generalsettings))
                 setattr(getattr(self, name), 'name', name) #make name avaliable when accessing by id
@@ -68,11 +69,10 @@ class HeatmiserNetwork(object):
 
         self._current = self.controllers[0]
     
-    def find_devices(self):
-        
-        for address in range(SLAVE_ADDR_MIN, SLAVE_ADDR_MAX):
+    def find_devices(self, max_address=SLAVE_ADDR_MAX):
+        """Find devices on the network not in the configuration file"""
+        for address in range(SLAVE_ADDR_MIN, max_address + 1):
             if not address in self._addresses_in_use:
-                print address
                 try:
                     settings = {'address': address}
                     test_device = HeatmiserUnknownDevice(self.adaptor, settings, self._setup.settings['devicesgeneral'])
@@ -83,7 +83,6 @@ class HeatmiserNetwork(object):
                     setattr(test_device, 'name', 'None') #make name avaliable when accessing by id
                     self.controllers.append(test_device)
                     self._addresses_in_use.append(address)
-                #test_device.read_all()
     
     def get_stat_address(self, shortname):
         """Get network address from device name."""

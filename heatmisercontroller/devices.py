@@ -169,6 +169,7 @@ class HeatmiserDevice(object):
         
     def _check_data_present(self, *fieldnames):
         """Check field(s) has data"""
+        """Returns True if all present"""
         if len(fieldnames) == 0:
             raise ValueError("Must list at least one field")
 
@@ -381,6 +382,9 @@ class HeatmiserDevice(object):
             value = data
         else:
             raise ValueError("_procpayload can't process field length")
+    
+        if fieldname == 'address' and value != self.address:
+            raise HeatmiserResponseError('Address is unexpected')
     
         if len(fieldrange) == 2 and isinstance(fieldrange[0], (int, long)) and isinstance(fieldrange[1], (int, long)) and not value is None:
             if value < fieldrange[0] or value > fieldrange[1]:
@@ -868,7 +872,7 @@ class HeatmiserUnknownDevice(HeatmiserDevice):
         self._load_settings(settings, generalsettings)
         
         # some basic config required before reading fields
-        self._uniquetodcb = range(MAX_UNIQUE_ADDRESS +1)
+        self._uniquetodcb = range(MAX_UNIQUE_ADDRESS + 1)
         self.rawdata = [None] * (MAX_UNIQUE_ADDRESS + 1)
         # assume fullreadtime is the worst case
         self.fullreadtime = self._estimate_read_time(MAX_UNIQUE_ADDRESS) 
