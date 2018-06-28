@@ -27,7 +27,7 @@ class HeatmiserDevice(object):
 
     ## Initialisation functions and low level functions
     def __init__(self, adaptor, devicesettings, generalsettings=None):
-        #address, protocol, short_name, long_name, model, mode
+        
         self._adaptor = adaptor
 
         # initialise external parameters
@@ -36,11 +36,13 @@ class HeatmiserDevice(object):
         self._uniquetodcb = []
         self._fieldsvalid = [True] * len(fields) # assume all fields are valid until shown otherwise
         self.dcb_length = None
-        self._expected_prog_mode = None
+        self.expected_prog_mode = None
         self._expected_model_number = None
+        self.long_name = ''
         self._buildfieldtables()
         self.data = dict.fromkeys(self._fieldnametonum.keys(), None)
         self.floorlimiting = None
+        self.water_schedule = None
         self.datareadtime = dict.fromkeys(self._fieldnametonum.keys(), None)
         self.timeerr = None
         self.fullreadtime = 0 #default to full read
@@ -60,16 +62,13 @@ class HeatmiserDevice(object):
         
         if not generalsettings is None:
             for name, value in generalsettings.iteritems():
-                setattr(self, '_' + name, value)
+                setattr(self, name, value)
 
         for name, value in settings.iteritems():
-            setattr(self, '_' + name, value)
+            setattr(self, name, value)
 
-        self.address = self._address #make externally available
-        del self._address
         try:
-            self.long_name = self._long_name #make externally available
-            del self._long_name
+            self.long_name
         except AttributeError:
             self.long_name = 'Unknown'
     
@@ -78,11 +77,11 @@ class HeatmiserDevice(object):
         
         # Create required schedule objects
         self.water_schedule = None
-        if self._expected_prog_mode == PROG_MODE_DAY:
+        if self.expected_prog_mode == PROG_MODE_DAY:
             self.heat_schedule = SchedulerDayHeat()
             if self.is_hot_water():
                 self.water_schedule = SchedulerDayWater()
-        elif self._expected_prog_mode == PROG_MODE_WEEK:
+        elif self.expected_prog_mode == PROG_MODE_WEEK:
             self.heat_schedule = SchedulerWeekHeat()
             if self.is_hot_water():
                 self.water_schedule = SchedulerWeekWater()
@@ -90,18 +89,18 @@ class HeatmiserDevice(object):
             raise ValueError("Unknown program mode")
 
         ### should replace this stuff with something based on the fieldranges which is much easier to understand
-        if self._expected_model == 'prt_e_model':
-            self.dcb_map = PRTEmap[self._expected_prog_mode]
-        elif self._expected_model == 'prt_hw_model':
-            self.dcb_map = PRTHWmap[self._expected_prog_mode]
-        elif self._expected_model == False:
+        if self.expected_model == 'prt_e_model':
+            self.dcb_map = PRTEmap[self.expected_prog_mode]
+        elif self.expected_model == 'prt_hw_model':
+            self.dcb_map = PRTHWmap[self.expected_prog_mode]
+        elif self.expected_model == False:
             self.dcb_map = STRAIGHTmap
         else:
-            raise ValueError("Unknown model %s"%self._expected_model)
+            raise ValueError("Unknown model %s"%self.expected_model)
 
         self._build_dcb_tables()
 
-        self._expected_model_number = DEVICE_MODELS[self._expected_model]
+        self._expected_model_number = DEVICE_MODELS[self.expected_model]
 
         if self.dcb_map[0][1] != DCB_INVALID:
             self.dcb_length = self.dcb_map[0][0] - self.dcb_map[0][1] + 1
@@ -133,7 +132,7 @@ class HeatmiserDevice(object):
         
         #build list of valid fields for this device
         self._fieldsvalid = [False] * len(fields)
-        fieldranges = FIELDRANGES[self._expected_model][self._expected_prog_mode]
+        fieldranges = FIELDRANGES[self.expected_model][self.expected_prog_mode]
         for first, last in fieldranges:
             self._fieldsvalid[self._fieldnametonum[first]: self._fieldnametonum[last] + 1] = [True] * (self._fieldnametonum[last] - self._fieldnametonum[first] + 1)
         logging.debug("C%i Fieldsvalid %s"%(self.address, ','.join(str(int(x)) for x in self._fieldsvalid)))
@@ -205,7 +204,7 @@ class HeatmiserDevice(object):
         # maxage >=0, older than maxage
         # maxage = 0, always
         if maxage == 0 or not self._check_data_age(fieldname, maxage):
-            if self._autoreadall is True:
+            if self.autoreadall is True:
                 self.get_field_range(fieldname)
             else:
                 raise ValueError("Need to read %s first"%fieldname)
@@ -221,7 +220,7 @@ class HeatmiserDevice(object):
         
         fieldids = list(set(fieldids)) #remove duplicates, ordering doesn't matter
         
-        if len(fieldids) > 0 and self._autoreadall is True:
+        if len(fieldids) > 0 and self.autoreadall is True:
             self._get_fields(fieldids)
         elif len(fieldids) > 0:
             raise ValueError("Need to read fields first")
@@ -396,10 +395,10 @@ class HeatmiserDevice(object):
         if not self._expected_model_number is None and fieldname == 'model' and value != self._expected_model_number:
             raise HeatmiserResponseError('Model is unexpected')
         
-        if not self._expected_prog_mode is None and fieldname == 'programmode' and value != PROG_MODES[self._expected_prog_mode]:
+        if not self.expected_prog_mode is None and fieldname == 'programmode' and value != PROG_MODES[self.expected_prog_mode]:
             raise HeatmiserResponseError('Programme mode is unexpected')
         
-        if fieldname == 'version' and self._expected_model != 'prt_hw_model':
+        if fieldname == 'version' and self.expected_model != 'prt_hw_model':
             value = data[0] & 0x7f
             self.floorlimiting = data[0] >> 7
             self.data['floorlimiting'] = self.floorlimiting
@@ -677,7 +676,7 @@ class HeatmiserDevice(object):
     def is_hot_water(self):
         """Does device manage hotwater?"""
         #returns True if stat is a model with hotwater control, False otherwise
-        return self._expected_model == 'prt_hw_model'
+        return self.expected_model == 'prt_hw_model'
 
     TEMP_STATE_OFF = 0    #thermostat display is off and frost protection disabled
     TEMP_STATE_OFF_FROST = 1 #thermostat display is off and frost protection enabled
@@ -758,9 +757,9 @@ class HeatmiserDevice(object):
         self.read_field('sensorsavaliable', None)
         
         if self.sensorsavaliable == READ_SENSORS_AVALIABLE_INT_ONLY or self.sensorsavaliable == READ_SENSORS_AVALIABLE_INT_FLOOR:
-            return self.read_field('airtemp', self._max_age_temp)
+            return self.read_field('airtemp', self.max_age_temp)
         elif self.sensorsavaliable == READ_SENSORS_AVALIABLE_EXT_ONLY or self.sensorsavaliable == READ_SENSORS_AVALIABLE_EXT_FLOOR:
-            return self.read_field('remoteairtemp', self._max_age_temp)
+            return self.read_field('remoteairtemp', self.max_age_temp)
         else:
             raise ValueError("sensorsavaliable field invalid")
     
@@ -878,8 +877,8 @@ class HeatmiserUnknownDevice(HeatmiserDevice):
         self.fullreadtime = self._estimate_read_time(MAX_UNIQUE_ADDRESS) 
         # use fields from device rather to set the expected mode and type
         self.read_fields(['model','programmode'],0)
-        self._expected_model = DEVICE_MODELS.keys()[DEVICE_MODELS.values().index(self.model)]
-        self._expected_prog_mode = PROG_MODES.keys()[PROG_MODES.values().index(self.programmode)]
+        self.expected_model = DEVICE_MODELS.keys()[DEVICE_MODELS.values().index(self.model)]
+        self.expected_prog_mode = PROG_MODES.keys()[PROG_MODES.values().index(self.programmode)]
         
         self._process_settings()
 

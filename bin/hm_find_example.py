@@ -14,10 +14,10 @@ from heatmisercontroller.exceptions import HeatmiserResponseError
 #start logging
 initialize_logger('logs', logging.INFO, True)
 
-module_path = os.path.abspath(os.path.dirname(__file__))
-configfile = os.path.join(module_path, "nocontrollers.conf")
+MODULE_PATH = os.path.abspath(os.path.dirname(__file__))
+CONFIGFILE = os.path.join(MODULE_PATH, "nocontrollers.conf")
 
-HMN = HeatmiserNetwork(configfile)
+HMN = HeatmiserNetwork(CONFIGFILE)
 HMN.find_devices()
 
 # CYCLE THROUGH ALL CONTROLLERS
