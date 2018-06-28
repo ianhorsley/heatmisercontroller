@@ -41,7 +41,9 @@ class TestNetwork(unittest.TestCase):
         self.assertEqual(hmn.controllers[1].address, 2)
         
     def test_network_stat_add(self):
-        HMN = HeatmiserNetwork()
+        module_path = os.path.abspath(os.path.dirname(__file__))
+        configfile = os.path.join(module_path, "hmcontroller.conf")
+        HMN = HeatmiserNetwork(configfile)
         self.assertEqual(1, HMN.get_stat_address('Kit'))
     
     def test_no_file(self):
