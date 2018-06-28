@@ -110,7 +110,7 @@ class TestReadingData(unittest.TestCase):
         setup = SetupTestClass()
         adaptor = MockHeatmiserAdaptor(setup)
         self.func = HeatmiserDevice(adaptor, self.settings2)
-        responses = [[0, 170],[0, 180]]
+        responses = [[0, 170], [0, 180]]
         adaptor.setresponse(responses)
         self.assertEqual(17, self.func.read_field('airtemp', 1))
         self.assertEqual(17, self.func.read_field('airtemp', -1)) #only check presence

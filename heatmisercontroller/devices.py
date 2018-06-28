@@ -168,7 +168,7 @@ class HeatmiserDevice(object):
         
     def _check_data_present(self, *fieldnames):
         """Check field(s) has data"""
-        """Returns True if all present"""
+        #Returns True if all present
         if len(fieldnames) == 0:
             raise ValueError("Must list at least one field")
 
