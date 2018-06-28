@@ -13,18 +13,25 @@ class TestNetwork(unittest.TestCase):
         logging.basicConfig(level=logging.ERROR)
     
     def test_network_creation(self):
-        HeatmiserNetwork()
+        module_path = os.path.abspath(os.path.dirname(__file__))
+        configfile = os.path.join(module_path, "hmcontroller.conf")
+        HMN = HeatmiserNetwork(configfile)
+        
+        setup = SetupTestClass()
+        adaptor = MockHeatmiserAdaptor(setup)
+        HMN.adaptor = adaptor
+        HMN.adaptor.connect()
         
     def test_network_find(self):
         module_path = os.path.abspath(os.path.dirname(__file__))
-        configfile = os.path.join(module_path, "../bin/nocontrollers.conf")
+        configfile = os.path.join(module_path, "nocontrollers.conf")
     
         HMN = HeatmiserNetwork(configfile)
 
         setup = SetupTestClass()
         adaptor = MockHeatmiserAdaptor(setup)
         HMN.adaptor = adaptor
-        
+
         #queue some data to recieve
         responses = [[4, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], [4, 0, 1, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1]]
         adaptor.setresponse(responses)

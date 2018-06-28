@@ -37,7 +37,6 @@ class HeatmiserNetwork(object):
         
         # Initialize and connect to heatmiser network, probably through serial port
         self.adaptor = HeatmiserAdaptor(self._setup)
-        self.adaptor.connect()
         
         # Load device list from settings or find devices if none listed
         self.controllers = []
