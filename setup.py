@@ -1,11 +1,13 @@
+"""Build setup for package"""
 from setuptools import setup
 
 def readme():
+    """Method to add readme file as long_description."""
     with open('README.rst') as f:
         return f.read()
 
 setup(name='heatmisercontroller',
-      version='0.33',
+      version='0.34',
       description='Python implementation of Heatmiser protocol for serial connected thermostats ',
       long_description=readme(),
       classifiers=[

@@ -27,66 +27,79 @@ class HeatmiserDevice(object):
 
     ## Initialisation functions and low level functions
     def __init__(self, adaptor, devicesettings, generalsettings=None):
-        #address, protocol, short_name, long_name, model, mode
+        
         self._adaptor = adaptor
 
-        self.water_schedule = None
-
-        #initialise data structures
+        # initialise external parameters
+        self._protocol = DEFAULT_PROTOCOL
+        # initialise data structures
         self._uniquetodcb = []
-        self._fieldsvalid = []
+        self._fieldsvalid = [True] * len(fields) # assume all fields are valid until shown otherwise
+        self.dcb_length = None
+        self.expected_prog_mode = None
+        self._expected_model_number = None
+        self.long_name = ''
         self._buildfieldtables()
         self.data = dict.fromkeys(self._fieldnametonum.keys(), None)
         self.floorlimiting = None
         self.datareadtime = dict.fromkeys(self._fieldnametonum.keys(), None)
         self.timeerr = None
+        self.fullreadtime = 0 #default to full read
         
         self._update_settings(devicesettings, generalsettings)
 
         self.rawdata = [None] * self.dcb_length
 
     def _update_settings(self, settings, generalsettings):
-        """Check settings and update if needed."""
+        """Laod and process settings."""
 
+        self._load_settings(settings, generalsettings)
+        self._process_settings()
+    
+    def _load_settings(self, settings, generalsettings):
+        """Loading settings from dictionary into properties"""
+        
         if not generalsettings is None:
             for name, value in generalsettings.iteritems():
-                setattr(self, '_' + name, value)
+                setattr(self, name, value)
 
         for name, value in settings.iteritems():
-            setattr(self, '_' + name, value)
+            setattr(self, name, value)
 
-        self.address = self._address #make externally available
-        del self._address
-        self.long_name = self._long_name #make externally available
-        del self._long_name
-
-        if self._expected_prog_mode == PROG_MODE_DAY:
+        try:
+            self.long_name
+        except AttributeError:
+            self.long_name = 'Unknown'
+    
+    def _process_settings(self):
+        """Process settings based on device model and program mode"""
+        
+        # Create required schedule objects
+        self.water_schedule = None
+        if self.expected_prog_mode == PROG_MODE_DAY:
             self.heat_schedule = SchedulerDayHeat()
             if self.is_hot_water():
                 self.water_schedule = SchedulerDayWater()
-        elif self._expected_prog_mode == PROG_MODE_WEEK:
+        elif self.expected_prog_mode == PROG_MODE_WEEK:
             self.heat_schedule = SchedulerWeekHeat()
             if self.is_hot_water():
                 self.water_schedule = SchedulerWeekWater()
         else:
             raise ValueError("Unknown program mode")
 
-        self._expected_prog_mode_number = PROG_MODES[self._expected_prog_mode]
-
-        self._fieldranges = FIELDRANGES[self._expected_model][self._expected_prog_mode]
-
-        if self._expected_model == 'prt_e_model':
-            self.dcb_map = PRTEmap[self._expected_prog_mode]
-        elif self._expected_model == 'prt_hw_model':
-            self.dcb_map = PRTHWmap[self._expected_prog_mode]
-        elif self._expected_model == False:
+        ### should replace this stuff with something based on the fieldranges which is much easier to understand
+        if self.expected_model == 'prt_e_model':
+            self.dcb_map = PRTEmap[self.expected_prog_mode]
+        elif self.expected_model == 'prt_hw_model':
+            self.dcb_map = PRTHWmap[self.expected_prog_mode]
+        elif self.expected_model == False:
             self.dcb_map = STRAIGHTmap
         else:
-            raise ValueError("Unknown model %s"%self._expected_model)
+            raise ValueError("Unknown model %s"%self.expected_model)
 
         self._build_dcb_tables()
 
-        self._expected_model_number = DEVICE_MODELS[self._expected_model]
+        self._expected_model_number = DEVICE_MODELS[self.expected_model]
 
         if self.dcb_map[0][1] != DCB_INVALID:
             self.dcb_length = self.dcb_map[0][0] - self.dcb_map[0][1] + 1
@@ -95,8 +108,9 @@ class HeatmiserDevice(object):
         else:
             raise ValueError("DCB map length not found")
 
+        # estimated read time for read_all method
         self.fullreadtime = self._estimate_read_time(self.dcb_length)
-        
+    
     def _get_dcb_address(self, uniqueaddress):
         """get the DCB address for a controller from the unique address"""
         return self._uniquetodcb[uniqueaddress]
@@ -117,9 +131,9 @@ class HeatmiserDevice(object):
         
         #build list of valid fields for this device
         self._fieldsvalid = [False] * len(fields)
-        for first, last in self._fieldranges:
+        fieldranges = FIELDRANGES[self.expected_model][self.expected_prog_mode]
+        for first, last in fieldranges:
             self._fieldsvalid[self._fieldnametonum[first]: self._fieldnametonum[last] + 1] = [True] * (self._fieldnametonum[last] - self._fieldnametonum[first] + 1)
-        #self._fullDCB = sum(x is not None for x in self._uniquetodcb))
         logging.debug("C%i Fieldsvalid %s"%(self.address, ','.join(str(int(x)) for x in self._fieldsvalid)))
     
     def _check_data_age(self, fieldnames, maxagein=None):
@@ -153,6 +167,7 @@ class HeatmiserDevice(object):
         
     def _check_data_present(self, *fieldnames):
         """Check field(s) has data"""
+        #Returns True if all present
         if len(fieldnames) == 0:
             raise ValueError("Must list at least one field")
 
@@ -188,7 +203,7 @@ class HeatmiserDevice(object):
         # maxage >=0, older than maxage
         # maxage = 0, always
         if maxage == 0 or not self._check_data_age(fieldname, maxage):
-            if self._autoreadall is True:
+            if self.autoreadall is True:
                 self.get_field_range(fieldname)
             else:
                 raise ValueError("Need to read %s first"%fieldname)
@@ -204,7 +219,7 @@ class HeatmiserDevice(object):
         
         fieldids = list(set(fieldids)) #remove duplicates, ordering doesn't matter
         
-        if len(fieldids) > 0 and self._autoreadall is True:
+        if len(fieldids) > 0 and self.autoreadall is True:
             self._get_fields(fieldids)
         elif len(fieldids) > 0:
             raise ValueError("Need to read fields first")
@@ -366,20 +381,23 @@ class HeatmiserDevice(object):
         else:
             raise ValueError("_procpayload can't process field length")
     
+        if fieldname == 'address' and value != self.address:
+            raise HeatmiserResponseError('Address is unexpected')
+    
         if len(fieldrange) == 2 and isinstance(fieldrange[0], (int, long)) and isinstance(fieldrange[1], (int, long)) and not value is None:
             if value < fieldrange[0] or value > fieldrange[1]:
                 raise HeatmiserResponseError("Field value %i outside expected range"%value)
         
-        if fieldname == 'DCBlen' and value != self.dcb_length:
+        if not self.dcb_length is None and fieldname == 'DCBlen' and value != self.dcb_length:
             raise HeatmiserResponseError('DCBlengh is unexpected')
-        
-        if fieldname == 'model' and value != self._expected_model_number:
+            
+        if not self._expected_model_number is None and fieldname == 'model' and value != self._expected_model_number:
             raise HeatmiserResponseError('Model is unexpected')
         
-        if fieldname == 'programmode' and value != self._expected_prog_mode_number:
+        if not self.expected_prog_mode is None and fieldname == 'programmode' and value != PROG_MODES[self.expected_prog_mode]:
             raise HeatmiserResponseError('Programme mode is unexpected')
         
-        if fieldname == 'version' and self._expected_model != 'prt_hw_model':
+        if fieldname == 'version' and self.expected_model != 'prt_hw_model':
             value = data[0] & 0x7f
             self.floorlimiting = data[0] >> 7
             self.data['floorlimiting'] = self.floorlimiting
@@ -657,7 +675,7 @@ class HeatmiserDevice(object):
     def is_hot_water(self):
         """Does device manage hotwater?"""
         #returns True if stat is a model with hotwater control, False otherwise
-        return self._expected_model == 'prt_hw_model'
+        return self.expected_model == 'prt_hw_model'
 
     TEMP_STATE_OFF = 0    #thermostat display is off and frost protection disabled
     TEMP_STATE_OFF_FROST = 1 #thermostat display is off and frost protection enabled
@@ -738,9 +756,9 @@ class HeatmiserDevice(object):
         self.read_field('sensorsavaliable', None)
         
         if self.sensorsavaliable == READ_SENSORS_AVALIABLE_INT_ONLY or self.sensorsavaliable == READ_SENSORS_AVALIABLE_INT_FLOOR:
-            return self.read_field('airtemp', self._max_age_temp)
+            return self.read_field('airtemp', self.max_age_temp)
         elif self.sensorsavaliable == READ_SENSORS_AVALIABLE_EXT_ONLY or self.sensorsavaliable == READ_SENSORS_AVALIABLE_EXT_FLOOR:
-            return self.read_field('remoteairtemp', self._max_age_temp)
+            return self.read_field('remoteairtemp', self.max_age_temp)
         else:
             raise ValueError("sensorsavaliable field invalid")
     
@@ -843,9 +861,29 @@ class HeatmiserDevice(object):
 #other
 #set floor limit
 
-#create a controller that broadcasts or reads from multiple stats
+class HeatmiserUnknownDevice(HeatmiserDevice):
+    """Device class for unknown thermostats"""
+    
+    def _update_settings(self, settings, generalsettings):
+        """Check settings and get network data if needed"""
+
+        self._load_settings(settings, generalsettings)
+        
+        # some basic config required before reading fields
+        self._uniquetodcb = range(MAX_UNIQUE_ADDRESS + 1)
+        self.rawdata = [None] * (MAX_UNIQUE_ADDRESS + 1)
+        # assume fullreadtime is the worst case
+        self.fullreadtime = self._estimate_read_time(MAX_UNIQUE_ADDRESS) 
+        # use fields from device rather to set the expected mode and type
+        self.read_fields(['model', 'programmode'],0)
+        self.expected_model = DEVICE_MODELS.keys()[DEVICE_MODELS.values().index(self.model)]
+        self.expected_prog_mode = PROG_MODES.keys()[PROG_MODES.values().index(self.programmode)]
+        
+        self._process_settings()
+
 class HeatmiserBroadcastDevice(HeatmiserDevice):
     """Broadcast device class for broadcast set functions and managing reading on all devices"""
+    #List wrapper used to provide arguement to dectorator
     _controllerlist = ListWrapperClass()
 
     def __init__(self, network, long_name, controllerlist=None):

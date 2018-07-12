@@ -48,7 +48,10 @@ class HeatmiserAdaptor(object):
         self._update_settings(settings)
 
         self.lastreceivetime = self.creationtime - self.serport.COM_BUS_RESET_TIME # so that system will get on with sending straight away
-
+        
+        if self.auto_connect:
+            self.connect()
+        
     def __del__(self):
         self._disconnect()
 

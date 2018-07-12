@@ -3,12 +3,16 @@
   check_time_interval = integer(default = 1)
 
 [ controller ]
-    __many__ = integer()
+  auto_connect = boolean(default = True)
+  write_max_retries = integer()
+  read_max_retries = integer()
+  my_master_addr = integer()
 
 [ serial ]
   baudrate = integer()
 	timeout = integer(0, 32)
 	write_timeout = integer(0, 32)
+
 	
 	COM_TIMEOUT = float(default=1) #time to wait for full response
 	COM_START_TIMEOUT = float(default=0.1) #time to wait for start of response

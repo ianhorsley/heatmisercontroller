@@ -7,18 +7,20 @@ Ian Horsley 2018
 
 import os
 import logging
-import sys
+#import sys
 
 # Import our own stuff
-from devices import HeatmiserDevice, HeatmiserBroadcastDevice
+from devices import HeatmiserDevice, HeatmiserUnknownDevice, HeatmiserBroadcastDevice
 from adaptor import HeatmiserAdaptor
+from hm_constants import SLAVE_ADDR_MIN, SLAVE_ADDR_MAX
+from .exceptions import HeatmiserResponseError
 import setup as hms
 
 class HeatmiserNetwork(object):
     """Class that connects a set of devices (from configuration) and an adpator."""
     ### stat list setup
 
-    def __init__(self, configfile = None):
+    def __init__(self, configfile=None):
         
         # Select default configuration file if none provided
         if configfile is None:
@@ -31,13 +33,19 @@ class HeatmiserNetwork(object):
             settings = self._setup.settings
         except hms.HeatmiserControllerSetupInitError as err:
             logging.error(err)
-            sys.exit("Unable to load configuration file: " + configfile)
+            raise
         
         # Initialize and connect to heatmiser network, probably through serial port
         self.adaptor = HeatmiserAdaptor(self._setup)
-        self.adaptor.connect()
         
-        self._set_stat_list(settings['devices'], settings['devicesgeneral'])
+        # Load device list from settings or find devices if none listed
+        self.controllers = []
+        self._addresses_in_use = []
+        if 'devices' in settings:
+            if len(settings['devices']):
+                self._set_stat_list(settings['devices'], settings['devicesgeneral'])
+        else: #if devices not defined then auto run find devices.
+            self.find_devices()
         
         # Create a broadcast device
         setattr(self, "All", HeatmiserBroadcastDevice(self.adaptor, "Broadcast to All", self.controllers))
@@ -51,14 +59,30 @@ class HeatmiserNetwork(object):
         self.controllers = range(self._statnum)
         for name, controllersettings in statlist.iteritems():
             if hasattr(self, name):
-                print "error duplicate stat name"
+                logging.warn("error duplicate stat name")
             else:
                 setattr(self, name, HeatmiserDevice(self.adaptor, controllersettings, generalsettings))
                 setattr(getattr(self, name), 'name', name) #make name avaliable when accessing by id
-                self.controllers[controllersettings['display_order']-1] = getattr(self, name)
+                self.controllers[controllersettings['display_order'] - 1] = getattr(self, name)
+                self._addresses_in_use.append(controllersettings['address'])
 
         self._current = self.controllers[0]
-      
+    
+    def find_devices(self, max_address=SLAVE_ADDR_MAX):
+        """Find devices on the network not in the configuration file"""
+        for address in range(SLAVE_ADDR_MIN, max_address + 1):
+            if not address in self._addresses_in_use:
+                try:
+                    settings = {'address': address}
+                    test_device = HeatmiserUnknownDevice(self.adaptor, settings, self._setup.settings['devicesgeneral'])
+                except HeatmiserResponseError as err:
+                    logging.info("C%i device not found, library error %s"%(address, err))
+                else:
+                    logging.info("C%i device %s found, with program %s"%(address, test_device.expected_model, test_device.expected_prog_mode))
+                    setattr(test_device, 'name', 'None') #make name avaliable when accessing by id
+                    self.controllers.append(test_device)
+                    self._addresses_in_use.append(address)
+    
     def get_stat_address(self, shortname):
         """Get network address from device name."""
         if isinstance(shortname, basestring):

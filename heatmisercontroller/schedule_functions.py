@@ -60,7 +60,7 @@ class Scheduler(object):
                 textstr = "None"
             else:
                 textstr = self.entry_text(self.entries[entry])
-            print(name.ljust(10) + textstr)
+            print name.ljust(10) + textstr
             logging.info(textstr)
 
     @staticmethod
@@ -170,6 +170,7 @@ class SchedulerDay(Scheduler):
     printnames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
     
     def _get_schedule_entry(self, day):
+        """Determines the schedule for a day"""
         return self.entries[self.entrynames[day - 1]]
 
 class SchedulerWeek(Scheduler):
@@ -178,6 +179,7 @@ class SchedulerWeek(Scheduler):
     printnames = ['Weekdays', 'Weekends']
     
     def _get_schedule_entry(self, day):
+        """Determines the schedule for a day based on whether weekday or weekend"""
         if day == 6 or day == 7:
             return self.entries[self.entrynames[1]]
         elif day >= 1 and day <= 5:
@@ -193,6 +195,7 @@ class SchedulerHeat(Scheduler):
     fieldbase = '_heat'
     
     def entry_text(self, data):
+        """Assembles string describing a heat schdule entry"""
         tempstr = ''
         for valueset in self._chunks(data, self.valuesperentry):
             if valueset[MAP_HOUR] != HOUR_UNUSED:
@@ -208,6 +211,7 @@ class SchedulerWater(Scheduler):
     fieldbase = '_water'
     
     def entry_text(self, data):
+        """Assembles string describing a water schdule entry"""
         toggle = True
         count = 1
     
@@ -218,7 +222,7 @@ class SchedulerWater(Scheduler):
                     tempstr += "Time %i On at %02d:%02d " %(count, dataset[0], dataset[1])
                 else:
                     tempstr += "Off at %02d:%02d, " %(dataset[0], dataset[1])
-                    count=count+1
+                    count = count + 1
                 toggle = not toggle
                 
         return tempstr

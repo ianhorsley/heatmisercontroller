@@ -2,18 +2,23 @@
 """Gets data from Heatmiser stats repeatedly and displays
 Ian Horsley 2018
 """
-
+import os
 import time
 import logging
 
 from heatmisercontroller.logging_setup import initialize_logger
+from heatmisercontroller.hm_constants import *
 from heatmisercontroller.network import HeatmiserNetwork
 from heatmisercontroller.exceptions import HeatmiserResponseError
 
 #start logging
 initialize_logger('logs', logging.INFO, True)
 
-HMN = HeatmiserNetwork()
+MODULE_PATH = os.path.abspath(os.path.dirname(__file__))
+CONFIGFILE = os.path.join(MODULE_PATH, "nocontrollers.conf")
+
+HMN = HeatmiserNetwork(CONFIGFILE)
+HMN.find_devices()
 
 # CYCLE THROUGH ALL CONTROLLERS
 for current_controller in HMN.controllers:
@@ -60,3 +65,4 @@ while True:
                 print disptext
 
     time.sleep(5) # sleep before next cycle
+
