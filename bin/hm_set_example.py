@@ -13,11 +13,9 @@ initialize_logger('logs', logging.INFO, True)
 
 HMN = HeatmiserNetwork()
 
-#HMN.set_temp("Kit", 25)
 #HMN.Kit.holdTemp(30,21) #mins, temp
 #HMN.Kit.releaseHoldTemp()
 
-#HMN.set_temp("Cons", 25)
 #HMN.release_temp("Cons")
 #HMN.All.set_field('holidayhours', 96)
 HMN.All.release_holiday()
@@ -25,8 +23,8 @@ HMN.All.release_holiday()
 HMN.Kit.set_field('hotwaterdemand', WRITE_HOTWATERDEMAND_PROG)
 
 HMN.All.set_on()
+HMN.All.set_frost()
 #HMN.hmUpdateTime(2)
-#HMN.controllerByName('B1').setOff()
 
 HMN.All.set_field('runmode', WRITE_RUNMODE_HEATING)
 HMN.Sit.set_field('runmode', WRITE_RUNMODE_FROST)
@@ -91,14 +89,7 @@ HMN.B2.set_heating_schedule('fri_heat', DAYFROST)
 HMN.B2.set_heating_schedule('sat_heat', DAYFROST)
 HMN.B2.set_heating_schedule('sun_heat', DAYFROST)
 
-#HMN.hmSetFields('Kit', 'wday_heat', [7, 0, 19, 9, 30, 10, 17, 0, 19, 21, 30, 10])
-#HMN.hmSetFields('B1', HMV3_ID,'wday_heat', [7, 0, 18, 8, 30, 10, 20, 30, 18, 22, 0, 16])
-#HMN.hmSetFields('B2', HMV3_ID,'wday_heat', [7, 0, 19, 8, 30, 10, 20, 30, 19, 22, 0, 16])
 HMN.get_controller_by_name('Cons').set_field('wday_heat', [9, 0, 12, 21, 30, 10, 24, 0, 5, 24, 0, 5])
-
-#HMN.hmSetFields('Kit', 'wend_heat', [7, 0, 19, 21, 30, 10, 24, 0, 5, 24, 0, 5])
-#HMN.hmSetFields('B1', HMV3_ID,'wend_heat', [7, 0, 18, 9, 30, 10, 20, 30, 18, 22, 0, 16])
-#HMN.hmSetFields('B2', HMV3_ID,'wend_heat', [7, 0, 19, 9, 30, 10, 20, 30, 19, 22, 0, 16])
 HMN.get_controller_by_name('Cons').set_field('wend_heat', [9, 0, 12, 21, 30, 10, 24, 0, 5, 24, 0, 5])
 
 HMN.Sit.set_heating_schedule('wday_heat', DAYFROST)
