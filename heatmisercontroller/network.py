@@ -7,7 +7,7 @@ Ian Horsley 2018
 
 import os
 import logging
-import sys
+#import sys
 
 # Import our own stuff
 from devices import HeatmiserDevice, HeatmiserUnknownDevice, HeatmiserBroadcastDevice
@@ -20,7 +20,7 @@ class HeatmiserNetwork(object):
     """Class that connects a set of devices (from configuration) and an adpator."""
     ### stat list setup
 
-    def __init__(self, configfile = None):
+    def __init__(self, configfile=None):
         
         # Select default configuration file if none provided
         if configfile is None:

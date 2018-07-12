@@ -97,7 +97,7 @@ class TestReadWrite(unittest.TestCase):
         self.func.write_to_device(5, HMV3_ID, 12, 1, [1])
         # Use serial to receive raw transmission
         ret = self.serialport.serialPort.read(len(goodrequest))
-        retasarray = map(ord,ret)
+        retasarray = map(ord, ret)
         # Check that the returned data from the serial port == goodmessage
         self.assertEqual(retasarray, goodrequest)
         

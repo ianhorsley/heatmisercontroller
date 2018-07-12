@@ -875,7 +875,7 @@ class HeatmiserUnknownDevice(HeatmiserDevice):
         # assume fullreadtime is the worst case
         self.fullreadtime = self._estimate_read_time(MAX_UNIQUE_ADDRESS) 
         # use fields from device rather to set the expected mode and type
-        self.read_fields(['model','programmode'],0)
+        self.read_fields(['model', 'programmode'],0)
         self.expected_model = DEVICE_MODELS.keys()[DEVICE_MODELS.values().index(self.model)]
         self.expected_prog_mode = PROG_MODES.keys()[PROG_MODES.values().index(self.programmode)]
         

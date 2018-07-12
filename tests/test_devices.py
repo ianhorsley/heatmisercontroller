@@ -6,7 +6,6 @@ import time
 from heatmisercontroller.devices import HeatmiserDevice, HeatmiserBroadcastDevice
 from heatmisercontroller.hm_constants import HMV3_ID, PROG_MODES, PROG_MODE_DAY, DCB_INVALID, WRITE_HOTWATERDEMAND_OVER_OFF, READ_HOTWATERDEMAND_OFF, WRITE_HOTWATERDEMAND_PROG
 from heatmisercontroller.exceptions import HeatmiserResponseError, HeatmiserControllerTimeError
-from heatmisercontroller.adaptor import HeatmiserAdaptor
 
 from mock_serial import SetupTestClass, MockHeatmiserAdaptor
 
