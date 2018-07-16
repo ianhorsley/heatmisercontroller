@@ -3,8 +3,8 @@ from setuptools import setup
 
 def readme():
     """Method to add readme file as long_description."""
-    with open('README.rst') as f:
-        return f.read()
+    with open('README.rst') as fhandle:
+        return fhandle.read()
 
 setup(name='heatmisercontroller',
       version='0.34',

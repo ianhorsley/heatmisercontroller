@@ -31,7 +31,7 @@ class HeatmiserDevice(object):
         self._adaptor = adaptor
 
         # initialise external parameters
-        self._protocol = DEFAULT_PROTOCOL
+        self.protocol = DEFAULT_PROTOCOL
         # initialise data structures
         self._uniquetodcb = []
         self._fieldsvalid = [True] * len(fields) # assume all fields are valid until shown otherwise
@@ -183,7 +183,7 @@ class HeatmiserDevice(object):
     def read_all(self):
         """Returns all the field values having got them from the device"""
         try:
-            self.rawdata = self._adaptor.read_all_from_device(self.address, self._protocol, self.dcb_length)
+            self.rawdata = self._adaptor.read_all_from_device(self.address, self.protocol, self.dcb_length)
         except serial.SerialException as err:
 
             logging.warn("C%i Read all failed, Serial Port error %s"%(self.address, str(err)))
@@ -249,7 +249,7 @@ class HeatmiserDevice(object):
             try:
                 for firstfieldid, lastfieldid, blocklength in blockstoread:
                     logging.debug("C%i Reading ui %i to %i len %i, proc %s to %s"%(self.address, fields[firstfieldid][FIELD_ADD], fields[lastfieldid][FIELD_ADD], blocklength, fields[firstfieldid][FIELD_NAME], fields[lastfieldid][FIELD_NAME]))
-                    rawdata = self._adaptor.read_from_device(self.address, self._protocol, fields[firstfieldid][FIELD_ADD], blocklength)
+                    rawdata = self._adaptor.read_from_device(self.address, self.protocol, fields[firstfieldid][FIELD_ADD], blocklength)
                     self.lastreadtime = time.time()
                     self._procpartpayload(rawdata, fields[firstfieldid][FIELD_NAME], fields[lastfieldid][FIELD_NAME])
             except serial.SerialException as err:
@@ -274,7 +274,7 @@ class HeatmiserDevice(object):
             try:
                 for firstfieldid, lastfieldid, blocklength in blockstoread:
                     logging.debug("C%i Reading ui %i to %i len %i, proc %s to %s"%(self.address, fields[firstfieldid][FIELD_ADD], fields[lastfieldid][FIELD_ADD], blocklength, fields[firstfieldid][FIELD_NAME], fields[lastfieldid][FIELD_NAME]))
-                    rawdata = self._adaptor.read_from_device(self.address, self._protocol, fields[firstfieldid][FIELD_ADD], blocklength)
+                    rawdata = self._adaptor.read_from_device(self.address, self.protocol, fields[firstfieldid][FIELD_ADD], blocklength)
                     self.lastreadtime = time.time()
                     self._procpartpayload(rawdata, fields[firstfieldid][FIELD_NAME], fields[lastfieldid][FIELD_NAME])
             except serial.SerialException as err:
@@ -466,7 +466,7 @@ class HeatmiserDevice(object):
         try:
             self._comparecontrollertime()
         except HeatmiserControllerTimeError:
-            if self._autocorrectime is True:
+            if self.autocorrectime is True:
                 self.set_time()
             else:
                 raise
@@ -529,7 +529,7 @@ class HeatmiserDevice(object):
         if not isinstance(payload, list): #adjust for the 
             payload = [payload]
         try:
-            self._adaptor.write_to_device(self.address, self._protocol, fieldinfo[FIELD_ADD], fieldinfo[FIELD_LEN], payloadbytes)
+            self._adaptor.write_to_device(self.address, self.protocol, fieldinfo[FIELD_ADD], fieldinfo[FIELD_LEN], payloadbytes)
         except serial.SerialException as err:
             logging.warn("C%i failed to set field %s to %s, due to %s"%(self.address, fieldname.ljust(FIELD_NAME_LENGTH), ', '.join(str(x) for x in payload), str(err)))
             raise
@@ -575,7 +575,7 @@ class HeatmiserDevice(object):
         try:
             for unique_start_address, lengthbytes, payloadbytes, firstfieldname, lastfieldname in outputdata:
                 logging.debug("C%i Setting ui %i len %i, proc %s to %s"%(self.address, unique_start_address, lengthbytes, firstfieldname, lastfieldname))
-                self._adaptor.write_to_device(self.address, self._protocol, unique_start_address, lengthbytes, payloadbytes)
+                self._adaptor.write_to_device(self.address, self.protocol, unique_start_address, lengthbytes, payloadbytes)
                 self.lastreadtime = time.time()
                 self._procpartpayload(payloadbytes, firstfieldname, lastfieldname, True)
         except serial.SerialException as err:
