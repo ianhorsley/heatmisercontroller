@@ -59,7 +59,7 @@ HMN.Kit.set_heating_schedule('fri_heat', WKEND_ZEARLY)
 HMN.Kit.set_heating_schedule('sat_heat', WKEND_ZOFF)
 HMN.Kit.set_heating_schedule('sun_heat', WKEND_ZOFF)
 
-EVENINGWATER = [17, 30, 18, 0]
+EVENINGWATER = [17, 30, 18, 30]
 NOWATER = []
 HMN.Kit.set_water_schedule('all', EVENINGWATER)
 
