@@ -15,29 +15,25 @@ initialize_logger('logs', logging.INFO, True)
 
 HMN = HeatmiserNetwork()
 
-# CYCLE THROUGH ALL CONTROLLERS
-for current_controller in HMN.controllers:
+def readanddisplay():
     print "\r\nGetting time for %2d in %s *****************************" %(current_controller.address, current_controller.long_name)
-
     try:
-        current_controller.autocorrectime = False
         current_time = current_controller.read_time()
     except HeatmiserError as err:
         print "C%d in %s Failed to Read due to %s" %(current_controller.address, current_controller.name.ljust(4), str(err))
     else:
         print "C%d in %s time is %s" %(current_controller.address, current_controller.name.ljust(4), str(current_time))
+
+# read and display, without any corrections
+for current_controller in HMN.controllers:
+    current_controller.autocorrectime = False
+    readanddisplay()
 
 print "waiting for 30 seconds before fixing any errors"
 time.sleep(30) # sleep before next cycle, which will fix any errors
 
+# read and display, and try to correct if wrong
 for current_controller in HMN.controllers:
-    print "\r\nGetting time for %2d in %s *****************************" %(current_controller.address, current_controller.long_name)
-
-    try:
-        current_controller.autocorrectime = True
-        current_time = current_controller.read_time()
-    except HeatmiserError as err:
-        print "C%d in %s Failed to Read due to %s" %(current_controller.address, current_controller.name.ljust(4), str(err))
-    else:
-        print "C%d in %s time is %s" %(current_controller.address, current_controller.name.ljust(4), str(current_time))
+    current_controller.autocorrectime = True
+    readanddisplay()
         
