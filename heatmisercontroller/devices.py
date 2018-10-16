@@ -467,6 +467,7 @@ class HeatmiserDevice(object):
             self._comparecontrollertime()
         except HeatmiserControllerTimeError:
             if self.autocorrectime is True:
+                ### Add warning that attempting to fix.
                 self.set_time()
             else:
                 raise
