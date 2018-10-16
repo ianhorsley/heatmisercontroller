@@ -3,7 +3,6 @@
 Ian Horsley 2018
 """
 import os
-import time
 import logging
 
 from heatmisercontroller.logging_setup import initialize_logger

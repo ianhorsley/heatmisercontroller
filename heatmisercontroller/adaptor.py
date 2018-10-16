@@ -4,7 +4,7 @@ import time
 import logging
 import serial
 
-from hm_constants import *
+from hm_constants import MAX_FRAME_RESP_LENGTH, MIN_FRAME_READ_RESP_LENGTH, DCB_START, FUNC_WRITE, FUNC_READ, BROADCAST_ADDR, FRAME_WRITE_RESP_LENGTH, FR_CONTENTS, RW_LENGTH_ALL, CRC_LENGTH
 import framing
 from .exceptions import HeatmiserResponseError, HeatmiserResponseErrorCRC
 
