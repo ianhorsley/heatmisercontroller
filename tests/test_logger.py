@@ -8,9 +8,9 @@ from heatmisercontroller.logging_setup import initialize_logger
 class TestLogging(unittest.TestCase):
     """Unit tests for logging."""
     def setUp(self):
-        logger = logging.getLogger()
-        for handler in logger.handlers[:]:
-            logger.removeHandler(handler)
+        self.logger = logging.getLogger()
+        for handler in self.logger.handlers[:]:
+            self.logger.removeHandler(handler)
         self.errorlogfile = "error.log"
         self.alllogfile = "all.log"
         self.assertFalse(os.path.isfile(self.errorlogfile))
@@ -23,6 +23,8 @@ class TestLogging(unittest.TestCase):
             os.remove(self.errorlogfile)
         if os.path.isfile(self.alllogfile):
             os.remove(self.alllogfile)
+        for handler in self.logger.handlers[:]:
+            self.logger.removeHandler(handler)
         
     #@staticmethod
     def test_logging(self):
