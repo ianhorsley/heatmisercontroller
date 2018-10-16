@@ -51,5 +51,24 @@ class TestLogging(unittest.TestCase):
         self.assertTrue(os.path.isfile(self.alllogfile))
         self.assertEqual(len(open(self.alllogfile).readlines(  )),3)
 
+    def test_logging_double(self):
+        initialize_logger('', logging.DEBUG)
+        logging.warn('Shown')
+        initialize_logger('', logging.DEBUG, True)
+        
+        logging.debug('Not shown')
+        logging.info('Shown')
+        logging.warn('Shown')
+
+        self.assertTrue(os.path.isfile(self.errorlogfile))
+        self.assertTrue(os.path.isfile(self.alllogfile))
+        self.assertEqual(len(open(self.errorlogfile).readlines(  )),2)
+        self.assertEqual(len(open(self.alllogfile).readlines(  )),3)
+        
+        with open(self.errorlogfile) as fp:
+            line = fp.readline().strip()
+
+        self.assertTrue(line.endswith('WARNING - Shown'))        
+        
 if __name__ == '__main__':
     unittest.main()
