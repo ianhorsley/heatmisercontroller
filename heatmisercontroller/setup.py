@@ -37,9 +37,6 @@ from .exceptions import HeatmiserControllerSetupInitError
 class HeatmiserControllerSetup(object):
     """Inherited base class"""
     def __init__(self):
-        # Initialize logger
-        self._log = logging.getLogger("HeatmiserController")
-
         # Initialize settings
         self.settings = None
 
