@@ -16,6 +16,7 @@ initialize_logger('logs', logging.INFO, True)
 HMN = HeatmiserNetwork()
 
 def readanddisplay():
+    """Read all data from all controllers and print current time"""
     print "\r\nGetting time for %2d in %s *****************************" %(current_controller.address, current_controller.long_name)
     try:
         current_time = current_controller.read_time()

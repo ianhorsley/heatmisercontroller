@@ -36,7 +36,7 @@ class TestLogging(unittest.TestCase):
 
         self.assertTrue(os.path.isfile(self.errorlogfile))
         self.assertFalse(os.path.isfile(self.alllogfile))
-        self.assertEqual(len(open(self.errorlogfile).readlines()),1)
+        self.assertEqual(len(open(self.errorlogfile).readlines()), 1)
         
         with open(self.errorlogfile) as fpointer:
             line = fpointer.readline().strip()
@@ -51,7 +51,7 @@ class TestLogging(unittest.TestCase):
         
         self.assertTrue(os.path.isfile(self.errorlogfile))
         self.assertTrue(os.path.isfile(self.alllogfile))
-        self.assertEqual(len(open(self.alllogfile).readlines()),3)
+        self.assertEqual(len(open(self.alllogfile).readlines()), 6)
 
     def test_logging_double(self):
         initialize_logger('', logging.DEBUG)
@@ -64,8 +64,8 @@ class TestLogging(unittest.TestCase):
 
         self.assertTrue(os.path.isfile(self.errorlogfile))
         self.assertTrue(os.path.isfile(self.alllogfile))
-        self.assertEqual(len(open(self.errorlogfile).readlines()),2)
-        self.assertEqual(len(open(self.alllogfile).readlines()),3)
+        self.assertEqual(len(open(self.errorlogfile).readlines()), 2)
+        self.assertEqual(len(open(self.alllogfile).readlines()), 4) #last three plus one from creating rotating logger
         
         with open(self.errorlogfile) as fpointer:
             line = fpointer.readline().strip()
