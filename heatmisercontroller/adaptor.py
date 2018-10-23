@@ -120,15 +120,15 @@ class HeatmiserAdaptor(object):
             self.serport.write(string)    # Write a string
         except serial.SerialTimeoutException as err:
             self.serport.close() #need to close so that isOpen works correctly.
-            logging.warning("Write timeout error: %s, sending %s" % (err, ', '.join(str(x) for x in message)))
+            logging.warning("Write timeout error: %s, sending %s" % (err, self._csvlist(message)))
             raise
         except serial.SerialException as err:
             self.serport.close() #need to close so that isOpen works correctly.
-            logging.warning("Write error: %s, sending %s" % (err, ', '.join(str(x) for x in message)))
+            logging.warning("Write error: %s, sending %s" % (err, self._csvlist(message)))
             raise
-        else:
-            self.lastsendtime = time.strftime("%d %b %Y %H:%M:%S +0000", time.localtime(time.time())) #timezone is wrong
-            logging.debug("Gen sent %s", ', '.join(str(x) for x in message))
+
+        self.lastsendtime = time.strftime("%d %b %Y %H:%M:%S +0000", time.localtime(time.time())) #timezone is wrong
+        logging.debug("Gen sent %s", self._csvlist(message))
 
     def _clear_input_buffer(self):
         """Clears input buffer
@@ -201,7 +201,7 @@ class HeatmiserAdaptor(object):
             logging.warn("C%i writing to address, no message sent"%(network_address))
             raise
         else:
-            logging.debug("C%i written to address %i length %i payload %s"%(network_address, unique_address, length, ', '.join(str(x) for x in payload)))
+            logging.debug("C%i written to address %i length %i payload %s"%(network_address, unique_address, length, self._csvlist(payload)))
             if network_address == BROADCAST_ADDR:
                 self.lastreceivetime = time.time() + self.serport.COM_SEND_MIN_TIME - self.serport.COM_BUS_RESET_TIME # if broadcasting force it to wait longer until next send
             else:
@@ -226,31 +226,35 @@ class HeatmiserAdaptor(object):
             msg = framing.form_read_frame(network_address, protocol, self.my_master_addr, unique_start_address, expected_length)
             logging.debug("C %i read request to address %i length %i"%(network_address, unique_start_address, expected_length))
         
-        try:
+        try: #sending request
             self._send_message(msg)
         except:
             logging.warn("C%i address, read message not sent"%(network_address))
             raise
-        else:
-            time1 = time.time()
+        
+        time1 = time.time()
 
-            try:
-                response = self._receive_message(MIN_FRAME_READ_RESP_LENGTH + expected_length)
-            except Exception as err:
-                logging.warn("C%i read failed from address %i length %i due to %s"%(network_address, unique_start_address, expected_length, str(err)))
-                raise
-            else:
-                logging.debug("C%i read in %.2f s from address %i length %i response %s"%(network_address, time.time()-time1, unique_start_address, expected_length, ', '.join(str(x) for x in response)))
-            
-                try:
-                    framing.verify_response(protocol, network_address, self.my_master_addr, FUNC_READ, expected_length, response)
-                except HeatmiserResponseErrorCRC:
-                    self._clear_input_buffer()
-                    raise
-                return response[FR_CONTENTS:-CRC_LENGTH]
+        try: #listening for response
+            response = self._receive_message(MIN_FRAME_READ_RESP_LENGTH + expected_length)
+        except Exception as err:
+            logging.warn("C%i read failed from address %i length %i due to %s"%(network_address, unique_start_address, expected_length, str(err)))
+            raise
+
+        logging.debug("C%i read in %.2f s from address %i length %i response %s"%(network_address, time.time()-time1, unique_start_address, expected_length, self._csvlist(response)))
+    
+        try: #processing response
+            framing.verify_response(protocol, network_address, self.my_master_addr, FUNC_READ, expected_length, response)
+        except HeatmiserResponseErrorCRC:
+            self._clear_input_buffer()
+            raise
+        return response[FR_CONTENTS:-CRC_LENGTH]
 
     def read_all_from_device(self, network_address, protocol, expected_length):
         """Forms read all frame using read_from_device"""
         return self.read_from_device(network_address, protocol, DCB_START, expected_length, True)
-        
+
+### logging functions
+    @staticmethod
+    def _csvlist(listitems):
+        ', '.join(map(str, listitems))
 
