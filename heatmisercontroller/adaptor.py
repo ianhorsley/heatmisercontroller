@@ -184,7 +184,7 @@ class HeatmiserAdaptor(object):
             data = map(ord, firstbyteread) + map(ord, byteread)
 
             return data
-        finally:
+        finally: ### could be moved up to replace else and copied after second try
             self.serport.timeout = self.serport.COM_TIMEOUT #make sure timeout is reverted
             self.lastreceivetime = time.time() #record last read time. Used to manage bus settling.
 
@@ -201,17 +201,17 @@ class HeatmiserAdaptor(object):
         except Exception:
             logging.warn("C%i writing to address, no message sent"%(network_address))
             raise
-        else:
-            logging.debug("C%i written to address %i length %i payload %s"%(network_address, unique_address, length, csvlist(payload)))
-            if network_address == BROADCAST_ADDR:
-                self.lastreceivetime = time.time() + self.serport.COM_SEND_MIN_TIME - self.serport.COM_BUS_RESET_TIME # if broadcasting force it to wait longer until next send
-            else:
-                response = self._receive_message(FRAME_WRITE_RESP_LENGTH)
-                try:
-                    framing.verify_write_ack(protocol, network_address, self.my_master_addr, response)
-                except HeatmiserResponseErrorCRC:
-                    self._clear_input_buffer()
-                    raise
+
+        logging.debug("C%i written to address %i length %i payload %s"%(network_address, unique_address, length, csvlist(payload)))
+        if network_address == BROADCAST_ADDR: # if broadcasting force it to wait longer until next send
+            self.lastreceivetime = time.time() + self.serport.COM_SEND_MIN_TIME - self.serport.COM_BUS_RESET_TIME 
+        else: #else listen for acknowledgement
+            response = self._receive_message(FRAME_WRITE_RESP_LENGTH)
+            try:
+                framing.verify_write_ack(protocol, network_address, self.my_master_addr, response)
+            except HeatmiserResponseErrorCRC:
+                self._clear_input_buffer()
+                raise
                     
     def min_time_between_reads(self):
         """Computes the minimum time that adaptor leaves between read commands"""
