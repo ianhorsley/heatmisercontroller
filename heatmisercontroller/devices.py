@@ -14,7 +14,7 @@ import time
 import serial
 import copy
 
-from fields import HeatmiserFieldUnknown, HeatmiserFieldSingle, HeatmiserFieldSingleReadOnly, HeatmiserFieldDouble, HeatmiserFieldDoubleReadOnly, HeatmiserFieldTime, HeatmiserFieldHeat, HeatmiserFieldWater
+from fields import HeatmiserFieldUnknown, HeatmiserFieldSingle, HeatmiserFieldSingleReadOnly, HeatmiserFieldDouble, HeatmiserFieldDoubleReadOnly, HeatmiserFieldTime, HeatmiserFieldHeat, HeatmiserFieldWater, HeatmiserFieldHotWaterDemand
 from hm_constants import *
 from .exceptions import HeatmiserResponseError, HeatmiserControllerTimeError
 from schedule_functions import SchedulerDayHeat, SchedulerWeekHeat, SchedulerDayWater, SchedulerWeekWater, SCH_ENT_TEMP
@@ -161,7 +161,7 @@ class HeatmiserDevice(object):
             HeatmiserFieldDoubleReadOnly('airtemp', 38, 10, [], MAX_AGE_USHORT),  #ffff if no sensor
             HeatmiserFieldSingleReadOnly('errorcode', 40, 1, [0, 3], MAX_AGE_SHORT),  # 0 is no error # errors,  0 built in,  1,  floor,  2 remote
             HeatmiserFieldSingleReadOnly('heatingdemand', 41, 1, [0, 1], MAX_AGE_USHORT),  #0 none,  1 heating currently
-            HeatmiserFieldSingle('hotwaterdemand', 42, 1, [0, 2], MAX_AGE_USHORT),  # read [0=off, 1=on],  write [0=as prog, 1=override on, 2=overide off]
+            HeatmiserFieldHotWaterDemand('hotwaterdemand', 42, 1, [0, 2], MAX_AGE_USHORT),  # read [0=off, 1=on],  write [0=as prog, 1=override on, 2=overide off]
             HeatmiserFieldTime('currenttime', 43, 1, [[1, 7], [0, 23], [0, 59], [0, 59]], MAX_AGE_USHORT),  #day (Mon - Sun),  hour,  min,  sec.
             #5/2 progamming #if hour = 24 entry not used
             HeatmiserFieldHeat('wday_heat', 47, 1, [[0, 24], [0, 59], [5, 35]], MAX_AGE_MEDIUM),  #hour,  min,  temp  (should minutes be only 0 and 30?)
@@ -557,7 +557,7 @@ class HeatmiserDevice(object):
             logging.info("C%i set field %s to %s"%(self.address, fieldname.ljust(FIELD_NAME_LENGTH), ', '.join(str(x) for x in printvalues)))
         
         self.lastwritetime = time.time()
-        field.update_value(values, self.lastwritetime)
+        self.data[fieldname] = field.update_value(values, self.lastwritetime)
     
     def set_fields(self, fieldnames, values):
         """Set multiple fields on a device to a state or payload."""
@@ -581,9 +581,8 @@ class HeatmiserDevice(object):
 
     def _update_fields_values(self, values, firstfieldid):
         """update the field values once data successfully written"""
-        print values
         for field, value in zip(self.fields[firstfieldid:firstfieldid+len(values)], values):
-            field.update_value(value, self.lastwritetime)
+            self.data[field.name] = field.update_value(value, self.lastwritetime)
             
     def _get_payload_blocks_from_list(self, fieldids, values):
         """Converts list of fields and values into groups of payload data"""
@@ -609,11 +608,12 @@ class HeatmiserDevice(object):
                 outputdata[-1][1] += field.fieldlength
                 outputdata[-1][2].extend(field.format_data_from_value(value))
                 outputdata[-1][4] = field.name
-                outputdata[-1][5].extend([value])
+                outputdata[-1][5].append(value)
             else:
                 #unique_start_address, bytelength, payloadbytes, firstfieldname, lastfieldname
                 outputdata.append([field.address, field.fieldlength, field.format_data_from_value(value), field.name, field.name, [value], fieldid])
             previousfield = fieldid
+            previousvalue = value
 
         return outputdata
    
@@ -630,13 +630,13 @@ class HeatmiserDevice(object):
     def print_target(self):
         """Returns text describing current heating state"""    
         current_state = self.read_temp_state()
-        
+        print "CS", current_state
         if current_state == self.TEMP_STATE_OFF:
             return "controller off without frost protection"
         elif current_state == self.TEMP_STATE_OFF_FROST:
             return "controller off"
         elif current_state == self.TEMP_STATE_HOLIDAY:
-            return "controller on holiday for %i hours" % self.holidayhours
+            return "controller on holiday for %s hours" % (self.holidayhours)
         elif current_state == self.TEMP_STATE_FROST:
             return "controller in frost mode"
         elif current_state == self.TEMP_STATE_HELD:
@@ -670,15 +670,15 @@ class HeatmiserDevice(object):
         self.read_fields(['mon_heat', 'tues_heat', 'wed_heat', 'thurs_heat', 'fri_heat', 'wday_heat', 'wend_heat'], -1)
         self.read_fields(['onoff', 'frostprot', 'holidayhours', 'runmode', 'tempholdmins', 'setroomtemp'])
         
-        if self.onoff == WRITE_ONOFF_OFF and self.frostprot == READ_FROST_PROT_OFF:
+        if self.onoff.value == WRITE_ONOFF_OFF and self.frostprot.value == READ_FROST_PROT_OFF:
             return self.TEMP_STATE_OFF
-        elif self.onoff == WRITE_ONOFF_OFF and self.frostprot == READ_FROST_PROT_ON:
+        elif self.onoff.value == WRITE_ONOFF_OFF and self.frostprot.value == READ_FROST_PROT_ON:
             return self.TEMP_STATE_OFF_FROST
-        elif self.holidayhours != 0:
+        elif self.holidayhours.value != 0:
             return self.TEMP_STATE_HOLIDAY
-        elif self.runmode == WRITE_RUNMODE_FROST:
+        elif self.runmode.value == WRITE_RUNMODE_FROST:
             return self.TEMP_STATE_FROST
-        elif self.tempholdmins != 0:
+        elif self.tempholdmins.value != 0:
             return self.TEMP_STATE_HELD
         else:
         
@@ -856,8 +856,8 @@ class HeatmiserUnknownDevice(HeatmiserDevice):
         self.fullreadtime = self._estimate_read_time(MAX_UNIQUE_ADDRESS) 
         # use fields from device rather to set the expected mode and type
         self.read_fields(['model', 'programmode'], 0)
-        self.expected_model = DEVICE_MODELS.keys()[DEVICE_MODELS.values().index(self.model)]
-        self.expected_prog_mode = PROG_MODES.keys()[PROG_MODES.values().index(self.programmode)]
+        self.expected_model = DEVICE_MODELS.keys()[DEVICE_MODELS.values().index(self.model.value)]
+        self.expected_prog_mode = PROG_MODES.keys()[PROG_MODES.values().index(self.programmode.value)]
         
         self._process_settings()
 

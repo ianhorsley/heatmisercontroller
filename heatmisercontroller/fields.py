@@ -1,5 +1,5 @@
 """field definitions for Heatmiser protocol"""
-#from hm_constants import *
+from .hm_constants import WRITE_HOTWATERDEMAND_PROG, WRITE_HOTWATERDEMAND_OVER_OFF, READ_HOTWATERDEMAND_OFF
 from .exceptions import HeatmiserResponseError
 
 class HeatmiserFieldUnknown(object):
@@ -12,6 +12,18 @@ class HeatmiserFieldUnknown(object):
         self.writeable = False
         self.fieldlength = length
         self._reset()
+    
+    def __eq__(self, other):
+        return self.value == other
+        
+    def __int__(self):
+        return self.value
+        
+    def __repr__(self):
+        return str(self.value)
+     
+    def __str__(self):
+        return str(self.value)
     
     def _reset(self):
         self.data = None
@@ -34,6 +46,7 @@ class HeatmiserFieldUnknown(object):
 
     def check_payload_values(self, payload):
         raise NotImplementedError
+        
             
 class HeatmiserField(HeatmiserFieldUnknown):
     #single value and hence single range
@@ -63,6 +76,7 @@ class HeatmiserField(HeatmiserFieldUnknown):
         self.data = data
         self.value = value
         self.lastreadtime = writetime
+        return value
         
     def _validate_range(self, value):
         if value < self.validrange[0] or value > self.validrange[1]:
@@ -112,17 +126,18 @@ class HeatmiserFieldHotWaterDemand(HeatmiserFieldSingle):
         
         if value == WRITE_HOTWATERDEMAND_PROG: #returned to program so outcome is unknown
             self._reset()
+            return None
         elif value == WRITE_HOTWATERDEMAND_OVER_OFF: #if overridden off store the off read value
-            super(HeatmiserFieldHotWaterDemand, self).update_value(READ_HOTWATERDEMAND_OFF, writetime)
+            return super(HeatmiserFieldHotWaterDemand, self).update_value(READ_HOTWATERDEMAND_OFF, writetime)
         else:
-            super(HeatmiserFieldHotWaterDemand, self).update_value(value, writetime)
+            return super(HeatmiserFieldHotWaterDemand, self).update_value(value, writetime)
         
 class HeatmiserFieldDouble(HeatmiserField):
     def __init__(self, name, address, divisor, validrange, max_age):
         self.maxdatavalue = 65536
         self.fieldlength = 2
         super(HeatmiserFieldDouble, self).__init__(name, address, divisor, validrange, max_age)
-
+        
     def _calculate_value(self, data):
         val_high = data[0]
         val_low = data[1]
@@ -156,7 +171,7 @@ class HeatmiserFieldMulti(HeatmiserField):
 
     def format_data_from_value(self, value):
         """Convert field to byte form for writting to device"""
-        return value
+        return list(value) #force a copy
     
     def check_payload_values(self, payload):
         """check a payload matches field spec"""

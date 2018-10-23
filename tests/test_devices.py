@@ -301,7 +301,7 @@ class TestSettingData(unittest.TestCase):
         self.assertEqual(self.func.wed_heat.value, setarray[1])  
 
     def test_setfields_4(self):
-        indata = [[1, 0, 17, 9, 0, 20, 13, 0, 17, 20, 0, 20], [1, 0, 17, 9, 0, 20, 13, 0, 17, 20, 0, 20]]
+        indata = [[1, 0, 17, 9, 0, 20, 13, 0, 17, 20, 0, 20], [1, 0, 18, 9, 0, 21, 13, 0, 18, 20, 0, 21]]
         flat_list = [item for sublist in indata for item in sublist]
         self.func.set_fields(['mon_heat', 'tues_heat'], indata)
         self.assertEqual(self.tester.arguments, [(5, 3, 103, 24, flat_list)])
