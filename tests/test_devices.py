@@ -3,6 +3,7 @@ import unittest
 import logging
 import time
 
+from heatmisercontroller.fields import HeatmiserFieldSingleReadOnly, HeatmiserFieldDoubleReadOnly
 from heatmisercontroller.devices import HeatmiserDevice, HeatmiserBroadcastDevice
 from heatmisercontroller.hm_constants import HMV3_ID, PROG_MODES, PROG_MODE_DAY, DCB_INVALID, WRITE_HOTWATERDEMAND_OVER_OFF, READ_HOTWATERDEMAND_OFF, WRITE_HOTWATERDEMAND_PROG
 from heatmisercontroller.exceptions import HeatmiserResponseError, HeatmiserControllerTimeError
@@ -49,19 +50,21 @@ class TestReadingData(unittest.TestCase):
             
     def test_procfield(self):
         #unique_address, length, divisor, valid range
-        self.func._procfield([1], ['test', 0, 1, 1, []])
-        self.func._procfield([1], ['test', 0, 1, 1, [0, 1]])
-        self.func._procfield([1, 1], ['test', 0, 2, 1, [0, 257]])
-        self.func._procfield([4], ['model', 0, 1, 1, []])
-        self.func._procfield([PROG_MODES[PROG_MODE_DAY]], ['programmode', 0, 1, 1, []])
+        self.func._procfield([1], HeatmiserFieldSingleReadOnly('test', 0, 1, [], None))
+        self.func._procfield([1], HeatmiserFieldSingleReadOnly('test', 0, 1, [0, 1], None))
+        self.func._procfield([1, 1], HeatmiserFieldDoubleReadOnly('test', 0, 1, [0, 257], None))
+        self.func._procfield([4], HeatmiserFieldSingleReadOnly('model', 0, 1, [], None))
+        self.func._procfield([PROG_MODES[PROG_MODE_DAY]], HeatmiserFieldSingleReadOnly('programmode', 0, 1, [], None))
         
     def test_procfield_range(self):
         with self.assertRaises(HeatmiserResponseError):
-            self.func._procfield([3], ['test', 0, 1, 1, [0, 1]])
+            self.func._procfield([3], HeatmiserFieldSingleReadOnly('test', 0, 1, [0, 1], None))
             
     def test_procfield_model(self):
+        field = HeatmiserFieldSingleReadOnly('model', 0, 1, [], None)
+        field.expectedvalue = self.func._expected_model_number
         with self.assertRaises(HeatmiserResponseError):
-            self.func._procfield([3], ['model', 0, 1, 1, []])
+            self.func._procfield([3], field)
         
     def test_procpayload(self):
         print "tz %i alt tz %i"%(time.timezone, time.altzone)
@@ -74,9 +77,9 @@ class TestReadingData(unittest.TestCase):
 
     def test_procpartpayload(self):
         self.func._procpartpayload([0, 1], 'tempholdmins', 'tempholdmins')
-        self.assertEqual(1, self.func.tempholdmins)
+        self.assertEqual(1, self.func.tempholdmins.value)
         self.func._procpartpayload([0, 1, 0, 0, 0, 0, 0, 0], 'tempholdmins', 'airtemp')
-        self.assertEqual(1, self.func.tempholdmins)
+        self.assertEqual(1, self.func.tempholdmins.value)
         
     def test_readall(self):
         setup = SetupTestClass()
@@ -102,8 +105,8 @@ class TestReadingData(unittest.TestCase):
         #run command
         self.func.get_variables()
         self.assertEqual([(1, 3, 18, 8, False), (1, 3, 32, 11, False)], adaptor.arguments)
-        self.assertEqual(17, self.func.setroomtemp)
-        self.assertEqual(0, self.func.hotwaterdemand)
+        self.assertEqual(17, self.func.setroomtemp.value)
+        self.assertEqual(0, self.func.hotwaterdemand.value)
 
     def test_read_field(self):
         setup = SetupTestClass()
@@ -113,7 +116,7 @@ class TestReadingData(unittest.TestCase):
         adaptor.setresponse(responses)
         self.assertEqual(17, self.func.read_field('airtemp', 1))
         self.assertEqual(17, self.func.read_field('airtemp', -1)) #only check presence
-        self.func.datareadtime['airtemp'] = 0 #force reread
+        self.func.airtemp.lastreadtime = 0 #force reread
         self.assertEqual(18, self.func.read_field('airtemp', None))
         
     def test_read_fields(self):
@@ -199,15 +202,15 @@ class TestTimeFunctions(unittest.TestCase):
             
     def test_comparecontrollertime_bad(self):
         basetime = (1 + 1) * 86400 + 9 * 3600 + 33 * 60 + 0 + YEAR2000
-        self.func.datareadtime['currenttime'] = basetime - get_offset(basetime) #has been read
-        self.func.data['currenttime'] = self.func.currenttime = [1, 0, 0, 0]
+        self.func.currenttime.lastreadtime = basetime - get_offset(basetime) #has been read
+        self.func.data['currenttime'] = self.func.currenttime.value = [1, 0, 0, 0]
         with self.assertRaises(HeatmiserControllerTimeError):
             self.func._comparecontrollertime()
         
     def test_comparecontrollertime_1(self):
         basetime = (4 + 1) * 86400 + 9 * 3600 + 33 * 60 + 5 + YEAR2000
-        self.func.datareadtime['currenttime'] = basetime - get_offset(basetime) #has been read
-        self.func.data['currenttime'] = self.func.currenttime = [4, 9, 33, 0]
+        self.func.currenttime.lastreadtime = basetime - get_offset(basetime) #has been read
+        self.func.data['currenttime'] = self.func.currenttime.value = [4, 9, 33, 0]
         #print "s ", self.func._localtimearray(self.func.datareadtime['currenttime']), self.func.data['currenttime'], self.func.datareadtime['currenttime'], time.localtime(self.func.datareadtime['currenttime']).tm_hour, time.localtime(self.func.datareadtime['currenttime']), "e"
         self.func._comparecontrollertime()
         self.assertEqual(5, self.func.timeerr)
@@ -215,8 +218,8 @@ class TestTimeFunctions(unittest.TestCase):
     def test_comparecontrollertime_2(self):
         #self.func.datareadtime['currenttime'] = ( 7 + 3) * 86400 + 23 * 3600 + 59 * 60 + 55 - self.utc_offset #has been read
         basetime = (7 + 1) * 86400 + 23 * 3600 + 59 * 60 + 55 + YEAR2000
-        self.func.datareadtime['currenttime'] = basetime - get_offset(basetime) #has been read
-        self.func.data['currenttime'] = self.func.currenttime = [1, 0, 0, 0]
+        self.func.currenttime.lastreadtime = basetime - get_offset(basetime) #has been read
+        self.func.data['currenttime'] = self.func.currenttime.value = [1, 0, 0, 0]
         self.func._comparecontrollertime()
         self.assertEqual(5, self.func.timeerr)
 
@@ -240,7 +243,7 @@ class TestSettingData(unittest.TestCase):
         #fieldname, payload
         self.func.set_field('frosttemp', 7)
         self.assertEqual(self.tester.arguments, [(5, 3, 17, 1, [7])])
-        self.assertEqual(self.func.frosttemp, 7)
+        self.assertEqual(self.func.frosttemp.value, 7)
         
     def test_setfield_2(self):
         self.func.autocorrectime = False
@@ -260,14 +263,14 @@ class TestSettingData(unittest.TestCase):
         self.func._update_settings(settings2, None)
         #make sure read time is set and check value
         self.func.set_field('hotwaterdemand', WRITE_HOTWATERDEMAND_OVER_OFF)
-        self.assertNotEqual(self.func.datareadtime['hotwaterdemand'], None)
+        self.assertNotEqual(getattr(self.func, 'hotwaterdemand').lastreadtime, None)
         self.assertEqual(self.func.data['hotwaterdemand'], READ_HOTWATERDEMAND_OFF)
         self.func._adaptor.reset()
         #check releasing works
         self.func.set_field('hotwaterdemand', WRITE_HOTWATERDEMAND_PROG)
         self.assertEqual(self.tester.arguments, [(1, 3, 42, 1, [WRITE_HOTWATERDEMAND_PROG])])
-        self.assertEqual(self.func.hotwaterdemand, None)
-        self.assertEqual(self.func.datareadtime['hotwaterdemand'], None)
+        self.assertEqual(self.func.hotwaterdemand.value, None)
+        self.assertEqual(self.func.hotwaterdemand.lastreadtime, None)
         
     def test_setfield_errors(self):
         with self.assertRaises(ValueError):
@@ -282,28 +285,28 @@ class TestSettingData(unittest.TestCase):
     def test_setfields_1(self):
         self.func.set_fields(['frosttemp'], [7])
         self.assertEqual(self.tester.arguments, [(5, 3, 17, 1, [7])])
-        self.assertEqual(self.func.frosttemp, 7)
+        self.assertEqual(self.func.frosttemp.value, 7)
         
     def test_setfields_2(self):
         setarray = [1, 0, 17, 9, 0, 20, 13, 0, 17, 20, 0, 20]
         self.func.set_fields(['mon_heat'], [setarray])
         self.assertEqual(self.tester.arguments, [(5, 3, 103, 12, setarray)])
-        self.assertEqual(self.func.mon_heat, setarray)
+        self.assertEqual(self.func.mon_heat.value, setarray)
         
     def test_setfields_3(self):
         setarray = [[1, 0, 17, 9, 0, 20, 13, 0, 17, 20, 0, 20], [1, 0, 17, 9, 0, 20, 13, 0, 17, 20, 0, 20]]
         self.func.set_fields(['mon_heat', 'wed_heat'], setarray)
         self.assertEqual(self.tester.arguments, [(5, 3, 103, 12, setarray[0]), (5, 3, 127, 12, setarray[0])])
-        self.assertEqual(self.func.mon_heat, setarray[0])
-        self.assertEqual(self.func.wed_heat, setarray[1])  
+        self.assertEqual(self.func.mon_heat.value, setarray[0])
+        self.assertEqual(self.func.wed_heat.value, setarray[1])  
 
     def test_setfields_4(self):
         indata = [[1, 0, 17, 9, 0, 20, 13, 0, 17, 20, 0, 20], [1, 0, 17, 9, 0, 20, 13, 0, 17, 20, 0, 20]]
         flat_list = [item for sublist in indata for item in sublist]
         self.func.set_fields(['mon_heat', 'tues_heat'], indata)
         self.assertEqual(self.tester.arguments, [(5, 3, 103, 24, flat_list)])
-        self.assertEqual(self.func.mon_heat, indata[0])
-        self.assertEqual(self.func.tues_heat, indata[1])           
+        self.assertEqual(self.func.mon_heat.value, indata[0])
+        self.assertEqual(self.func.tues_heat.value, indata[1])           
     
 if __name__ == '__main__':
     unittest.main()

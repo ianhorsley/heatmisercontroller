@@ -6,12 +6,12 @@ Ian Horsley 2018
 import time
 import logging
 
-from heatmisercontroller.logging_setup import initialize_logger
+from heatmisercontroller.logging_setup import initialize_logger_full
 from heatmisercontroller.network import HeatmiserNetwork
 from heatmisercontroller.exceptions import HeatmiserResponseError
 
 #start logging
-initialize_logger('logs', logging.INFO, True)
+initialize_logger_full('logs', logging.INFO)
 
 HMN = HeatmiserNetwork()
 

@@ -1,6 +1,6 @@
 """Heatmiser Device Classes
 
-Modules handle all the DCB and fields for each device on the Heatmiser network
+Modules handle all the DCB and self.fields for each device on the Heatmiser network
 
 Ian Horsley 2018
 """
@@ -14,6 +14,7 @@ import time
 import serial
 import copy
 
+from fields import HeatmiserFieldUnknown, HeatmiserFieldSingle, HeatmiserFieldSingleReadOnly, HeatmiserFieldDouble, HeatmiserFieldDoubleReadOnly, HeatmiserFieldTime, HeatmiserFieldHeat, HeatmiserFieldWater
 from hm_constants import *
 from .exceptions import HeatmiserResponseError, HeatmiserControllerTimeError
 from schedule_functions import SchedulerDayHeat, SchedulerWeekHeat, SchedulerDayWater, SchedulerWeekWater, SCH_ENT_TEMP
@@ -32,21 +33,23 @@ class HeatmiserDevice(object):
 
         # initialise external parameters
         self.protocol = DEFAULT_PROTOCOL
+        self._buildfields()
         # initialise data structures
         self._uniquetodcb = []
-        self._fieldsvalid = [True] * len(fields) # assume all fields are valid until shown otherwise
+        self._fieldsvalid = [True] * len(self.fields) # assume all fields are valid until shown otherwise
         self.dcb_length = None
         self.expected_prog_mode = None
         self._expected_model_number = None
         self.long_name = ''
+
         self._buildfieldtables()
         self.data = dict.fromkeys(self._fieldnametonum.keys(), None)
         self.floorlimiting = None
-        self.datareadtime = dict.fromkeys(self._fieldnametonum.keys(), None)
         self.timeerr = None
         self.fullreadtime = 0 #default to full read
         self.heat_schedule = self.water_schedule = None
-        
+        self.lastwritetime = None
+        self.lastreadtime = None
         self._update_settings(devicesettings, generalsettings)
 
         self.rawdata = [None] * self.dcb_length
@@ -56,6 +59,7 @@ class HeatmiserDevice(object):
 
         self._load_settings(settings, generalsettings)
         self._process_settings()
+        self._set_expected_field_values()
     
     def _load_settings(self, settings, generalsettings):
         """Loading settings from dictionary into properties"""
@@ -116,12 +120,78 @@ class HeatmiserDevice(object):
         """get the DCB address for a controller from the unique address"""
         return self._uniquetodcb[uniqueaddress]
     
+    def _set_expected_field_values(self):
+        """set the expected values for fields that should be fixed"""
+
+        self.fields[self._fieldnametonum['address']].expectedvalue = self.address
+        self.fields[self._fieldnametonum['DCBlen']].expectedvalue = self.dcb_length
+        self.fields[self._fieldnametonum['model']].expectedvalue = self._expected_model_number
+        self.fields[self._fieldnametonum['programmode']].expectedvalue = PROG_MODES[self.expected_prog_mode]
+   
+    def _buildfields(self):
+        """build list of fields"""
+        self.fields = [
+            HeatmiserFieldDoubleReadOnly('DCBlen', 0, 1, [], MAX_AGE_LONG),
+            HeatmiserFieldSingleReadOnly('vendor', 2, 1, [0, 1], MAX_AGE_LONG),  #00 heatmiser,  01 OEM
+            HeatmiserFieldSingleReadOnly('version', 3, 1, [], MAX_AGE_LONG),
+            HeatmiserFieldSingleReadOnly('model', 4, 1, [0, 5], MAX_AGE_LONG),  # DT/DT-E/PRT/PRT-E 00/01/02/03
+            HeatmiserFieldSingleReadOnly('tempformat', 5, 1, [0, 1], MAX_AGE_LONG),  # 00 C,  01 F
+            HeatmiserFieldSingleReadOnly('switchdiff', 6, 1, [1, 3], MAX_AGE_LONG),
+            HeatmiserFieldSingleReadOnly('frostprot', 7, 1, [0, 1], MAX_AGE_LONG),  #0=enable frost prot when display off,  (opposite in protocol manual,  but tested and user guide is correct)  (default should be enabled)
+            HeatmiserFieldDoubleReadOnly('caloffset', 8, 1, [], MAX_AGE_LONG),
+            HeatmiserFieldSingleReadOnly('outputdelay', 10, 1, [0, 15], MAX_AGE_LONG),  # minutes (to prevent rapid switching)
+            HeatmiserFieldSingleReadOnly('address', 11, 1, [SLAVE_ADDR_MIN, SLAVE_ADDR_MAX], MAX_AGE_LONG),
+            HeatmiserFieldSingleReadOnly('updwnkeylimit', 12, 1, [0, 10], MAX_AGE_LONG),   #limits use of up and down keys
+            HeatmiserFieldSingleReadOnly('sensorsavaliable', 13, 1, [0, 4], MAX_AGE_LONG),  #00 built in only,  01 remote air only,  02 floor only,  03 built in + floor,  04 remote + floor
+            HeatmiserFieldSingleReadOnly('optimstart', 14, 1, [0, 3], MAX_AGE_LONG),  # 0 to 3 hours,  default 0
+            HeatmiserFieldSingleReadOnly('rateofchange', 15, 1, [], MAX_AGE_LONG),  #number of minutes per degree to raise the temperature,  default 20. Applies to the Wake and Return comfort levels (1st and 3rd)
+            HeatmiserFieldSingleReadOnly('programmode', 16, 1, [0, 1], MAX_AGE_LONG),  #0=5/2,  1= 7day
+            HeatmiserFieldSingle('frosttemp', 17, 1, [7, 17], MAX_AGE_LONG),  #default is 12,  frost protection temperature
+            HeatmiserFieldSingle('setroomtemp', 18, 1, [5, 35], MAX_AGE_USHORT),
+            HeatmiserFieldSingle('floormaxlimit', 19, 1, [20, 45], MAX_AGE_LONG),
+            HeatmiserFieldSingleReadOnly('floormaxlimitenable', 20, 1, [0, 1], MAX_AGE_LONG),  #1=enable
+            HeatmiserFieldSingle('onoff', 21, 1, [0, 1], MAX_AGE_SHORT),  #1 = on
+            HeatmiserFieldSingle('keylock', 22, 1, [0, 1], MAX_AGE_SHORT),  #1 = on
+            HeatmiserFieldSingle('runmode', 23, 1, [0, 1], MAX_AGE_SHORT),   #0 = heating mode,  1 = frost protection mode
+            HeatmiserFieldDouble('holidayhours', 24, 1, [0, 720], MAX_AGE_SHORT),  #range guessed and tested,  setting to 0 cancels hold and puts back to program 
+            HeatmiserFieldUnknown('unknown', 26, 1, [], MAX_AGE_LONG, 6),  # gap from 26 to 31
+            HeatmiserFieldDouble('tempholdmins', 32, 1, [0, 5760], MAX_AGE_SHORT),  #range guessed and tested,  setting to 0 cancels hold and puts setroomtemp back to program
+            HeatmiserFieldDoubleReadOnly('remoteairtemp', 34, 10, [], MAX_AGE_USHORT),  #ffff if no sensor
+            HeatmiserFieldDoubleReadOnly('floortemp', 36, 10, [], MAX_AGE_USHORT),  #ffff if no sensor
+            HeatmiserFieldDoubleReadOnly('airtemp', 38, 10, [], MAX_AGE_USHORT),  #ffff if no sensor
+            HeatmiserFieldSingleReadOnly('errorcode', 40, 1, [0, 3], MAX_AGE_SHORT),  # 0 is no error # errors,  0 built in,  1,  floor,  2 remote
+            HeatmiserFieldSingleReadOnly('heatingdemand', 41, 1, [0, 1], MAX_AGE_USHORT),  #0 none,  1 heating currently
+            HeatmiserFieldSingle('hotwaterdemand', 42, 1, [0, 2], MAX_AGE_USHORT),  # read [0=off, 1=on],  write [0=as prog, 1=override on, 2=overide off]
+            HeatmiserFieldTime('currenttime', 43, 1, [[1, 7], [0, 23], [0, 59], [0, 59]], MAX_AGE_USHORT),  #day (Mon - Sun),  hour,  min,  sec.
+            #5/2 progamming #if hour = 24 entry not used
+            HeatmiserFieldHeat('wday_heat', 47, 1, [[0, 24], [0, 59], [5, 35]], MAX_AGE_MEDIUM),  #hour,  min,  temp  (should minutes be only 0 and 30?)
+            HeatmiserFieldHeat('wend_heat', 59, 1, [[0, 24], [0, 59], [5, 35]], MAX_AGE_MEDIUM),
+            HeatmiserFieldWater('wday_water', 71, 1, [[0, 24], [0, 59]], MAX_AGE_MEDIUM),  # pairs,  on then off repeated,  hour,  min
+            HeatmiserFieldWater('wend_water', 87, 1, [[0, 24], [0, 59]], MAX_AGE_MEDIUM),
+            #7day progamming
+            HeatmiserFieldHeat('mon_heat', 103, 1, [[0, 24], [0, 59], [5, 35]], MAX_AGE_MEDIUM),
+            HeatmiserFieldHeat('tues_heat', 115, 1, [[0, 24], [0, 59], [5, 35]], MAX_AGE_MEDIUM),
+            HeatmiserFieldHeat('wed_heat', 127, 1, [[0, 24], [0, 59], [5, 35]], MAX_AGE_MEDIUM),
+            HeatmiserFieldHeat('thurs_heat', 139, 1, [[0, 24], [0, 59], [5, 35]], MAX_AGE_MEDIUM),
+            HeatmiserFieldHeat('fri_heat', 151, 1, [[0, 24], [0, 59], [5, 35]], MAX_AGE_MEDIUM),
+            HeatmiserFieldHeat('sat_heat', 163, 1, [[0, 24], [0, 59], [5, 35]], MAX_AGE_MEDIUM),
+            HeatmiserFieldHeat('sun_heat', 175, 1, [[0, 24], [0, 59], [5, 35]], MAX_AGE_MEDIUM),
+            HeatmiserFieldWater('mon_water', 187, 1, [[0, 24], [0, 59]], MAX_AGE_MEDIUM),
+            HeatmiserFieldWater('tues_water', 203, 1, [[0, 24], [0, 59]], MAX_AGE_MEDIUM),
+            HeatmiserFieldWater('wed_water', 219, 1, [[0, 24], [0, 59]], MAX_AGE_MEDIUM),
+            HeatmiserFieldWater('thurs_water', 235, 1, [[0, 24], [0, 59]], MAX_AGE_MEDIUM),
+            HeatmiserFieldWater('fri_water', 251, 1, [[0, 24], [0, 59]], MAX_AGE_MEDIUM),
+            HeatmiserFieldWater('sat_water', 267, 1, [[0, 24], [0, 59]], MAX_AGE_MEDIUM),
+            HeatmiserFieldWater('sun_water', 283, 1, [[0, 24], [0, 59]], MAX_AGE_MEDIUM)
+            ]
+    
     def _buildfieldtables(self):
         """build dict to map field name to index"""
         self._fieldnametonum = {}
-        for key, data in enumerate(fields):
-            fieldname = data[FIELD_NAME]
+        for key, field in enumerate(self.fields):
+            fieldname = field.name
             self._fieldnametonum[fieldname] = key
+            setattr(self, fieldname, field)
                 
     def _build_dcb_tables(self):
         """build list to map unique to dcb address and list of valid fields """
@@ -131,7 +201,7 @@ class HeatmiserDevice(object):
             self._uniquetodcb[0:uniquemax + 1] = [x - offsetsel for x in range(uniquemax + 1)] if not offsetsel is DCB_INVALID else [DCB_INVALID] * (uniquemax + 1)
         
         #build list of valid fields for this device
-        self._fieldsvalid = [False] * len(fields)
+        self._fieldsvalid = [False] * len(self.fields)
         fieldranges = FIELDRANGES[self.expected_model][self.expected_prog_mode]
         for first, last in fieldranges:
             self._fieldsvalid[self._fieldnametonum[first]: self._fieldnametonum[last] + 1] = [True] * (self._fieldnametonum[last] - self._fieldnametonum[first] + 1)
@@ -157,11 +227,11 @@ class HeatmiserDevice(object):
             elif maxagein == -1: #only check present
                 return True
             elif maxagein == None: #if none use field defaults
-                maxage = fields[self._fieldnametonum[fieldname]][FIELD_MAX_AGE]
+                maxage = self.fields[self._fieldnametonum[fieldname]].max_age
             else:
                 maxage = maxagein
             #now check time
-            if time.time() - self.datareadtime[fieldname] > maxage:
+            if time.time() - getattr(self, fieldname).lastreadtime > maxage:
                 logging.debug("C%i data item %s too old"%(self.address, fieldname))
                 return False
         return True
@@ -171,9 +241,9 @@ class HeatmiserDevice(object):
         #Returns True if all present
         if len(fieldnames) == 0:
             raise ValueError("Must list at least one field")
-
+        
         for fieldname in fieldnames:
-            if self.datareadtime[fieldname] == None:
+            if getattr(self, fieldname).lastreadtime == None:
                 logging.debug("C%i data item %s not available"%(self.address, fieldname))
                 return False
         return True
@@ -248,10 +318,10 @@ class HeatmiserDevice(object):
         if estimatedreadtime < self.fullreadtime - 0.02: #if to close to full read time, then read all
             try:
                 for firstfieldid, lastfieldid, blocklength in blockstoread:
-                    logging.debug("C%i Reading ui %i to %i len %i, proc %s to %s"%(self.address, fields[firstfieldid][FIELD_ADD], fields[lastfieldid][FIELD_ADD], blocklength, fields[firstfieldid][FIELD_NAME], fields[lastfieldid][FIELD_NAME]))
-                    rawdata = self._adaptor.read_from_device(self.address, self.protocol, fields[firstfieldid][FIELD_ADD], blocklength)
+                    logging.debug("C%i Reading ui %i to %i len %i, proc %s to %s"%(self.address, self.fields[firstfieldid].address, self.fields[lastfieldid].address, blocklength, self.fields[firstfieldid].name, self.fields[lastfieldid].name))
+                    rawdata = self._adaptor.read_from_device(self.address, self.protocol, self.fields[firstfieldid].address, blocklength)
                     self.lastreadtime = time.time()
-                    self._procpartpayload(rawdata, fields[firstfieldid][FIELD_NAME], fields[lastfieldid][FIELD_NAME])
+                    self._procpartpayload(rawdata, self.fields[firstfieldid].name, self.fields[lastfieldid].name)
             except serial.SerialException as err:
                 logging.warn("C%i Read failed of fields %s to %s, Serial Port error %s"%(self.address, firstfieldname.ljust(FIELD_NAME_LENGTH), lastfieldname.ljust(FIELD_NAME_LENGTH), str(err)))
                 raise
@@ -273,18 +343,18 @@ class HeatmiserDevice(object):
         if estimatedreadtime < self.fullreadtime - 0.02: #if to close to full read time, then read all
             try:
                 for firstfieldid, lastfieldid, blocklength in blockstoread:
-                    logging.debug("C%i Reading ui %i to %i len %i, proc %s to %s"%(self.address, fields[firstfieldid][FIELD_ADD], fields[lastfieldid][FIELD_ADD], blocklength, fields[firstfieldid][FIELD_NAME], fields[lastfieldid][FIELD_NAME]))
-                    rawdata = self._adaptor.read_from_device(self.address, self.protocol, fields[firstfieldid][FIELD_ADD], blocklength)
+                    logging.debug("C%i Reading ui %i to %i len %i, proc %s to %s"%(self.address, self.fields[firstfieldid].address, self.fields[lastfieldid].address, blocklength, self.fields[firstfieldid].name, self.fields[lastfieldid].name))
+                    rawdata = self._adaptor.read_from_device(self.address, self.protocol, self.fields[firstfieldid].address, blocklength)
                     self.lastreadtime = time.time()
-                    self._procpartpayload(rawdata, fields[firstfieldid][FIELD_NAME], fields[lastfieldid][FIELD_NAME])
+                    self._procpartpayload(rawdata, self.fields[firstfieldid].name, self.fields[lastfieldid].name)
             except serial.SerialException as err:
-                logging.warn("C%i Read failed of fields %s, Serial Port error %s"%(self.address, ', '.join(fields[id][FIELD_NAME] for id in fieldids), str(err)))
+                logging.warn("C%i Read failed of fields %s, Serial Port error %s"%(self.address, ', '.join(self.fields[id].name for id in fieldids), str(err)))
                 raise
             else:
-                logging.info("C%i Read fields %s in %i blocks"%(self.address, ', '.join(fields[id][FIELD_NAME] for id in fieldids), len(blockstoread)))
+                logging.info("C%i Read fields %s in %i blocks"%(self.address, ', '.join(self.fields[id].name for id in fieldids), len(blockstoread)))
                     
         else:
-            logging.debug("C%i Read fields %s by read_all, %0.3f %0.3f"%(self.address, ', '.join(fields[id][FIELD_NAME] for id in fieldids), estimatedreadtime, self.fullreadtime))
+            logging.debug("C%i Read fields %s by read_all, %0.3f %0.3f"%(self.address, ', '.join(self.fields[id].name for id in fieldids), estimatedreadtime, self.fullreadtime))
             self.read_all()
                 
         #data can only be requested from the controller in contiguous blocks
@@ -307,12 +377,12 @@ class HeatmiserDevice(object):
             if previousfieldvalid is False and not fieldvalid is False:
                 start = fieldnum
             elif not previousfieldvalid is False and fieldvalid is False:
-                blocks.append([start, fieldnum - 1, fields[fieldnum - 1][FIELD_ADD] + fields[fieldnum - 1][FIELD_LEN] - fields[start][FIELD_ADD]])
+                blocks.append([start, fieldnum - 1, self.fields[fieldnum - 1].address + self.fields[fieldnum - 1].fieldlength - self.fields[start].address])
             
             previousfieldvalid = fieldvalid
 
         if not previousfieldvalid is False:
-            blocks.append([start, lastfieldid, fields[lastfieldid][FIELD_ADD] + fields[lastfieldid][FIELD_LEN] - fields[start][FIELD_ADD]])
+            blocks.append([start, lastfieldid, self.fields[lastfieldid].address + self.fields[lastfieldid].fieldlength - self.fields[start].address])
         return blocks
     
     def _get_field_blocks_from_id_list(self, fieldids):
@@ -328,12 +398,12 @@ class HeatmiserDevice(object):
             inblock = [id for id in fieldids if block[0] <= id <= block[1]]
             if len(inblock) > 0:
                 #if single read is shorter than individual
-                readlen = fields[max(inblock)][FIELD_LEN] + fields[max(inblock)][FIELD_ADD] - fields[min(inblock)][FIELD_ADD]
-                if self._estimate_read_time(readlen) < sum([self._estimate_read_time(fields[id][FIELD_LEN]) for id in inblock]):
+                readlen = self.fields[max(inblock)].fieldlength + self.fields[max(inblock)].address - self.fields[min(inblock)].address
+                if self._estimate_read_time(readlen) < sum([self._estimate_read_time(self.fields[id].fieldlength) for id in inblock]):
                     readblocks.append([min(inblock), max(inblock), readlen])
                 else:
                     for ids in inblock:
-                        readblocks.append([ids, ids, fields[ids][FIELD_LEN]])
+                        readblocks.append([ids, ids, self.fields[ids].fieldlength])
         return readblocks
     
     def _estimate_blocks_read_time(self, blocks):
@@ -350,53 +420,19 @@ class HeatmiserDevice(object):
         based on empirical measurements of one prt_hw_model and 5 prt_e_model"""
         return length * 0.002075 + 0.070727
     
-    def _procfield(self, data, fieldinfo, sentpayload=False):
+    def _procfield(self, data, fieldinfo):
         """Process data for a single field storing in relevant.
         
         Converts from bytes to integers/floats
         Checks the validity"""
-        fieldname = fieldinfo[FIELD_NAME]
-        length = fieldinfo[FIELD_LEN]
-        factor = fieldinfo[FIELD_DIV]
-        fieldrange = fieldinfo[FIELD_RANGE]
-        #logging.debug("Processing %s %s"%(fieldinfo[FIELD_NAME],', '.join(str(x) for x in data)))
-        if sentpayload: #some mapping required if was a sent payload
-            data = self._map_write_to_read_payload(data, fieldname)
-        
+        fieldname = fieldinfo.name
+
+        #logging.debug("Processing %s %s"%(fieldinfo.name,', '.join(str(x) for x in data)))
         if data is None:
             value = None
-        elif length == 1:
-            value = data[0]/factor
-        elif length == 2:
-            val_high = data[0]
-            val_low = data[1]
-            value = 1.0*(val_high*256 + val_low)/factor #force float, although always returns integer temps.
-        elif length == 4:
-            value = data
-        elif length == 12:
-            self.heat_schedule.set_raw(fieldname, data)
-            value = data
-        elif length == 16:
-            self.water_schedule.set_raw(fieldname, data)
-            value = data
         else:
-            raise ValueError("_procpayload can't process field length")
-    
-        if fieldname == 'address' and value != self.address:
-            raise HeatmiserResponseError('Address is unexpected')
-    
-        if len(fieldrange) == 2 and isinstance(fieldrange[0], (int, long)) and isinstance(fieldrange[1], (int, long)) and not value is None:
-            if value < fieldrange[0] or value > fieldrange[1]:
-                raise HeatmiserResponseError("Field value %i outside expected range"%value)
-        
-        if not self.dcb_length is None and fieldname == 'DCBlen' and value != self.dcb_length:
-            raise HeatmiserResponseError('DCBlengh is unexpected')
-            
-        if not self._expected_model_number is None and fieldname == 'model' and value != self._expected_model_number:
-            raise HeatmiserResponseError('Model is unexpected')
-        
-        if not self.expected_prog_mode is None and fieldname == 'programmode' and value != PROG_MODES[self.expected_prog_mode]:
-            raise HeatmiserResponseError('Programme mode is unexpected')
+            value = fieldinfo.update_data(data, self.lastreadtime)
+            #unless sent payload and don't know the read value
         
         if fieldname == 'version' and self.expected_model != 'prt_hw_model':
             value = data[0] & 0x7f
@@ -404,60 +440,43 @@ class HeatmiserDevice(object):
             self.data['floorlimiting'] = self.floorlimiting
         
         self.data[fieldname] = value
-        setattr(self, fieldname, value)
-        self.datareadtime[fieldname] = self.lastreadtime if not value is None else None #unless sent payload and don't know the read value
         
         if fieldname == 'currenttime':
             self._checkcontrollertime()
-        
-        ###todo, add range validation for other lengths
 
-    @staticmethod
-    def _map_write_to_read_payload(data, fieldname):
-        """Maps written payload to equvialent read payload"""
-        #returns None if unknown result.
-        #handle odd effect on WRITE_hotwaterdemand_PROG
-        if fieldname == 'hotwaterdemand':
-            if data[0] == WRITE_HOTWATERDEMAND_PROG: #returned to program so outcome is unknown
-                return None
-            elif data[0] == WRITE_HOTWATERDEMAND_OVER_OFF: #if overridden off store the off read value
-                return [READ_HOTWATERDEMAND_OFF]
-            else:
-                return data
-        else:
-            return data
-
-    def _procpartpayload(self, rawdata, firstfieldname, lastfieldname, sentpayload=False):
+    def _procpartpayload(self, rawdata, firstfieldname, lastfieldname):
         """Wraps procpayload by converting fieldnames to fieldids"""
         #rawdata must be a list
         #converts field names to unique addresses to allow process of shortened raw data
         logging.debug("C%i Processing Payload from field %s to %s"%(self.address, firstfieldname, lastfieldname))
         firstfieldid = self._fieldnametonum[firstfieldname]
         lastfieldid = self._fieldnametonum[lastfieldname]
-        self._procpayload(rawdata, firstfieldid, lastfieldid, sentpayload)
+        self._procpayload(rawdata, firstfieldid, lastfieldid)
         
-    def _procpayload(self, rawdata, firstfieldid=0, lastfieldid=len(fields), sentpayload=False):
+    def _procpayload(self, rawdata, firstfieldid=0, lastfieldid=False):
         """Split payload with field information and processes each field"""
         logging.debug("C%i Processing Payload from field %i to %i"%(self.address, firstfieldid, lastfieldid))
-
-        fullfirstdcbadd = self._get_dcb_address(fields[firstfieldid][FIELD_ADD])
         
-        for fieldinfo in fields[firstfieldid:lastfieldid + 1]:
-            uniqueaddress = fieldinfo[FIELD_ADD]
+        if not lastfieldid: lastfieldid = len(self.fields)
+        
+        fullfirstdcbadd = self._get_dcb_address(self.fields[firstfieldid].address)
+        
+        for fieldinfo in self.fields[firstfieldid:lastfieldid + 1]:
+            uniqueaddress = fieldinfo.address
             
-            length = fieldinfo[FIELD_LEN]
+            length = fieldinfo.fieldlength
             dcbadd = self._get_dcb_address(uniqueaddress)
 
             if dcbadd == DCB_INVALID:
-                setattr(self, fieldinfo[FIELD_NAME], None)
-                self.data[fieldinfo[FIELD_NAME]] = None
+                getattr(self,fieldinfo.name).value = None
+                self.data[fieldinfo.name] = None
             else:
                 dcbadd -= fullfirstdcbadd #adjust for the start of the request
                 
                 try:
-                    self._procfield(rawdata[dcbadd:dcbadd+length], fieldinfo, sentpayload)
+                    self._procfield(rawdata[dcbadd:dcbadd+length], fieldinfo)
                 except HeatmiserResponseError as err:
-                    logging.warn("C%i Field %s process failed due to %s"%(self.address, fieldinfo[FIELD_NAME], str(err)))
+                    logging.warn("C%i Field %s process failed due to %s"%(self.address, fieldinfo.name, str(err)))
 
         self.rawdata[fullfirstdcbadd:fullfirstdcbadd+len(rawdata)] = rawdata
 
@@ -482,7 +501,7 @@ class HeatmiserDevice(object):
         if not self._check_data_present('currenttime'):
             raise HeatmiserResponseError("Time not read before check")
 
-        localtimearray = self._localtimearray(self.datareadtime['currenttime']) #time that time field was read
+        localtimearray = self._localtimearray(self.currenttime.lastreadtime) #time that time field was read
         localweeksecs = self._weeksecs(localtimearray)
         remoteweeksecs = self._weeksecs(self.data['currenttime'])
         directdifference = abs(localweeksecs - remoteweeksecs)
@@ -515,130 +534,89 @@ class HeatmiserDevice(object):
     
     ## Basic set field functions
     
-    def set_field(self, fieldname, payload):
-        """Set a field (single member of fields) on a device to a state or payload. Defined for all known field lengths."""
-        #Payload must not be list for field length 1 or 2
+    def set_field(self, fieldname, values):
+        """Set a field (single member of fields) on a device to a state or values. Defined for all known field lengths."""
+        #values must not be list for field length 1 or 2
         fieldid = self._fieldnametonum[fieldname]
         if not self._fieldsvalid[fieldid]:
             raise IndexError('Field not valid for this device')
-        fieldinfo = fields[fieldid]
+        field = self.fields[fieldid]
         
-        self._is_writable(fieldinfo)
-        self._check_payload_values(payload, fieldinfo)
-        payloadbytes = self._format_payload(payload, fieldinfo[FIELD_LEN])
+        field._is_writable()
+        field.check_payload_values(values)
+        payloadbytes = field.format_data_from_value(values)
         
-        if not isinstance(payload, list): #adjust for the 
-            payload = [payload]
+        printvalues = values if isinstance(values, list) else [values] #adjust for logging
+            
         try:
-            self._adaptor.write_to_device(self.address, self.protocol, fieldinfo[FIELD_ADD], fieldinfo[FIELD_LEN], payloadbytes)
+            self._adaptor.write_to_device(self.address, self.protocol, field.address, field.fieldlength, payloadbytes)
         except serial.SerialException as err:
-            logging.warn("C%i failed to set field %s to %s, due to %s"%(self.address, fieldname.ljust(FIELD_NAME_LENGTH), ', '.join(str(x) for x in payload), str(err)))
+            logging.warn("C%i failed to set field %s to %s, due to %s"%(self.address, fieldname.ljust(FIELD_NAME_LENGTH), ', '.join(str(x) for x in printvalues), str(err)))
             raise
         else:
-            logging.info("C%i set field %s to %s"%(self.address, fieldname.ljust(FIELD_NAME_LENGTH), ', '.join(str(x) for x in payload)))
+            logging.info("C%i set field %s to %s"%(self.address, fieldname.ljust(FIELD_NAME_LENGTH), ', '.join(str(x) for x in printvalues)))
         
-        self.lastreadtime = time.time()
-        self._procpartpayload(payloadbytes, fieldname, fieldname, True)
+        self.lastwritetime = time.time()
+        field.update_value(values, self.lastwritetime)
     
-    @staticmethod
-    def _format_payload(payload, field_len):
-        """Convert fields to byte form for writting to device"""
-        if field_len == 1:
-            return [payload]
-        elif field_len == 2:
-            pay_lo = (payload & BYTEMASK)
-            pay_hi = (payload >> 8) & BYTEMASK
-            return [pay_lo, pay_hi]
-        else:
-            return payload
-    
-    @staticmethod
-    def _is_writable(fieldinfo):
-        """Checks if field is writable"""
-        if len(fieldinfo) < FIELD_WRITE + 1 or fieldinfo[FIELD_WRITE] != 'W':
-            #check that write is part of field info and is 'W'
-            raise ValueError("set_field: field isn't writeable")
-    
-    def set_fields(self, fieldnames, payloads):
+    def set_fields(self, fieldnames, values):
         """Set multiple fields on a device to a state or payload."""
         #It groups adjacent fields and issues multiple sets if required.
-        #inputs must be mathcing length lists
-        if not isinstance(fieldnames, list) or not isinstance(payloads, list):
-            raise ValueError("fieldnames and payloads must be lists")
-        if len(fieldnames) != len(payloads):
-            raise IndexError("fields and payloads don't match")
-        if len(fieldnames) != len(set(fieldnames)):
-            raise ValueError("duplicated fieldnames")
+        #inputs must be matching length lists
         
         #Get field ids
         fieldids = [self._fieldnametonum[fieldname] for fieldname in fieldnames]
-        outputdata = self._get_payload_blocks_from_list(fieldids, payloads)
+        outputdata = self._get_payload_blocks_from_list(fieldids, values)
         try:
-            for unique_start_address, lengthbytes, payloadbytes, firstfieldname, lastfieldname in outputdata:
+            for unique_start_address, lengthbytes, payloadbytes, firstfieldname, lastfieldname, writtenvalues, firstfieldid in outputdata:
                 logging.debug("C%i Setting ui %i len %i, proc %s to %s"%(self.address, unique_start_address, lengthbytes, firstfieldname, lastfieldname))
                 self._adaptor.write_to_device(self.address, self.protocol, unique_start_address, lengthbytes, payloadbytes)
-                self.lastreadtime = time.time()
-                self._procpartpayload(payloadbytes, firstfieldname, lastfieldname, True)
+                self.lastwritetime = time.time()
+                self._update_fields_values(writtenvalues, firstfieldid)
         except serial.SerialException as err:
-            logging.warn("C%i settings failed of fields %s, Serial Port error %s"%(self.address, ', '.join(fields[id][FIELD_NAME] for id in fieldids), str(err)))
+            logging.warn("C%i settings failed of fields %s, Serial Port error %s"%(self.address, ', '.join(self.fields[id].name for id in fieldids), str(err)))
             raise
         else:
-            logging.info("C%i set fields %s in %i blocks"%(self.address, ', '.join(fields[id][FIELD_NAME] for id in fieldids), len(outputdata)))
+            logging.info("C%i set fields %s in %i blocks"%(self.address, ', '.join(self.fields[id].name for id in fieldids), len(outputdata)))
 
-    def _get_payload_blocks_from_list(self, fieldids, payloads):
-        """Converts list of fields and payloads into groups of payload data"""
+    def _update_fields_values(self, values, firstfieldid):
+        """update the field values once data successfully written"""
+        print values
+        for field, value in zip(self.fields[firstfieldid:firstfieldid+len(values)], values):
+            field.update_value(value, self.lastwritetime)
+            
+    def _get_payload_blocks_from_list(self, fieldids, values):
+        """Converts list of fields and values into groups of payload data"""
         #returns unique_start_address, lengthbytes, payloadbytes, firstfieldname, lastfieldname
         sortedfields = sorted(enumerate(fieldids), key=itemgetter(0))
         
-        payloadscopy = copy.deepcopy(payloads) #force copy of payloads so doesn't get changed later.
+        valuescopy = copy.deepcopy(values) #force copy of values so doesn't get changed later.
         
-        #Check field data and sort payloads
+        #Check field data and sort values
         sorteddata = []
         for orginalindex, fieldid in sortedfields:
             if self._fieldsvalid[fieldid]:
-                fieldinfo = fields[fieldid]
-                self._is_writable(fieldinfo)
-                self._check_payload_values(payloadscopy[orginalindex], fieldinfo)
-                sorteddata.append([fieldid, fieldinfo, payloadscopy[orginalindex]]) 
+                field = self.fields[fieldid]
+                field._is_writable()
+                field.check_payload_values(valuescopy[orginalindex])
+                sorteddata.append([fieldid, field, valuescopy[orginalindex]]) 
         
         #Groups and map to unique addresses
         outputdata = []
         previousfield = None
-        for fieldid, fieldinfo, payload in sorteddata:
+        for fieldid, field, value in sorteddata:
             if not previousfield is None and fieldid - previousfield == 1: #if follows previousfield
-                outputdata[-1][1] += fieldinfo[FIELD_LEN]
-                outputdata[-1][2].extend(self._format_payload(payload, fieldinfo[FIELD_LEN]))
-                outputdata[-1][4] = fieldinfo[FIELD_NAME]
+                outputdata[-1][1] += field.fieldlength
+                outputdata[-1][2].extend(field.format_data_from_value(value))
+                outputdata[-1][4] = field.name
+                outputdata[-1][5].extend([value])
             else:
                 #unique_start_address, bytelength, payloadbytes, firstfieldname, lastfieldname
-                outputdata.append([fieldinfo[FIELD_ADD], fieldinfo[FIELD_LEN], self._format_payload(payload, fieldinfo[FIELD_LEN]), fieldinfo[FIELD_NAME], fieldinfo[FIELD_NAME]])
+                outputdata.append([field.address, field.fieldlength, field.format_data_from_value(value), field.name, field.name, [value], fieldid])
             previousfield = fieldid
 
         return outputdata
-    
-    @staticmethod
-    def _check_payload_values(payload, fieldinfo):
-        """check a single field payload matches field spec"""
-        
-        if fieldinfo[FIELD_LEN] in [1, 2] and not isinstance(payload, (int, long)):
-            #one or two byte field, not single length payload
-            raise TypeError("set_field: invalid requested value")
-        elif fieldinfo[FIELD_LEN] > 2 and len(payload) != fieldinfo[FIELD_LEN]:
-            #greater than two byte field, payload length must match field length
-            raise ValueError("set_field: invalid payload length")
-
-        #checks the payload matches the ranges if ranges are defined
-        ranges = fieldinfo[FIELD_RANGE]
-        if ranges != []:
-            if isinstance(payload, (int, long)):
-                if payload < ranges[0] or payload > ranges[1]:
-                    raise ValueError("set_field: payload out of range")
-            else:
-                for i, item in enumerate(payload):
-                    rangepair = ranges[i % len(ranges)]
-                    if item < rangepair[0] or item > rangepair[1]:
-                        raise ValueError("set_field: payload out of range")
-    
+   
     ## External functions for printing data
     def display_heating_schedule(self):
         """Prints heating schedule to stdout"""
@@ -937,4 +915,3 @@ class HeatmiserBroadcastDevice(HeatmiserDevice):
     @run_function_on_all(_controllerlist)
     def release_temp(self):
         pass
-
