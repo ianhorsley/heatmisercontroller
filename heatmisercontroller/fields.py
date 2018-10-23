@@ -35,7 +35,7 @@ class HeatmiserFieldUnknown(object):
         self.lastreadtime = readtime
         return data
     
-    def update_value(self, value, readtime):
+    def update_value(self, value, writetime):
         """Don't update because don't know how to map to data."""
         raise NotImplementedError
 

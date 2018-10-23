@@ -4,12 +4,12 @@ from timeit import default_timer as timer
 import logging
 import numpy as np
 
-from heatmisercontroller.logging_setup import initialize_logger
+from heatmisercontroller.logging_setup import initialize_logger_full
 from heatmisercontroller.hm_constants import HMV3_ID, fields, FIELD_ADD, FIELD_NAME
 from heatmisercontroller.network import HeatmiserNetwork
 from heatmisercontroller.exceptions import HeatmiserResponseError
 
-initialize_logger('logs', logging.WARN, True)
+initialize_logger_full('logs', logging.WARN)
 HMN = HeatmiserNetwork()
 
 STAT = HMN.Kit
