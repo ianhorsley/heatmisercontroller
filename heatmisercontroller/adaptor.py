@@ -4,9 +4,10 @@ import time
 import logging
 import serial
 
-from hm_constants import MAX_FRAME_RESP_LENGTH, MIN_FRAME_READ_RESP_LENGTH, DCB_START, FUNC_WRITE, FUNC_READ, BROADCAST_ADDR, FRAME_WRITE_RESP_LENGTH, FR_CONTENTS, RW_LENGTH_ALL, CRC_LENGTH
+from .hm_constants import MAX_FRAME_RESP_LENGTH, MIN_FRAME_READ_RESP_LENGTH, DCB_START, FUNC_WRITE, FUNC_READ, BROADCAST_ADDR, FRAME_WRITE_RESP_LENGTH, FR_CONTENTS, RW_LENGTH_ALL, CRC_LENGTH
 import framing
 from .exceptions import HeatmiserResponseError, HeatmiserResponseErrorCRC
+from .logging_setup import csvlist
 
 def retryer(max_retries=3):
     """Decorates reading from and writing to devices, rerunning the methods on failure"""
@@ -120,15 +121,15 @@ class HeatmiserAdaptor(object):
             self.serport.write(string)    # Write a string
         except serial.SerialTimeoutException as err:
             self.serport.close() #need to close so that isOpen works correctly.
-            logging.warning("Write timeout error: %s, sending %s" % (err, self._csvlist(message)))
+            logging.warning("Write timeout error: %s, sending %s" % (err, csvlist(message)))
             raise
         except serial.SerialException as err:
             self.serport.close() #need to close so that isOpen works correctly.
-            logging.warning("Write error: %s, sending %s" % (err, self._csvlist(message)))
+            logging.warning("Write error: %s, sending %s" % (err, csvlist(message)))
             raise
 
         self.lastsendtime = time.strftime("%d %b %Y %H:%M:%S +0000", time.localtime(time.time())) #timezone is wrong
-        logging.debug("Gen sent %s", self._csvlist(message))
+        logging.debug("Gen sent %s", csvlist(message))
 
     def _clear_input_buffer(self):
         """Clears input buffer
@@ -201,7 +202,7 @@ class HeatmiserAdaptor(object):
             logging.warn("C%i writing to address, no message sent"%(network_address))
             raise
         else:
-            logging.debug("C%i written to address %i length %i payload %s"%(network_address, unique_address, length, self._csvlist(payload)))
+            logging.debug("C%i written to address %i length %i payload %s"%(network_address, unique_address, length, csvlist(payload)))
             if network_address == BROADCAST_ADDR:
                 self.lastreceivetime = time.time() + self.serport.COM_SEND_MIN_TIME - self.serport.COM_BUS_RESET_TIME # if broadcasting force it to wait longer until next send
             else:
@@ -240,7 +241,7 @@ class HeatmiserAdaptor(object):
             logging.warn("C%i read failed from address %i length %i due to %s"%(network_address, unique_start_address, expected_length, str(err)))
             raise
 
-        logging.debug("C%i read in %.2f s from address %i length %i response %s"%(network_address, time.time()-time1, unique_start_address, expected_length, self._csvlist(response)))
+        logging.debug("C%i read in %.2f s from address %i length %i response %s"%(network_address, time.time()-time1, unique_start_address, expected_length, csvlist(response)))
     
         try: #processing response
             framing.verify_response(protocol, network_address, self.my_master_addr, FUNC_READ, expected_length, response)
@@ -252,9 +253,3 @@ class HeatmiserAdaptor(object):
     def read_all_from_device(self, network_address, protocol, expected_length):
         """Forms read all frame using read_from_device"""
         return self.read_from_device(network_address, protocol, DCB_START, expected_length, True)
-
-### logging functions
-    @staticmethod
-    def _csvlist(listitems):
-        ', '.join(map(str, listitems))
-

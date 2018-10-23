@@ -20,6 +20,7 @@ from .exceptions import HeatmiserResponseError, HeatmiserControllerTimeError
 from schedule_functions import SchedulerDayHeat, SchedulerWeekHeat, SchedulerDayWater, SchedulerWeekWater, SCH_ENT_TEMP
 from decorators import ListWrapperClass, run_function_on_all
 from operator import itemgetter
+from .logging_setup import csvlist
 
 class HeatmiserDevice(object):
     """General device class for thermostats"""
@@ -127,7 +128,11 @@ class HeatmiserDevice(object):
         self.fields[self._fieldnametonum['DCBlen']].expectedvalue = self.dcb_length
         self.fields[self._fieldnametonum['model']].expectedvalue = self._expected_model_number
         self.fields[self._fieldnametonum['programmode']].expectedvalue = PROG_MODES[self.expected_prog_mode]
-   
+
+    def _csvlist_field_names_from(self, fieldids):
+        """return csv of fieldnames from list of field ids"""
+        return ', '.join(self.fields[id].name for id in fieldids)
+        
     def _buildfields(self):
         """build list of fields"""
         self.fields = [
@@ -330,7 +335,7 @@ class HeatmiserDevice(object):
         else:
             logging.debug("C%i Read fields %s to %s by read_all, %0.3f %0.3f"%(self.address, firstfieldname.ljust(FIELD_NAME_LENGTH), lastfieldname.ljust(FIELD_NAME_LENGTH), estimatedreadtime, self.fullreadtime))
             self.read_all()
-
+            
     def _get_fields(self, fieldids):
         """gets fields from device
         
@@ -348,13 +353,13 @@ class HeatmiserDevice(object):
                     self.lastreadtime = time.time()
                     self._procpartpayload(rawdata, self.fields[firstfieldid].name, self.fields[lastfieldid].name)
             except serial.SerialException as err:
-                logging.warn("C%i Read failed of fields %s, Serial Port error %s"%(self.address, ', '.join(self.fields[id].name for id in fieldids), str(err)))
+                logging.warn("C%i Read failed of fields %s, Serial Port error %s"%(self.address, self._csvlist_field_names_from(fieldids), str(err)))
                 raise
             else:
-                logging.info("C%i Read fields %s in %i blocks"%(self.address, ', '.join(self.fields[id].name for id in fieldids), len(blockstoread)))
+                logging.info("C%i Read fields %s in %i blocks"%(self.address, self._csvlist_field_names_from(fieldids), len(blockstoread)))
                     
         else:
-            logging.debug("C%i Read fields %s by read_all, %0.3f %0.3f"%(self.address, ', '.join(self.fields[id].name for id in fieldids), estimatedreadtime, self.fullreadtime))
+            logging.debug("C%i Read fields %s by read_all, %0.3f %0.3f"%(self.address, self._csvlist_field_names_from(fieldids), estimatedreadtime, self.fullreadtime))
             self.read_all()
                 
         #data can only be requested from the controller in contiguous blocks
@@ -427,7 +432,7 @@ class HeatmiserDevice(object):
         Checks the validity"""
         fieldname = fieldinfo.name
 
-        #logging.debug("Processing %s %s"%(fieldinfo.name,', '.join(str(x) for x in data)))
+        #logging.debug("Processing %s %s"%(fieldinfo.name,csvlist(data)))
         if data is None:
             value = None
         else:
@@ -551,10 +556,10 @@ class HeatmiserDevice(object):
         try:
             self._adaptor.write_to_device(self.address, self.protocol, field.address, field.fieldlength, payloadbytes)
         except serial.SerialException as err:
-            logging.warn("C%i failed to set field %s to %s, due to %s"%(self.address, fieldname.ljust(FIELD_NAME_LENGTH), ', '.join(str(x) for x in printvalues), str(err)))
+            logging.warn("C%i failed to set field %s to %s, due to %s"%(self.address, fieldname.ljust(FIELD_NAME_LENGTH), csvlist(printvalues), str(err)))
             raise
         else:
-            logging.info("C%i set field %s to %s"%(self.address, fieldname.ljust(FIELD_NAME_LENGTH), ', '.join(str(x) for x in printvalues)))
+            logging.info("C%i set field %s to %s"%(self.address, fieldname.ljust(FIELD_NAME_LENGTH), csvlist(printvalues)))
         
         self.lastwritetime = time.time()
         self.data[fieldname] = field.update_value(values, self.lastwritetime)
@@ -574,10 +579,10 @@ class HeatmiserDevice(object):
                 self.lastwritetime = time.time()
                 self._update_fields_values(writtenvalues, firstfieldid)
         except serial.SerialException as err:
-            logging.warn("C%i settings failed of fields %s, Serial Port error %s"%(self.address, ', '.join(self.fields[id].name for id in fieldids), str(err)))
+            logging.warn("C%i settings failed of fields %s, Serial Port error %s"%(self.address, self._csvlist_field_names_from(fieldids), str(err)))
             raise
         else:
-            logging.info("C%i set fields %s in %i blocks"%(self.address, ', '.join(self.fields[id].name for id in fieldids), len(outputdata)))
+            logging.info("C%i set fields %s in %i blocks"%(self.address, self._csvlist_field_names_from(fieldids), len(outputdata)))
 
     def _update_fields_values(self, values, firstfieldid):
         """update the field values once data successfully written"""
@@ -885,7 +890,7 @@ class HeatmiserBroadcastDevice(HeatmiserDevice):
             
     @run_function_on_all(_controllerlist)
     def read_fields(self, fieldnames, maxage=None):
-        logging.info("All reading %s from %i controllers"%(', '.join([fieldname for fieldname in fieldnames]), len(self._controllerlist.list)))
+        logging.info("All reading %s from %i controllers"%(csvlist(fieldnames), len(self._controllerlist.list)))
         
     @run_function_on_all(_controllerlist)
     def read_air_temp(self):
