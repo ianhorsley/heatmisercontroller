@@ -15,7 +15,11 @@ import serial
 import copy
 
 from fields import HeatmiserFieldUnknown, HeatmiserFieldSingle, HeatmiserFieldSingleReadOnly, HeatmiserFieldDouble, HeatmiserFieldDoubleReadOnly, HeatmiserFieldTime, HeatmiserFieldHeat, HeatmiserFieldWater, HeatmiserFieldHotWaterDemand
-from hm_constants import *
+from hm_constants import DEFAULT_PROTOCOL, DEFAULT_PROG_MODE, BROADCAST_ADDR, SLAVE_ADDR_MIN, SLAVE_ADDR_MAX, MAX_UNIQUE_ADDRESS, DCB_INVALID
+from hm_constants import MAX_AGE_LONG, MAX_AGE_MEDIUM, MAX_AGE_SHORT, MAX_AGE_USHORT
+from hm_constants import PROG_MODE_DAY, PROG_MODE_WEEK, PRTHWmap, PRTEmap, STRAIGHTmap, DEVICE_MODELS, PROG_MODES
+from hm_constants import FIELDRANGES, CURRENT_TIME_DAY, CURRENT_TIME_HOUR, CURRENT_TIME_MIN, CURRENT_TIME_SEC, TIME_ERR_LIMIT
+from hm_constants import FIELD_NAME_LENGTH
 from .exceptions import HeatmiserResponseError, HeatmiserControllerTimeError
 from schedule_functions import SchedulerDayHeat, SchedulerWeekHeat, SchedulerDayWater, SchedulerWeekWater, SCH_ENT_TEMP
 from decorators import ListWrapperClass, run_function_on_all

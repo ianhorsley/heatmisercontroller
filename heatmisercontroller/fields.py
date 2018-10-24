@@ -48,6 +48,7 @@ class HeatmiserFieldUnknown(object):
             raise ValueError("set_field: field isn't writeable")
 
     def check_payload_values(self, payload):
+        """check a payload matches field spec"""
         raise NotImplementedError
         
             
@@ -89,9 +90,11 @@ class HeatmiserField(HeatmiserFieldUnknown):
             raise HeatmiserResponseError("Value %i outside expected range for %s"%(values, self.name))
 
     def _calculate_value(self, data):
+        """Calculate value from payload bytes"""
         raise NotImplementedError
         
     def format_data_from_value(self, value):
+        """Convert field to byte form for writting to device"""
         raise NotImplementedError
         
     def check_payload_values(self, payload):
@@ -190,7 +193,6 @@ class HeatmiserFieldMulti(HeatmiserField):
     
     def check_payload_values(self, payload):
         """check a payload matches field spec"""
-        
         if len(payload) != self.fieldlength:
             #greater than two byte field, payload length must match field length
             raise ValueError("set_field: invalid payload length")
