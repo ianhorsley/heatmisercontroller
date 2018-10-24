@@ -25,8 +25,7 @@ class TestLogging(unittest.TestCase):
             os.remove(self.alllogfile)
         for handler in self.logger.handlers[:]:
             self.logger.removeHandler(handler)
-        
-    #@staticmethod
+
     def test_logging(self):
         initialize_logger('', logging.ERROR)
         

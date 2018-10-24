@@ -400,11 +400,11 @@ class HeatmiserDevice(object):
         readblocks = []
         for block in fieldblocks:
             #find fields in that block
-            inblock = [id for id in fieldids if block[0] <= id <= block[1]]
+            inblock = [fieldid for fieldid in fieldids if block[0] <= fieldid <= block[1]]
             if len(inblock) > 0:
                 #if single read is shorter than individual
                 readlen = self.fields[max(inblock)].fieldlength + self.fields[max(inblock)].address - self.fields[min(inblock)].address
-                if self._estimate_read_time(readlen) < sum([self._estimate_read_time(self.fields[id].fieldlength) for id in inblock]):
+                if self._estimate_read_time(readlen) < sum([self._estimate_read_time(self.fields[fieldid].fieldlength) for fieldid in inblock]):
                     readblocks.append([min(inblock), max(inblock), readlen])
                 else:
                     for ids in inblock:
@@ -462,7 +462,8 @@ class HeatmiserDevice(object):
         """Split payload with field information and processes each field"""
         logging.debug("C%i Processing Payload from field %i to %i"%(self.address, firstfieldid, lastfieldid))
         
-        if not lastfieldid: lastfieldid = len(self.fields)
+        if not lastfieldid:
+            lastfieldid = len(self.fields)
         
         fullfirstdcbadd = self._get_dcb_address(self.fields[firstfieldid].address)
         
@@ -473,7 +474,7 @@ class HeatmiserDevice(object):
             dcbadd = self._get_dcb_address(uniqueaddress)
 
             if dcbadd == DCB_INVALID:
-                getattr(self,fieldinfo.name).value = None
+                getattr(self, fieldinfo.name).value = None
                 self.data[fieldinfo.name] = None
             else:
                 dcbadd -= fullfirstdcbadd #adjust for the start of the request
@@ -547,7 +548,7 @@ class HeatmiserDevice(object):
             raise IndexError('Field not valid for this device')
         field = self.fields[fieldid]
         
-        field._is_writable()
+        field.is_writable()
         field.check_payload_values(values)
         payloadbytes = field.format_data_from_value(values)
         
@@ -601,7 +602,7 @@ class HeatmiserDevice(object):
         for orginalindex, fieldid in sortedfields:
             if self._fieldsvalid[fieldid]:
                 field = self.fields[fieldid]
-                field._is_writable()
+                field.is_writable()
                 field.check_payload_values(valuescopy[orginalindex])
                 sorteddata.append([fieldid, field, valuescopy[orginalindex]]) 
         
@@ -615,10 +616,9 @@ class HeatmiserDevice(object):
                 outputdata[-1][4] = field.name
                 outputdata[-1][5].append(value)
             else:
-                #unique_start_address, bytelength, payloadbytes, firstfieldname, lastfieldname
+                #unique_start_address, bytelength, payloadbytes, firstfieldname, lastfieldname, values, firstfieldid
                 outputdata.append([field.address, field.fieldlength, field.format_data_from_value(value), field.name, field.name, [value], fieldid])
             previousfield = fieldid
-            previousvalue = value
 
         return outputdata
    
