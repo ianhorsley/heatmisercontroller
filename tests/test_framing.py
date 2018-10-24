@@ -22,68 +22,68 @@ class TestFraming(unittest.TestCase):
     #crc
     def test_framecheckcrc_short(self):
         with self.assertRaises(HeatmiserResponseError):
-            _check_frame_crc(HMV3_ID, [0])
+            _check_frame_crc([0])
             
     def test_framecheckcrc_bad_CRC(self):
         with self.assertRaises(HeatmiserResponseErrorCRC):
-            _check_frame_crc(HMV3_ID, self.badackmessage)
+            _check_frame_crc(self.badackmessage)
             
     def test_framecheckcrc_good(self):
-        _check_frame_crc(HMV3_ID, self.goodreadmessage)
-        _check_frame_crc(HMV3_ID, [255, 255]) #only crc
-        _check_frame_crc(HMV3_ID, self.goodresponsemessage)
-        _check_frame_crc(HMV3_ID, self.goodackmessage)
+        _check_frame_crc(self.goodreadmessage)
+        _check_frame_crc([255, 255]) #only crc
+        _check_frame_crc(self.goodresponsemessage)
+        _check_frame_crc(self.goodackmessage)
     
     #length
     def test_framechecklength(self):
         #crc = crc16()
         #print crc.run(self.goodackmessage)
-        _check_response_frame_length(HMV3_ID, self.goodresponsemessage, 1)
-        _check_response_frame_length(HMV3_ID, self.goodackmessage, 1)
+        _check_response_frame_length(self.goodresponsemessage, 1)
+        _check_response_frame_length(self.goodackmessage, 1)
         
     def test_framechecklength_short(self):
         with self.assertRaises(HeatmiserResponseError):
-            _check_response_frame_length(HMV3_ID, [0, 0, 0, 0], 1)
+            _check_response_frame_length([0, 0, 0, 0], 1)
             
     def test_framechecklength_mismatch(self):
         with self.assertRaises(HeatmiserResponseError):
-            _check_response_frame_length(HMV3_ID, self.badackmessage, 1)
+            _check_response_frame_length(self.badackmessage, 1)
             
     def test_framechecklength_mismatch2(self):
         with self.assertRaises(HeatmiserResponseError):
-            _check_response_frame_length(HMV3_ID, self.goodresponsemessage, 2)
+            _check_response_frame_length(self.goodresponsemessage, 2)
     
     #addresses
     def test_framecheckaddresses_good(self):
-        _check_response_frame_addresses(HMV3_ID, 5, 129, self.goodresponsemessage)
+        _check_response_frame_addresses(5, 129, self.goodresponsemessage)
         
     def test_framecheckaddresses_dest(self):
         with self.assertRaises(HeatmiserResponseError):
-            _check_response_frame_addresses(HMV3_ID, 5, 1, self.goodresponsemessage)
+            _check_response_frame_addresses(5, 1, self.goodresponsemessage)
             
     def test_framecheckaddresses_source(self):
         with self.assertRaises(HeatmiserResponseError):
-            _check_response_frame_addresses(HMV3_ID, 1, 129, self.goodresponsemessage)
+            _check_response_frame_addresses(1, 129, self.goodresponsemessage)
 
     def test_framecheckaddresses_source_range(self):
         with self.assertRaises(HeatmiserResponseError):
-            _check_response_frame_addresses(HMV3_ID, 33, 129, [129, 7, 0, 33, 1, 116, 39])            
+            _check_response_frame_addresses(33, 129, [129, 7, 0, 33, 1, 116, 39])            
 
     def test_framecheckaddresses_dest_range(self):
         with self.assertRaises(HeatmiserResponseError):
-            _check_response_frame_addresses(HMV3_ID, 5, 128, [128, 7, 0, 5, 1, 116, 39])
+            _check_response_frame_addresses(5, 128, [128, 7, 0, 5, 1, 116, 39])
 
     #function
     def test_framecheckfunction_good(self):
-        _check_response_frame_function(HMV3_ID, 0, self.goodresponsemessage)
+        _check_response_frame_function(0, self.goodresponsemessage)
 
     def test_framecheckfunction_wrong(self):
         with self.assertRaises(HeatmiserResponseError):
-            _check_response_frame_function(HMV3_ID, 1, self.goodresponsemessage)
+            _check_response_frame_function(1, self.goodresponsemessage)
     
     def test_framecheckfunction_range(self):
         with self.assertRaises(HeatmiserResponseError):
-            _check_response_frame_function(HMV3_ID, 2, [129, 7, 0, 5, 2, 116, 39])
+            _check_response_frame_function(2, [129, 7, 0, 5, 2, 116, 39])
     
     #verify
     def test_framecheck_good(self):
