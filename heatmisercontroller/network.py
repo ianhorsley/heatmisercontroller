@@ -77,11 +77,11 @@ class HeatmiserNetwork(object):
                     test_device = HeatmiserUnknownDevice(self.adaptor, settings, self._setup.settings['devicesgeneral'])
                 except HeatmiserResponseError as err:
                     logging.info("C%i device not found, library error %s"%(address, err))
-
-                logging.info("C%i device %s found, with program %s"%(address, test_device.expected_model, test_device.expected_prog_mode))
-                setattr(test_device, 'name', 'None') #make name avaliable when accessing by id
-                self.controllers.append(test_device)
-                self._addresses_in_use.append(address)
+                else:
+                    logging.info("C%i device %s found, with program %s"%(address, test_device.expected_model, test_device.expected_prog_mode))
+                    setattr(test_device, 'name', 'None') #make name avaliable when accessing by id
+                    self.controllers.append(test_device)
+                    self._addresses_in_use.append(address)
     
     def get_stat_address(self, shortname):
         """Get network address from device name."""

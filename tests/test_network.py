@@ -34,7 +34,7 @@ class TestNetwork(unittest.TestCase):
         adaptor.setresponse(responses)
         
         hmn.find_devices(3)
-
+        
         self.assertEqual(len(hmn.controllers), 2)
         self.assertIsInstance(hmn.controllers[0], HeatmiserDevice)
         self.assertIsInstance(hmn.controllers[1], HeatmiserDevice)
