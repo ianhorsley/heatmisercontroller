@@ -1,4 +1,7 @@
 """field definitions for Heatmiser protocol"""
+import logging
+import time
+
 from .hm_constants import WRITE_HOTWATERDEMAND_PROG, WRITE_HOTWATERDEMAND_OVER_OFF, READ_HOTWATERDEMAND_OFF
 from .exceptions import HeatmiserResponseError
 
@@ -7,6 +10,7 @@ class HeatmiserFieldUnknown(object):
     def __init__(self, name, address, divisor, validrange, max_age, length):
         self.name = name
         self.address = address
+        self.dcbaddress = address
         self.divisor = divisor
         self.validrange = validrange
         self.max_age = max_age
@@ -32,6 +36,10 @@ class HeatmiserFieldUnknown(object):
         self.value = None
         self.lastreadtime = None #used to record when the field was last read
     
+    def last_dcb_byte_address(self):
+        """returns the address of the last dcb byte"""
+        return self.dcbaddress + self.fieldlength
+    
     def update_data(self, data, readtime):
         """update stored data and readtime. Don't compute value because don't know how to map"""
         self.data = data
@@ -50,6 +58,35 @@ class HeatmiserFieldUnknown(object):
     def check_payload_values(self, payload):
         """check a payload matches field spec"""
         raise NotImplementedError
+        
+    def check_data_valid(self):
+        """check whether data has been set"""
+        data_not_valid = self.lastreadtime == None
+        if data_not_valid:
+            logging.debug("Data item %s not available"%(self.name))
+        return not data_not_valid
+        
+    def check_data_fresh(self, maxagein=None):
+        """check whether data is fresh
+        
+        Check field data age is not more than maxage (in seconds)
+        maxagein = None, use the default self.maxage
+        maxagein = -1, only check if present
+        maxagein >=0, use maxagein (0 is effectively always False)
+        return False if old, True if recent"""
+        if not self.check_data_valid():
+            return False
+        elif maxagein == -1: #only check present
+            return True
+        elif maxagein == None: #if none use field defaults
+            maxage = self.max_age
+        else:
+            maxage = maxagein
+        #now check time
+        if time.time() - self.lastreadtime > maxage:
+            logging.debug("Data item %s too old"%(self.name))
+            return False
+        return True
         
             
 class HeatmiserField(HeatmiserFieldUnknown):

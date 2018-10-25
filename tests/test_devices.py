@@ -4,7 +4,7 @@ import logging
 import time
 
 from heatmisercontroller.fields import HeatmiserFieldSingleReadOnly, HeatmiserFieldDoubleReadOnly
-from heatmisercontroller.devices import HeatmiserDevice, HeatmiserBroadcastDevice
+from heatmisercontroller.devices import ThermoStatWeek, ThermoStatDay, ThermoStatHotWaterWeek, ThermoStatHotWaterDay, HeatmiserBroadcastDevice
 from heatmisercontroller.hm_constants import HMV3_ID, PROG_MODES, PROG_MODE_DAY, DCB_INVALID, WRITE_HOTWATERDEMAND_OVER_OFF, READ_HOTWATERDEMAND_OFF, WRITE_HOTWATERDEMAND_PROG
 from heatmisercontroller.exceptions import HeatmiserResponseError, HeatmiserControllerTimeError
 
@@ -26,11 +26,11 @@ class TestBroadcastController(unittest.TestCase):
         setup = SetupTestClass()
         self.adaptor = MockHeatmiserAdaptor(setup)
         #network, address, protocol, short_name, long_name, model, mode
-        #self.func = HeatmiserDevice(None, 1, HMV3_ID, 'test', 'test controller', 'prt_hw_model', PROG_MODE_DAY)
+        #self.func = ThermoStat(None, 1, HMV3_ID, 'test', 'test controller', 'prt_hw_model', PROG_MODE_DAY)
         self.settings = {'address':1, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_hw_model', 'expected_prog_mode':PROG_MODE_DAY, 'autoreadall':True}
-        dev1 = HeatmiserDevice(self.adaptor, self.settings)
+        dev1 = ThermoStatHotWaterDay(self.adaptor, self.settings)
         self.settings2 = {'address':2, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_hw_model', 'expected_prog_mode':PROG_MODE_DAY, 'autoreadall':True}
-        dev2 = HeatmiserDevice(self.adaptor, self.settings)
+        dev2 = ThermoStatHotWaterDay(self.adaptor, self.settings)
         self.func = HeatmiserBroadcastDevice(self.adaptor, 'Broadcaster', [dev1, dev2])
             
     def test_read_fields(self):
@@ -43,10 +43,10 @@ class TestReadingData(unittest.TestCase):
     def setUp(self):
         logging.basicConfig(level=logging.DEBUG)
         #network, address, protocol, short_name, long_name, model, mode
-        #self.func = HeatmiserDevice(None, 1, HMV3_ID, 'test', 'test controller', 'prt_hw_model', PROG_MODE_DAY)
+        #self.func = ThermoStat(None, 1, HMV3_ID, 'test', 'test controller', 'prt_hw_model', PROG_MODE_DAY)
         self.settings = {'address':1, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_hw_model', 'expected_prog_mode':PROG_MODE_DAY}
         self.settings2 = {'address':1, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_e_model', 'expected_prog_mode':PROG_MODE_DAY, 'autoreadall':True}
-        self.func = HeatmiserDevice(None, self.settings)
+        self.func = ThermoStatHotWaterDay(None, self.settings)
             
     def test_procfield(self):
         #unique_address, length, divisor, valid range
@@ -84,7 +84,7 @@ class TestReadingData(unittest.TestCase):
     def test_readall(self):
         setup = SetupTestClass()
         adaptor = MockHeatmiserAdaptor(setup)
-        self.func = HeatmiserDevice(adaptor, self.settings)
+        self.func = ThermoStatHotWaterDay(adaptor, self.settings)
         #basetime = (6 - 2) * 86400 + 53376.0 + YEAR2000
         #self.func.lastreadtime = basetime - get_offset(basetime)
         lta = self.func._localtimearray()
@@ -97,7 +97,7 @@ class TestReadingData(unittest.TestCase):
     def test_readvariables(self):
         setup = SetupTestClass()
         adaptor = MockHeatmiserAdaptor(setup)
-        self.func = HeatmiserDevice(adaptor, self.settings)
+        self.func = ThermoStatHotWaterDay(adaptor, self.settings)
         
         #queue some data to recieve
         responses = [[17, 30, 1, 1, 1, 1, 0, 0], [0, 0, 17, 0, 17, 0, 17, 0, 0, 0, 0]]
@@ -111,7 +111,7 @@ class TestReadingData(unittest.TestCase):
     def test_read_field(self):
         setup = SetupTestClass()
         adaptor = MockHeatmiserAdaptor(setup)
-        self.func = HeatmiserDevice(adaptor, self.settings2)
+        self.func = ThermoStatDay(adaptor, self.settings2)
         responses = [[0, 170], [0, 180]]
         adaptor.setresponse(responses)
         self.assertEqual(17, self.func.read_field('airtemp', 1))
@@ -122,7 +122,7 @@ class TestReadingData(unittest.TestCase):
     def test_read_fields(self):
         setup = SetupTestClass()
         adaptor = MockHeatmiserAdaptor(setup)
-        self.func = HeatmiserDevice(adaptor, self.settings2)
+        self.func = ThermoStatDay(adaptor, self.settings2)
         responses = [[0, 170]]
         adaptor.setresponse(responses)
         self.assertEqual([17], self.func.read_fields(['airtemp'], 1))
@@ -153,7 +153,7 @@ class TestOtherFunctions(unittest.TestCase):
     def setUp(self):
         logging.basicConfig(level=logging.ERROR)
         self.settings = {'address':1, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_e_model', 'expected_prog_mode':PROG_MODE_DAY}
-        self.func = HeatmiserDevice(None, self.settings)
+        self.func = ThermoStatDay(None, self.settings)
     
     def test_get_dcb_address(self):
         self.assertEqual(0, self.func._get_dcb_address(0))
@@ -194,7 +194,7 @@ class TestTimeFunctions(unittest.TestCase):
     def setUp(self):
         logging.basicConfig(level=logging.ERROR)
         self.settings = {'address':1, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_hw_model', 'expected_prog_mode':PROG_MODE_DAY}
-        self.func = HeatmiserDevice(None, self.settings)
+        self.func = ThermoStatHotWaterDay(None, self.settings)
         
     def test_comparecontrollertime_none(self):
         with self.assertRaises(HeatmiserResponseError):
@@ -236,7 +236,7 @@ class TestSettingData(unittest.TestCase):
         setup = SetupTestClass()
         self.tester = MockHeatmiserAdaptor(setup)
         #self.tester.write_to_device = self.tester.store
-        self.func = HeatmiserDevice(self.tester, self.settings)
+        self.func = ThermoStatDay(self.tester, self.settings)
         
     def test_setfield_1(self):
         #checks the arguments sent to write_to_device
