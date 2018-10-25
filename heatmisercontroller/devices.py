@@ -86,6 +86,14 @@ class ThermoStatWeek(HeatmiserDevice):
             else:
                 raise
     
+    def get_variables(self):
+        """Gets setroomtemp to hotwaterdemand fields from device"""
+        self.get_field_range('setroomtemp', 'hotwaterdemand')
+        
+    def get_temps_and_demand(self):
+        """Gets remoteairtemp to hotwaterdemand fields from device"""
+        self.get_field_range('remoteairtemp', 'hotwaterdemand')
+    
     ## External functions for printing data
     def display_heating_schedule(self):
         """Prints heating schedule to stdout"""

@@ -37,7 +37,7 @@ class HeatmiserDevice(object):
         # initialise data structures
         self.expected_prog_mode = None
         self._expected_model_number = 0
-        self.long_name = ''
+        self.long_name = 'Unknown'
         self.autoreadall = False
         self._buildfieldtables()
         self.data = dict.fromkeys(self._fieldnametonum.keys(), None)
@@ -50,18 +50,11 @@ class HeatmiserDevice(object):
     
     def _load_settings(self, settings, generalsettings):
         """Loading settings from dictionary into properties"""
-        
         for name, value in generalsettings.iteritems():
             setattr(self, name, value)
 
         for name, value in settings.iteritems():
             setattr(self, name, value)
-
-        try:
-            self.long_name
-        except AttributeError:
-            self.long_name = 'Unknown'
-        
 
     def _buildfields(self):
         """build list of fields"""
@@ -143,21 +136,16 @@ class HeatmiserDevice(object):
                 raise ValueError("Need to read fields first")
         return [self.data[fieldname] if hasattr(self, fieldname) else None for fieldname in fieldnames ]
     
-    def get_variables(self):
-        """Gets setroomtemp to hotwaterdemand fields from device"""
-        self.get_field_range('setroomtemp', 'hotwaterdemand')
-        
-    def get_temps_and_demand(self):
-        """Gets remoteairtemp to hotwaterdemand fields from device"""
-        self.get_field_range('remoteairtemp', 'hotwaterdemand')
-    
     def get_field_range(self, firstfieldname, lastfieldname=None):
         """gets fieldrange from device
         safe for blocks crossing gaps in dcb"""
         if lastfieldname == None:
             lastfieldname = firstfieldname
 
-        blockstoread = self._get_field_blocks_from_range(firstfieldname, lastfieldname)
+        firstfieldid = self._fieldnametonum[firstfieldname]
+        lastfieldid = self._fieldnametonum[lastfieldname]
+            
+        blockstoread = self._get_field_blocks_from_id_range(firstfieldid, lastfieldid)
         fieldstring = firstfieldname.ljust(FIELD_NAME_LENGTH) + " " + lastfieldname.ljust(FIELD_NAME_LENGTH)
         self._get_field_blocks(blockstoread, fieldstring)
     
@@ -193,12 +181,6 @@ class HeatmiserDevice(object):
         #data can only be requested from the controller in contiguous blocks
         #functions takes a first and last field and separates out the individual blocks available for the controller type
         #return, fieldstart, fieldend, length of read in bytes
-    def _get_field_blocks_from_range(self, firstfieldname, lastfieldname):
-        """Takes range of fieldnames and returns field blocks"""
-        firstfieldid = self._fieldnametonum[firstfieldname]
-        lastfieldid = self._fieldnametonum[lastfieldname]
-        return self._get_field_blocks_from_id_range(firstfieldid, lastfieldid)
-        
     def _get_field_blocks_from_id_range(self, firstfieldid, lastfieldid):
         """Takes range of fieldids and returns field blocks
         
@@ -247,7 +229,6 @@ class HeatmiserDevice(object):
     @staticmethod
     def _estimate_read_time(length):
         """"estimates the read time for a call to read_from_device without COM_BUS_RESET_TIME
-        
         based on empirical measurements of one prt_hw_model and 5 prt_e_model"""
         return length * 0.002075 + 0.070727
     
@@ -274,7 +255,7 @@ class HeatmiserDevice(object):
     def _procpartpayload(self, rawdata, firstfieldname, lastfieldname):
         """Wraps procpayload by converting fieldnames to fieldids"""
         #rawdata must be a list
-        #converts field names to unique addresses to allow process of shortened raw data
+        #converts field names to field numbers to allow process of shortened raw data
         logging.debug("C%i Processing Payload from field %s to %s"%(self.address, firstfieldname, lastfieldname))
         firstfieldid = self._fieldnametonum[firstfieldname]
         lastfieldid = self._fieldnametonum[lastfieldname]
@@ -314,8 +295,6 @@ class HeatmiserDevice(object):
         """Set a field (single member of fields) on a device to a state or values. Defined for all known field lengths."""
         #values must not be list for field length 1 or 2
         fieldid = self._fieldnametonum[fieldname]
-        if not hasattr(self, fieldname):
-            raise IndexError('Field not valid for this device')
         field = self.fields[fieldid]
         
         field.is_writable()
