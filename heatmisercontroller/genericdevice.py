@@ -42,7 +42,6 @@ class HeatmiserDevice(object):
         self._buildfieldtables()
         self.data = dict.fromkeys(self._fieldnametonum.keys(), None)
         self.floorlimiting = None
-        self.timeerr = None
         self.heat_schedule = self.water_schedule = None
         self.lastwritetime = None
         self.lastreadtime = None

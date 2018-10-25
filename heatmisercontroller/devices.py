@@ -17,7 +17,6 @@ from fields import HeatmiserFieldUnknown, HeatmiserFieldSingle, HeatmiserFieldSi
 from hm_constants import DEFAULT_PROTOCOL, DEFAULT_PROG_MODE, BROADCAST_ADDR, SLAVE_ADDR_MIN, SLAVE_ADDR_MAX, MAX_UNIQUE_ADDRESS
 from hm_constants import MAX_AGE_LONG, MAX_AGE_MEDIUM, MAX_AGE_SHORT, MAX_AGE_USHORT
 from hm_constants import DEVICE_MODELS, PROG_MODES
-from hm_constants import FIELDRANGES, CURRENT_TIME_DAY, CURRENT_TIME_HOUR, CURRENT_TIME_MIN, CURRENT_TIME_SEC, TIME_ERR_LIMIT
 from .exceptions import HeatmiserResponseError, HeatmiserControllerTimeError
 from schedule_functions import SchedulerDayHeat, SchedulerWeekHeat, SchedulerDayWater, SchedulerWeekWater, SCH_ENT_TEMP
 from decorators import ListWrapperClass, run_function_on_all
@@ -32,7 +31,7 @@ class ThermoStatWeek(HeatmiserDevice):
         self._expected_model_number = 3
         self._set_expected_field_values()
         #thermostat specific
-        self.is_hot_water = False
+        self.is_hot_water = False #returns True if stat is a model with hotwater control, False otherwise
     
     def _buildfields(self):
         """add to list of fields"""
@@ -107,20 +106,15 @@ class ThermoStatWeek(HeatmiserDevice):
         elif current_state == self.TEMP_STATE_HELD:
             return "temp held for %i mins at %i"%(self.tempholdmins, self.setroomtemp)
         elif current_state == self.TEMP_STATE_OVERRIDDEN:
-            locatimenow = self._localtimearray()
+            locatimenow = self.currenttime.localtimearray()
             nexttarget = self.heat_schedule.get_next_schedule_item(locatimenow)
             return "temp overridden to %0.1f until %02d:%02d" % (self.setroomtemp, nexttarget[1], nexttarget[2])
         elif current_state == self.TEMP_STATE_PROGRAM:
-            locatimenow = self._localtimearray()
+            locatimenow = self.currenttime.localtimearray()
             nexttarget = self.heat_schedule.get_next_schedule_item(locatimenow)
             return "temp set to %0.1f until %02d:%02d" % (self.setroomtemp, nexttarget[1], nexttarget[2])
     
     ## External functions for reading data
-
-    def is_hot_water(self):
-        """Does device manage hotwater?"""
-        #returns True if stat is a model with hotwater control, False otherwise
-        return self.expected_model == 'prt_hw_model'
 
     TEMP_STATE_OFF = 0    #thermostat display is off and frost protection disabled
     TEMP_STATE_OFF_FROST = 1 #thermostat display is off and frost protection enabled
@@ -150,34 +144,10 @@ class ThermoStatWeek(HeatmiserDevice):
             if not self.currenttime.check_data_fresh(MAX_AGE_MEDIUM):
                 self.read_time()
             
-            locatimenow = self._localtimearray()
+            locatimenow = self.currenttime.localtimearray()
             scheduletarget = self.heat_schedule.get_current_schedule_item(locatimenow)
 
             if scheduletarget[SCH_ENT_TEMP] != self.setroomtemp:
-                return self.TEMP_STATE_OVERRIDDEN
-            else:
-                return self.TEMP_STATE_PROGRAM
-
-    ### UNTESTED # last part about scheduletarget doesn't work
-    def read_water_state(self):
-        """Returns the current hot water control state from off to following program"""
-        #does runmode affect hot water state?
-        self.read_fields(['mon_water', 'tues_water', 'wed_water', 'thurs_water', 'fri_water', 'wday_water', 'wend_water'], -1)
-        self.read_fields(['onoff', 'holidayhours', 'hotwaterdemand'])
-        
-        if self.onoff == WRITE_ONOFF_OFF:
-            return self.TEMP_STATE_OFF
-        elif self.holidayhours != 0:
-            return self.TEMP_STATE_HOLIDAY
-        else:
-        
-            if not self.currenttime.check_data_fresh(MAX_AGE_MEDIUM):
-                self.read_time()
-            
-            locatimenow = self._localtimearray()
-            scheduletarget = self.water_schedule.get_current_schedule_item(locatimenow)
-
-            if scheduletarget[SCH_ENT_TEMP] != self.hotwaterdemand:
                 return self.TEMP_STATE_OVERRIDDEN
             else:
                 return self.TEMP_STATE_PROGRAM
@@ -224,20 +194,6 @@ class ThermoStatWeek(HeatmiserDevice):
         """Set heating schedule for a single day"""
         padschedule = self.heat_schedule.pad_schedule(schedule)
         self.set_field(day, padschedule)
-            
-    def set_water_schedule(self, day, schedule):
-        """Set water schedule for a single day"""
-        padschedule = self.water_schedule.pad_schedule(schedule)
-        if day == 'all':
-            self.set_field('mon_water', padschedule)
-            self.set_field('tues_water', padschedule)
-            self.set_field('wed_water', padschedule)
-            self.set_field('thurs_water', padschedule)
-            self.set_field('fri_water', padschedule)
-            self.set_field('sat_water', padschedule)
-            self.set_field('sun_water', padschedule)
-        else:
-            self.set_field(day, padschedule)
 
     def set_time(self):
         """set time on device to match current localtime on server"""
@@ -346,12 +302,48 @@ class ThermoStatHotWaterWeek(ThermoStatWeek):
         
         self.water_schedule = SchedulerWeekWater()
         
-        
-        
     def display_water_schedule(self):
         """Prints water schedule to stdout"""
         if not self.water_schedule is None:
             self.water_schedule.display()
+            
+    ### UNTESTED # last part about scheduletarget doesn't work
+    def read_water_state(self):
+        """Returns the current hot water control state from off to following program"""
+        #does runmode affect hot water state?
+        self.read_fields(['mon_water', 'tues_water', 'wed_water', 'thurs_water', 'fri_water', 'wday_water', 'wend_water'], -1)
+        self.read_fields(['onoff', 'holidayhours', 'hotwaterdemand'])
+        
+        if self.onoff == WRITE_ONOFF_OFF:
+            return self.TEMP_STATE_OFF
+        elif self.holidayhours != 0:
+            return self.TEMP_STATE_HOLIDAY
+        else:
+        
+            if not self.currenttime.check_data_fresh(MAX_AGE_MEDIUM):
+                self.read_time()
+            
+            locatimenow = self.currenttime.localtimearray()
+            scheduletarget = self.water_schedule.get_current_schedule_item(locatimenow)
+
+            if scheduletarget[SCH_ENT_TEMP] != self.hotwaterdemand:
+                return self.TEMP_STATE_OVERRIDDEN
+            else:
+                return self.TEMP_STATE_PROGRAM
+                
+    def set_water_schedule(self, day, schedule):
+        """Set water schedule for a single day"""
+        padschedule = self.water_schedule.pad_schedule(schedule)
+        if day == 'all':
+            self.set_field('mon_water', padschedule)
+            self.set_field('tues_water', padschedule)
+            self.set_field('wed_water', padschedule)
+            self.set_field('thurs_water', padschedule)
+            self.set_field('fri_water', padschedule)
+            self.set_field('sat_water', padschedule)
+            self.set_field('sun_water', padschedule)
+        else:
+            self.set_field(day, padschedule)
     
 class ThermoStatHotWaterDay(ThermoStatDay, ThermoStatHotWaterWeek):
     """Device class for thermostats with hotwater operating daily programmode

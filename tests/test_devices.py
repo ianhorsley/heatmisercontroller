@@ -87,7 +87,7 @@ class TestReadingData(unittest.TestCase):
         self.func = ThermoStatHotWaterDay(adaptor, self.settings)
         #basetime = (6 - 2) * 86400 + 53376.0 + YEAR2000
         #self.func.lastreadtime = basetime - get_offset(basetime)
-        lta = self.func._localtimearray()
+        lta = self.func.currenttime.localtimearray()
         #, 3, 14, 49, 36,
         responses = [[1, 37, 0, 22, 4, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 38, 1, 9, 12, 28, 1, 1, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 220, 0, 0, 0] + lta + [7, 0, 19, 9, 30, 10, 17, 0, 19, 21, 30, 10, 7, 0, 19, 21, 30, 10, 24, 0, 5, 24, 0, 5, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 8, 0, 9, 0, 18, 0, 19, 0, 24, 0, 24, 0, 24, 0, 24, 0, 7, 0, 20, 21, 30, 12, 24, 0, 12, 24, 0, 12, 7, 0, 20, 21, 30, 12, 24, 0, 12, 24, 0, 12, 7, 0, 19, 8, 30, 12, 16, 30, 20, 21, 0, 12, 7, 0, 20, 12, 0, 12, 17, 0, 20, 21, 30, 12, 5, 0, 20, 21, 30, 12, 24, 0, 12, 24, 0, 12, 7, 0, 20, 12, 0, 12, 17, 0, 20, 21, 30, 12, 7, 0, 12, 24, 0, 12, 24, 0, 12, 24, 0, 12, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0]]
         adaptor.setresponse(responses)
@@ -193,35 +193,35 @@ class TestTimeFunctions(unittest.TestCase):
         
     def test_comparecontrollertime_none(self):
         with self.assertRaises(HeatmiserResponseError):
-            self.func._comparecontrollertime()
+            self.func.currenttime.comparecontrollertime()
             
     def test_comparecontrollertime_bad(self):
         basetime = (1 + 1) * 86400 + 9 * 3600 + 33 * 60 + 0 + YEAR2000
         self.func.currenttime.lastreadtime = basetime - get_offset(basetime) #has been read
         self.func.data['currenttime'] = self.func.currenttime.value = [1, 0, 0, 0]
         with self.assertRaises(HeatmiserControllerTimeError):
-            self.func._comparecontrollertime()
+            self.func.currenttime.comparecontrollertime()
         
     def test_comparecontrollertime_1(self):
         basetime = (4 + 1) * 86400 + 9 * 3600 + 33 * 60 + 5 + YEAR2000
         self.func.currenttime.lastreadtime = basetime - get_offset(basetime) #has been read
         self.func.data['currenttime'] = self.func.currenttime.value = [4, 9, 33, 0]
         #print "s ", self.func._localtimearray(self.func.datareadtime['currenttime']), self.func.data['currenttime'], self.func.datareadtime['currenttime'], time.localtime(self.func.datareadtime['currenttime']).tm_hour, time.localtime(self.func.datareadtime['currenttime']), "e"
-        self.func._comparecontrollertime()
-        self.assertEqual(5, self.func.timeerr)
+        self.func.currenttime.comparecontrollertime()
+        self.assertEqual(5, self.func.currenttime.timeerr)
         
     def test_comparecontrollertime_2(self):
         #self.func.datareadtime['currenttime'] = ( 7 + 3) * 86400 + 23 * 3600 + 59 * 60 + 55 - self.utc_offset #has been read
         basetime = (7 + 1) * 86400 + 23 * 3600 + 59 * 60 + 55 + YEAR2000
         self.func.currenttime.lastreadtime = basetime - get_offset(basetime) #has been read
         self.func.data['currenttime'] = self.func.currenttime.value = [1, 0, 0, 0]
-        self.func._comparecontrollertime()
-        self.assertEqual(5, self.func.timeerr)
+        self.func.currenttime.comparecontrollertime()
+        self.assertEqual(5, self.func.currenttime.timeerr)
 
     def test_localtimearray(self):
         hour = time.localtime(1528350527).tm_hour
-        self.assertEqual([4, hour, 48, 47], self.func._localtimearray(1528350527))
-        self.assertEqual([7, hour, 48, 47], self.func._localtimearray(1528350527-86400*4))
+        self.assertEqual([4, hour, 48, 47], self.func.currenttime.localtimearray(1528350527))
+        self.assertEqual([7, hour, 48, 47], self.func.currenttime.localtimearray(1528350527-86400*4))
 
 class TestSettingData(unittest.TestCase):
     """Unittests for setting data functions"""
@@ -244,7 +244,7 @@ class TestSettingData(unittest.TestCase):
         self.func.autocorrectime = False
         #self.func.lastreadtime = 7 * 86400 + 7 *3600 + 7 * 60 - 3600
         self.func.lastreadtime = time.time()
-        loctime = self.func._localtimearray(self.func.lastreadtime)
+        loctime = self.func.currenttime.localtimearray(self.func.lastreadtime)
         self.func.set_field('currenttime', loctime)
         self.assertEqual(self.tester.arguments, [(5, 3, 43, 4, loctime)])
 

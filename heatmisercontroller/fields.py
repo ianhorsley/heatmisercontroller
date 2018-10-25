@@ -3,7 +3,8 @@ import logging
 import time
 
 from .hm_constants import WRITE_HOTWATERDEMAND_PROG, WRITE_HOTWATERDEMAND_OVER_OFF, READ_HOTWATERDEMAND_OFF
-from .exceptions import HeatmiserResponseError
+from hm_constants import CURRENT_TIME_DAY, CURRENT_TIME_HOUR, CURRENT_TIME_MIN, CURRENT_TIME_SEC, TIME_ERR_LIMIT
+from .exceptions import HeatmiserResponseError, HeatmiserControllerTimeError
 
 class HeatmiserFieldUnknown(object):
     """Class for variable length unknown read only field"""
@@ -244,6 +245,7 @@ class HeatmiserFieldTime(HeatmiserFieldMulti):
     """Class for time field"""
     def __init__(self, name, address, divisor, validrange, max_age):
         self.fieldlength = 4
+        self.timeerr = None
         super(HeatmiserFieldTime, self).__init__(name, address, divisor, validrange, max_age)
         
     def comparecontrollertime(self):
