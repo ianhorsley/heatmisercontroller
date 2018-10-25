@@ -46,15 +46,9 @@ class HeatmiserDevice(object):
         self.heat_schedule = self.water_schedule = None
         self.lastwritetime = None
         self.lastreadtime = None
-        self._update_settings(devicesettings, generalsettings)
-
-        self.rawdata = [None] * self.dcb_length
-
-    def _update_settings(self, settings, generalsettings):
-        """Load and process settings."""
-
-        self._load_settings(settings, generalsettings)
+        self._load_settings(devicesettings, generalsettings)
         self._set_expected_field_values()
+        self.rawdata = [None] * self.dcb_length
     
     def _load_settings(self, settings, generalsettings):
         """Loading settings from dictionary into properties"""
@@ -70,6 +64,7 @@ class HeatmiserDevice(object):
             self.long_name
         except AttributeError:
             self.long_name = 'Unknown'
+        
 
     def _buildfields(self):
         """build list of fields"""
@@ -82,7 +77,6 @@ class HeatmiserDevice(object):
     
     def _set_expected_field_values(self):
         """set the expected values for fields that should be fixed"""
-
         self.fields[self._fieldnametonum['address']].expectedvalue = self.address
         self.fields[self._fieldnametonum['DCBlen']].expectedvalue = self.dcb_length
         self.fields[self._fieldnametonum['model']].expectedvalue = self._expected_model_number
@@ -121,15 +115,14 @@ class HeatmiserDevice(object):
         try:
             self.rawdata = self._adaptor.read_all_from_device(self.address, self.protocol, self.dcb_length)
         except serial.SerialException as err:
-
             logging.warn("C%i Read all failed, Serial Port error %s"%(self.address, str(err)))
             raise
-        else:
-            logging.info("C%i Read all"%(self.address))
 
-            self.lastreadtime = time.time()
-            self._procpayload(self.rawdata)
-            return self.rawdata
+        logging.info("C%i Read all"%(self.address))
+
+        self.lastreadtime = time.time()
+        self._procpayload(self.rawdata)
+        return self.rawdata
 
     def read_field(self, fieldname, maxage=None):
         """Returns a fields value, gets from the device if to old"""

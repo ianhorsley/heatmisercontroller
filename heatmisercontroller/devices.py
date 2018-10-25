@@ -79,55 +79,13 @@ class ThermoStatWeek(HeatmiserDevice):
     def _checkcontrollertime(self):
         """run check of device time against local read time, and try to fix if _autocorrectime"""
         try:
-            self._comparecontrollertime()
+            self.currenttime.comparecontrollertime()
         except HeatmiserControllerTimeError:
             if self.autocorrectime is True:
                 ### Add warning that attempting to fix.
                 self.set_time()
             else:
                 raise
-    
-    def _comparecontrollertime(self):
-        """Compare device and local time difference against threshold"""
-        # Now do same sanity checking
-        # Check the time is within range
-        # currentday is numbered 1-7 for M-S
-        # localday (python) is numbered 0-6 for Sun-Sat
-        
-        if not self.currenttime.check_data_valid():
-            raise HeatmiserResponseError("Time not read before check")
-
-        localtimearray = self._localtimearray(self.currenttime.lastreadtime) #time that time field was read
-        localweeksecs = self._weeksecs(localtimearray)
-        remoteweeksecs = self._weeksecs(self.data['currenttime'])
-        directdifference = abs(localweeksecs - remoteweeksecs)
-        wrappeddifference = abs(self.DAYSECS * 7 - directdifference) #compute the difference on rollover
-        self.timeerr = min(directdifference, wrappeddifference)
-        logging.debug("Local time %i, remote time %i, error %i"%(localweeksecs, remoteweeksecs, self.timeerr))
-
-        if self.timeerr > self.DAYSECS:
-            raise HeatmiserControllerTimeError("C%2d Incorrect day : local is %s, sensor is %s" % (self.address, localtimearray[CURRENT_TIME_DAY], self.data['currenttime'][CURRENT_TIME_DAY]))
-
-        if self.timeerr > TIME_ERR_LIMIT:
-            raise HeatmiserControllerTimeError("C%2d Time Error %d greater than %d: local is %s, sensor is %s" % (self.address, self.timeerr, TIME_ERR_LIMIT, localweeksecs, remoteweeksecs))
-
-    @staticmethod
-    def _localtimearray(timenow=time.time()):
-        """creates an array in heatmiser format for local time. Day 1-7, 1=Monday"""
-        #input time.time() (not local)
-        localtimenow = time.localtime(timenow)
-        nowday = localtimenow.tm_wday + 1 #python tm_wday, range [0, 6], Monday is 0
-        nowsecs = min(localtimenow.tm_sec, 59) #python tm_sec range[0, 61]
-        
-        return [nowday, localtimenow.tm_hour, localtimenow.tm_min, nowsecs]
-    
-    DAYSECS = 86400
-    HOURSECS = 3600
-    MINSECS = 60
-    def _weeksecs(self, localtimearray):
-        """calculates the time from the start of the week in seconds from a heatmiser time array"""
-        return (localtimearray[CURRENT_TIME_DAY] - 1) * self.DAYSECS + localtimearray[CURRENT_TIME_HOUR] * self.HOURSECS + localtimearray[CURRENT_TIME_MIN] * self.MINSECS + localtimearray[CURRENT_TIME_SEC]
-    
     
     ## External functions for printing data
     def display_heating_schedule(self):
@@ -284,7 +242,7 @@ class ThermoStatWeek(HeatmiserDevice):
     def set_time(self):
         """set time on device to match current localtime on server"""
         timenow = time.time() + 0.5 #allow a little time for any delay in setting
-        return self.set_field('currenttime', self._localtimearray(timenow))
+        return self.set_field('currenttime', self.currenttime.localtimearray(timenow))
 
     #overriding
 

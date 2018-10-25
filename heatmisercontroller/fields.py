@@ -245,6 +245,48 @@ class HeatmiserFieldTime(HeatmiserFieldMulti):
     def __init__(self, name, address, divisor, validrange, max_age):
         self.fieldlength = 4
         super(HeatmiserFieldTime, self).__init__(name, address, divisor, validrange, max_age)
+        
+    def comparecontrollertime(self):
+        """Compare device and local time difference against threshold"""
+        # Now do same sanity checking
+        # Check the time is within range
+        # currentday is numbered 1-7 for M-S
+        # localday (python) is numbered 0-6 for Sun-Sat
+        
+        if not self.check_data_valid():
+            raise HeatmiserResponseError("Time not read before check")
+
+        localtimearray = self.localtimearray(self.lastreadtime) #time that time field was read
+        localweeksecs = self._weeksecs(localtimearray)
+        remoteweeksecs = self._weeksecs(self.value)
+        directdifference = abs(localweeksecs - remoteweeksecs)
+        wrappeddifference = abs(self.DAYSECS * 7 - directdifference) #compute the difference on rollover
+        self.timeerr = min(directdifference, wrappeddifference)
+        logging.debug("Local time %i, remote time %i, error %i"%(localweeksecs, remoteweeksecs, self.timeerr))
+
+        if self.timeerr > self.DAYSECS:
+            raise HeatmiserControllerTimeError("C%2d Incorrect day : local is %s, sensor is %s" % (self.address, localtimearray[CURRENT_TIME_DAY], self.value[CURRENT_TIME_DAY]))
+
+        if self.timeerr > TIME_ERR_LIMIT:
+            raise HeatmiserControllerTimeError("C%2d Time Error %d greater than %d: local is %s, sensor is %s" % (self.address, self.timeerr, TIME_ERR_LIMIT, localweeksecs, remoteweeksecs))
+
+    @staticmethod
+    def localtimearray(timenow=time.time()):
+        """creates an array in heatmiser format for local time. Day 1-7, 1=Monday"""
+        #input time.time() (not local)
+        localtimenow = time.localtime(timenow)
+        nowday = localtimenow.tm_wday + 1 #python tm_wday, range [0, 6], Monday is 0
+        nowsecs = min(localtimenow.tm_sec, 59) #python tm_sec range[0, 61]
+        
+        return [nowday, localtimenow.tm_hour, localtimenow.tm_min, nowsecs]
+    
+    DAYSECS = 86400
+    HOURSECS = 3600
+    MINSECS = 60
+    
+    def _weeksecs(self, localtimearray):
+        """calculates the time from the start of the week in seconds from a heatmiser time array"""
+        return (localtimearray[CURRENT_TIME_DAY] - 1) * self.DAYSECS + localtimearray[CURRENT_TIME_HOUR] * self.HOURSECS + localtimearray[CURRENT_TIME_MIN] * self.MINSECS + localtimearray[CURRENT_TIME_SEC]
 
 class HeatmiserFieldHeat(HeatmiserFieldMulti):
     """Class for heating schedule field"""
