@@ -26,7 +26,7 @@ class ThermoStatWeek(HeatmiserDevice):
     """Device class for thermostats operating weekly programmode
     Heatmiser prt_e_model."""
     
-    def __init__(self, adaptor, devicesettings, generalsettings=None):
+    def __init__(self, adaptor, devicesettings, generalsettings={}):
         super(ThermoStatWeek, self).__init__(adaptor, devicesettings, generalsettings)
         self._expected_model_number = 3
         self._set_expected_field_values()
@@ -282,7 +282,7 @@ class ThermoStatHotWaterWeek(ThermoStatWeek):
     """Device class for thermostats with hotwater operating weekly programmode
     Heatmiser prt_hw_model."""
     
-    def __init__(self, adaptor, devicesettings, generalsettings=None):
+    def __init__(self, adaptor, devicesettings, generalsettings={}):
         super(ThermoStatHotWaterWeek, self).__init__(adaptor, devicesettings, generalsettings)
         self._expected_model_number = 4
         self._set_expected_field_values()

@@ -24,7 +24,7 @@ class HeatmiserDevice(object):
     lastreadtime = 0 #records last time of a successful read
 
     ## Initialisation functions and low level functions
-    def __init__(self, adaptor, devicesettings, generalsettings=None):
+    def __init__(self, adaptor, devicesettings, generalsettings={}):
         
         self._adaptor = adaptor
 
@@ -42,7 +42,6 @@ class HeatmiserDevice(object):
         self._buildfieldtables()
         self.data = dict.fromkeys(self._fieldnametonum.keys(), None)
         self.floorlimiting = None
-        self.heat_schedule = self.water_schedule = None
         self.lastwritetime = None
         self.lastreadtime = None
         self._load_settings(devicesettings, generalsettings)
@@ -52,9 +51,8 @@ class HeatmiserDevice(object):
     def _load_settings(self, settings, generalsettings):
         """Loading settings from dictionary into properties"""
         
-        if not generalsettings is None:
-            for name, value in generalsettings.iteritems():
-                setattr(self, name, value)
+        for name, value in generalsettings.iteritems():
+            setattr(self, name, value)
 
         for name, value in settings.iteritems():
             setattr(self, name, value)
@@ -125,31 +123,24 @@ class HeatmiserDevice(object):
 
     def read_field(self, fieldname, maxage=None):
         """Returns a fields value, gets from the device if to old"""
-        #return field value
-        #get field from network if
+        return read_fields([fieldname], maxage)[0]
+    
+    def read_fields(self, fieldnames, maxage=None):
+        """Returns a list of field values, gets from the device if any are to old"""
+        #only get field from network if
         # maxage = None, older than the default from fields
         # maxage = -1, not read before
         # maxage >=0, older than maxage
         # maxage = 0, always
-        if maxage == 0 or not getattr(self, fieldname).check_data_fresh(maxage):
-            if self.autoreadall is True:
-                self.get_field_range(fieldname)
-            else:
-                raise ValueError("Need to read %s first"%fieldname)
-        return self.data[fieldname]
-    
-    def read_fields(self, fieldnames, maxage=None):
-        """Returns a list of field values, gets from the device if any are to old"""
-        #find which fields need getting because to old
         
         fieldids = [self._fieldnametonum[fieldname] for fieldname in fieldnames if hasattr(self, fieldname) and (maxage == 0 or not getattr(self, fieldname).check_data_fresh(maxage))]
-        
         fieldids = list(set(fieldids)) #remove duplicates, ordering doesn't matter
         
-        if len(fieldids) > 0 and self.autoreadall is True:
-            self._get_fields(fieldids)
-        elif len(fieldids) > 0:
-            raise ValueError("Need to read fields first")
+        if len(fieldids) > 0:
+            if self.autoreadall is True:
+                self._get_fields(fieldids)
+            else:
+                raise ValueError("Need to read fields first")
         return [self.data[fieldname] if hasattr(self, fieldname) else None for fieldname in fieldnames ]
     
     def get_variables(self):
@@ -249,7 +240,6 @@ class HeatmiserDevice(object):
     
     def _estimate_blocks_read_time(self, blocks):
         """estimates read time for a set of blocks, including the COM_BUS_RESET_TIME between blocks
-        
         excludes the COM_BUS_RESET_TIME before first block"""
         readtimes = [self._estimate_read_time(x[2]) for x in blocks]
         return sum(readtimes) + self._adaptor.min_time_between_reads() * (len(blocks) - 1)
@@ -339,8 +329,7 @@ class HeatmiserDevice(object):
         except serial.SerialException as err:
             logging.warn("C%i failed to set field %s to %s, due to %s"%(self.address, fieldname.ljust(FIELD_NAME_LENGTH), csvlist(printvalues), str(err)))
             raise
-        else:
-            logging.info("C%i set field %s to %s"%(self.address, fieldname.ljust(FIELD_NAME_LENGTH), csvlist(printvalues)))
+        logging.info("C%i set field %s to %s"%(self.address, fieldname.ljust(FIELD_NAME_LENGTH), csvlist(printvalues)))
         
         self.lastwritetime = time.time()
         self.data[fieldname] = field.update_value(values, self.lastwritetime)
@@ -350,8 +339,7 @@ class HeatmiserDevice(object):
         #It groups adjacent fields and issues multiple sets if required.
         #inputs must be matching length lists
         
-        
-        fields = [getattr(self, fieldname) for fieldname in fieldnames]#Get fields
+        fields = [getattr(self, fieldname) for fieldname in fieldnames if hasattr(self, fieldname)]#Get fields
         outputdata = self._get_payload_blocks_from_list(fields, values)
         try:
             for unique_start_address, lengthbytes, payloadbytes, firstfieldname, lastfieldname, writtenvalues, fields in outputdata:
@@ -362,8 +350,7 @@ class HeatmiserDevice(object):
         except serial.SerialException as err:
             logging.warn("C%i settings failed of fields %s, Serial Port error %s"%(self.address, self._csvlist_field_names_from(fields), str(err)))
             raise
-        else:
-            logging.info("C%i set fields %s in %i blocks"%(self.address, self._csvlist_field_names_from(fields), len(outputdata)))
+        logging.info("C%i set fields %s in %i blocks"%(self.address, self._csvlist_field_names_from(fields), len(outputdata)))
 
     def _update_fields_values(self, values, fields):
         """update the field values once data successfully written"""
