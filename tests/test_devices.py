@@ -154,11 +154,6 @@ class TestOtherFunctions(unittest.TestCase):
         logging.basicConfig(level=logging.ERROR)
         self.settings = {'address':1, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_e_model', 'expected_prog_mode':PROG_MODE_DAY}
         self.func = ThermoStatDay(None, self.settings)
-    
-    def test_get_dcb_address(self):
-        self.assertEqual(0, self.func._get_dcb_address(0))
-        self.assertEqual(24, self.func._get_dcb_address(24))
-        self.assertEqual(DCB_INVALID, self.func._get_dcb_address(26))
         
     def test_getfieldblocks(self):
         self.assertEqual([[25, 29, 8]], self.func._get_field_blocks_from_range('remoteairtemp', 'hotwaterdemand'))
@@ -260,7 +255,8 @@ class TestSettingData(unittest.TestCase):
     def test_setfield_3(self):
         """Check hotwaterdemand mapping"""
         settings2 = {'address':1, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_hw_model', 'expected_prog_mode':PROG_MODE_DAY}
-        self.func._update_settings(settings2, None)
+        #self.func._update_settings(settings2, None)
+        self.func = ThermoStatHotWaterDay(self.tester, settings2)
         #make sure read time is set and check value
         self.func.set_field('hotwaterdemand', WRITE_HOTWATERDEMAND_OVER_OFF)
         self.assertNotEqual(getattr(self.func, 'hotwaterdemand').lastreadtime, None)

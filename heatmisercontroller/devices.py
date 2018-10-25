@@ -30,7 +30,7 @@ class ThermoStatWeek(HeatmiserDevice):
     def __init__(self, adaptor, devicesettings, generalsettings=None):
         super(ThermoStatWeek, self).__init__(adaptor, devicesettings, generalsettings)
         self._expected_model_number = 3
-        
+        self._set_expected_field_values()
         #thermostat specific
         self.is_hot_water = False
     
@@ -371,6 +371,7 @@ class ThermoStatHotWaterWeek(ThermoStatWeek):
     def __init__(self, adaptor, devicesettings, generalsettings=None):
         super(ThermoStatHotWaterWeek, self).__init__(adaptor, devicesettings, generalsettings)
         self._expected_model_number = 4
+        self._set_expected_field_values()
         
         #thermostat specific
         self.is_hot_water = True

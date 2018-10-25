@@ -24,8 +24,8 @@ class HeatmiserFieldUnknown(object):
     def __int__(self):
         return self.value
         
-    def __repr__(self):
-        return str(self.value)
+    #def __repr__(self):
+    #    return str(self.value)
      
     def __str__(self):
         return str(self.value)
@@ -38,7 +38,7 @@ class HeatmiserFieldUnknown(object):
     
     def last_dcb_byte_address(self):
         """returns the address of the last dcb byte"""
-        return self.dcbaddress + self.fieldlength
+        return self.dcbaddress + self.fieldlength - 1
     
     def update_data(self, data, readtime):
         """update stored data and readtime. Don't compute value because don't know how to map"""
@@ -105,7 +105,7 @@ class HeatmiserField(HeatmiserFieldUnknown):
         """update stored data and readtime if data valid. Compute and store value from data."""
         value = self._calculate_value(data)
         if not self.expectedvalue is None and value != self.expectedvalue:
-            raise HeatmiserResponseError('Value %i is unexpected for %s'%(value, self.name))
+            raise HeatmiserResponseError('Value %i is unexpected for %s, expected %i'%(value, self.name, self.expectedvalue))
         self._validate_range(value)
         self.data = data
         self.value = value

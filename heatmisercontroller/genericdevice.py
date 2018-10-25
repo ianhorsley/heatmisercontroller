@@ -8,6 +8,7 @@ import logging
 import time
 import copy
 import serial
+import operator
 
 from fields import HeatmiserFieldSingleReadOnly, HeatmiserFieldDoubleReadOnly
 from hm_constants import DEFAULT_PROTOCOL, DCB_INVALID
@@ -37,12 +38,11 @@ class HeatmiserDevice(object):
         self.expected_prog_mode = None
         self._expected_model_number = 0
         self.long_name = ''
-
+        self.autoreadall = False
         self._buildfieldtables()
         self.data = dict.fromkeys(self._fieldnametonum.keys(), None)
         self.floorlimiting = None
         self.timeerr = None
-        self.fullreadtime = 0 #default to full read
         self.heat_schedule = self.water_schedule = None
         self.lastwritetime = None
         self.lastreadtime = None
@@ -51,7 +51,7 @@ class HeatmiserDevice(object):
         self.rawdata = [None] * self.dcb_length
 
     def _update_settings(self, settings, generalsettings):
-        """Laod and process settings."""
+        """Load and process settings."""
 
         self._load_settings(settings, generalsettings)
         self._set_expected_field_values()
@@ -91,6 +91,10 @@ class HeatmiserDevice(object):
     def _csvlist_field_names_from(self, fields):
         """return csv of fieldnames from list of fields"""
         return ', '.join(field.name for field in fields)
+        
+    def _csvlist_field_names_from_ids(self, fieldids):
+        """return csv of fieldnames from list of fieldids"""
+        return operator.itemgetter(*fieldids)(self.fields)
         
     def _buildfieldtables(self):
         """build dict to map field name to index"""
@@ -145,8 +149,6 @@ class HeatmiserDevice(object):
     def read_fields(self, fieldnames, maxage=None):
         """Returns a list of field values, gets from the device if any are to old"""
         #find which fields need getting because to old
-        if not isinstance(fieldnames, list):
-            raise TypeError("fieldnames must be a list")
         
         fieldids = [self._fieldnametonum[fieldname] for fieldname in fieldnames if hasattr(self, fieldname) and (maxage == 0 or not getattr(self, fieldname).check_data_fresh(maxage))]
         
@@ -156,7 +158,7 @@ class HeatmiserDevice(object):
             self._get_fields(fieldids)
         elif len(fieldids) > 0:
             raise ValueError("Need to read fields first")
-        return [self.data[fieldname] for fieldname in fieldnames]
+        return [self.data[fieldname] if hasattr(self, fieldname) else None for fieldname in fieldnames ]
     
     def get_variables(self):
         """Gets setroomtemp to hotwaterdemand fields from device"""
@@ -168,57 +170,43 @@ class HeatmiserDevice(object):
     
     def get_field_range(self, firstfieldname, lastfieldname=None):
         """gets fieldrange from device
-        
         safe for blocks crossing gaps in dcb"""
         if lastfieldname == None:
             lastfieldname = firstfieldname
 
         blockstoread = self._get_field_blocks_from_range(firstfieldname, lastfieldname)
-        logging.debug(blockstoread)
-        estimatedreadtime = self._estimate_blocks_read_time(blockstoread)
-        
-        if estimatedreadtime < self.fullreadtime - 0.02: #if to close to full read time, then read all
-            try:
-                for firstfieldid, lastfieldid, blocklength in blockstoread:
-                    logging.debug("C%i Reading ui %i to %i len %i, proc %s to %s"%(self.address, self.fields[firstfieldid].address, self.fields[lastfieldid].address, blocklength, self.fields[firstfieldid].name, self.fields[lastfieldid].name))
-                    rawdata = self._adaptor.read_from_device(self.address, self.protocol, self.fields[firstfieldid].address, blocklength)
-                    self.lastreadtime = time.time()
-                    self._procpartpayload(rawdata, self.fields[firstfieldid].name, self.fields[lastfieldid].name)
-            except serial.SerialException as err:
-                logging.warn("C%i Read failed of fields %s to %s, Serial Port error %s"%(self.address, firstfieldname.ljust(FIELD_NAME_LENGTH), lastfieldname.ljust(FIELD_NAME_LENGTH), str(err)))
-                raise
-            else:
-                logging.info("C%i Read fields %s to %s, in %i blocks"%(self.address, firstfieldname.ljust(FIELD_NAME_LENGTH), lastfieldname.ljust(FIELD_NAME_LENGTH), len(blockstoread)))
-        else:
-            logging.debug("C%i Read fields %s to %s by read_all, %0.3f %0.3f"%(self.address, firstfieldname.ljust(FIELD_NAME_LENGTH), lastfieldname.ljust(FIELD_NAME_LENGTH), estimatedreadtime, self.fullreadtime))
-            self.read_all()
-            
+        fieldstring = firstfieldname.ljust(FIELD_NAME_LENGTH) + " " + lastfieldname.ljust(FIELD_NAME_LENGTH)
+        self._get_field_blocks(blockstoread, fieldstring)
+    
     def _get_fields(self, fieldids):
         """gets fields from device
-        
         safe for blocks crossing gaps in dcb"""
-        
         blockstoread = self._get_field_blocks_from_id_list(fieldids)
+        self._get_field_blocks(blockstoread, self._csvlist_field_names_from_ids(fieldids))
+    
+    def _get_field_blocks(self, blockstoread, fieldstring):
+        """gets field blocks from device
+        NOT safe for dcb gaps"""
+        #blockstoread list of [field, field, blocklength in bytes]
         logging.debug(blockstoread)
         estimatedreadtime = self._estimate_blocks_read_time(blockstoread)
-        
+
         if estimatedreadtime < self.fullreadtime - 0.02: #if to close to full read time, then read all
             try:
-                for firstfieldid, lastfieldid, blocklength in blockstoread:
-                    logging.debug("C%i Reading ui %i to %i len %i, proc %s to %s"%(self.address, self.fields[firstfieldid].address, self.fields[lastfieldid].address, blocklength, self.fields[firstfieldid].name, self.fields[lastfieldid].name))
-                    rawdata = self._adaptor.read_from_device(self.address, self.protocol, self.fields[firstfieldid].address, blocklength)
+                for firstfield, lastfield, blocklength in blockstoread:
+                    logging.debug("C%i Reading ui %i to %i len %i, proc %s to %s"%(self.address, firstfield.address, lastfield.address, blocklength, firstfield.name, lastfield.name))
+                    rawdata = self._adaptor.read_from_device(self.address, self.protocol, firstfield.address, blocklength)
                     self.lastreadtime = time.time()
-                    self._procpartpayload(rawdata, self.fields[firstfieldid].name, self.fields[lastfieldid].name)
+                    self._procpartpayload(rawdata, firstfield.name, lastfield.name)
             except serial.SerialException as err:
-                logging.warn("C%i Read failed of fields %s, Serial Port error %s"%(self.address, self._csvlist_field_names_from(fieldids), str(err)))
+                logging.warn("C%i Read failed of fields %s, Serial Port error %s"%(self.address, fieldstring, str(err)))
                 raise
             else:
-                logging.info("C%i Read fields %s in %i blocks"%(self.address, self._csvlist_field_names_from(fieldids), len(blockstoread)))
-                    
+                logging.info("C%i Read fields %s, in %i blocks"%(self.address, fieldstring, len(blockstoread)))
         else:
-            logging.debug("C%i Read fields %s by read_all, %0.3f %0.3f"%(self.address, self._csvlist_field_names_from(fieldids), estimatedreadtime, self.fullreadtime))
+            logging.debug("C%i Read fields %s by read_all, %0.3f %0.3f"%(self.address, fieldstring, estimatedreadtime, self.fullreadtime))
             self.read_all()
-                
+              
         #data can only be requested from the controller in contiguous blocks
         #functions takes a first and last field and separates out the individual blocks available for the controller type
         #return, fieldstart, fieldend, length of read in bytes
@@ -231,20 +219,20 @@ class HeatmiserDevice(object):
     def _get_field_blocks_from_id_range(self, firstfieldid, lastfieldid):
         """Takes range of fieldids and returns field blocks
         
-        Splits by invalid fields"""
+        Splits by fields by address breaks."""
         blocks = []
-        previousfieldvalid = False
+        previousfield = None
 
-        for fieldnum, fieldvalid in enumerate(self._fieldsvalid[firstfieldid:lastfieldid + 1], firstfieldid):
-            if previousfieldvalid is False and not fieldvalid is False:
-                start = fieldnum
-            elif not previousfieldvalid is False and fieldvalid is False:
-                blocks.append([start, fieldnum - 1, self.fields[fieldnum - 1].address + self.fields[fieldnum - 1].fieldlength - self.fields[start].address])
-            
-            previousfieldvalid = fieldvalid
+        for field in self.fields[firstfieldid:lastfieldid + 1]:
+            if not previousfield is None and field.address - previousfield.address - previousfield.fieldlength == 0: #if follows previousfield:
+                blocks[-1][1] = field
+                blocks[-1][2] = field.last_dcb_byte_address() - blocks[-1][0].dcbaddress + 1
+            else:
+                blocks.append([field, None, field.fieldlength])
+            previousfield = field
 
-        if not previousfieldvalid is False:
-            blocks.append([start, lastfieldid, self.fields[lastfieldid].address + self.fields[lastfieldid].fieldlength - self.fields[start].address])
+        blocks[-1][1] = previousfield
+        blocks[-1][2] = previousfield.last_dcb_byte_address() - blocks[-1][0].dcbaddress + 1
         return blocks
     
     def _get_field_blocks_from_id_list(self, fieldids):
@@ -252,20 +240,19 @@ class HeatmiserDevice(object):
         
         Splits by invalid fields. Uses timing to determine the optimum blocking"""
         #find blocks between lowest and highest field
-        fieldblocks = self._get_field_blocks_from_id_range(min(fieldids), max(fieldids))
-        
+        fullfieldblock = self._get_field_blocks_from_id_range(min(fieldids), max(fieldids))
         readblocks = []
-        for block in fieldblocks:
+        for firstfield, lastfield, _ in fullfieldblock:
             #find fields in that block
-            inblock = [fieldid for fieldid in fieldids if block[0] <= fieldid <= block[1]]
+            inblock = [fieldid for fieldid in fieldids if self._fieldnametonum[firstfield.name] <= fieldid <= self._fieldnametonum[lastfield.name]]
             if len(inblock) > 0:
                 #if single read is shorter than individual
-                readlen = self.fields[max(inblock)].fieldlength + self.fields[max(inblock)].address - self.fields[min(inblock)].address
+                readlen = self.fields[max(inblock)].last_dcb_byte_address() - self.fields[min(inblock)].dcbaddress + 1
                 if self._estimate_read_time(readlen) < sum([self._estimate_read_time(self.fields[fieldid].fieldlength) for fieldid in inblock]):
-                    readblocks.append([min(inblock), max(inblock), readlen])
+                    readblocks.append([self.fields[min(inblock)], self.fields[max(inblock)], readlen])
                 else:
                     for ids in inblock:
-                        readblocks.append([ids, ids, self.fields[ids].fieldlength])
+                        readblocks.append([self.fields[ids], self.fields[ids], self.fields[ids].fieldlength])
         return readblocks
     
     def _estimate_blocks_read_time(self, blocks):
@@ -289,12 +276,8 @@ class HeatmiserDevice(object):
         Checks the validity"""
         fieldname = fieldinfo.name
 
-        #logging.debug("Processing %s %s"%(fieldinfo.name,csvlist(data)))
-        if data is None:
-            value = None
-        else:
-            value = fieldinfo.update_data(data, self.lastreadtime)
-            #unless sent payload and don't know the read value
+        #logging.debug("Processing %s data %s"%(fieldinfo.name, csvlist(data)))
+        value = fieldinfo.update_data(data, self.lastreadtime)
         
         if fieldname == 'version' and self.expected_model != 'prt_hw_model':
             value = data[0] & 0x7f

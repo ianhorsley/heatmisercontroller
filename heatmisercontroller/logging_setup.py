@@ -76,4 +76,5 @@ def initialize_logger_full(output_dir, screenlevel):
         _add_allfilehandler(output_dir, logger)
 
 def csvlist(listitems):
-    ', '.join(map(str, listitems))
+    """function to combine list items into csv string"""
+    return ', '.join(map(str, listitems))
