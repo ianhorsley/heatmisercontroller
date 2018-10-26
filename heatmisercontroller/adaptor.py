@@ -58,7 +58,6 @@ class HeatmiserAdaptor(object):
 
     def _update_settings(self, settings):
         """Check settings and update if needed."""
-
         for name, value in settings['controller'].iteritems():
             setattr(self, name, value)
 
@@ -72,28 +71,28 @@ class HeatmiserAdaptor(object):
             setattr(self.serport, name, value)
 
         if not self.serport.isOpen() and wasopen:
-            try:
-                self.serport.open()
-            except serial.SerialException as err:
-                logging.error("Could not open serial port %s: %s" % (self.serport.portstr, err))
-                raise
+            self._open_port()
 
 ### low level serial commands
 
     def connect(self):
         """If not open, open serial port and log settings"""
         if not self.serport.isOpen():
-            try:
-                self.serport.open()
-            except serial.SerialException as err:
-                logging.error("Could not open serial port %s: %s" % (self.serport.portstr, err))
-                raise
+            self._open_port()
 
             logging.info("Gen %s port opened"% (self.serport.portstr))
             logging.debug("Gen %s baud, %s bit, %s parity, with %s stopbits, timeout %s seconds" % (self.serport.baudrate, self.serport.bytesize, self.serport.parity, self.serport.stopbits, self.serport.timeout))
         else:
             logging.warn("Gen serial port was already open")
-        
+    
+    def _open_port(self):
+        """open serial port and logging errors"""
+        try:
+            self.serport.open()
+        except serial.SerialException as err:
+            logging.error("Could not open serial port %s: %s" % (self.serport.portstr, err))
+            raise
+    
     def _disconnect(self):
         """check if serial port is open and if so close"""
         #shouldn't need to called directly because handled by destructor
@@ -102,7 +101,7 @@ class HeatmiserAdaptor(object):
             logging.info("Gen serial port closed")
         else:
             logging.warn("Gen serial port was already closed")
-
+    
     def _send_message(self, message):
         """Send message to serial port and log errors"""
         if not self.serport.isOpen():
