@@ -50,18 +50,18 @@ class TestReadingData(unittest.TestCase):
             
     def test_procfield(self):
         #unique_address, length, divisor, valid range
-        self.func._procfield([1], HeatmiserFieldSingleReadOnly('test', 0, 1, [], None))
-        self.func._procfield([1], HeatmiserFieldSingleReadOnly('test', 0, 1, [0, 1], None))
-        self.func._procfield([1, 1], HeatmiserFieldDoubleReadOnly('test', 0, 1, [0, 257], None))
-        self.func._procfield([4], HeatmiserFieldSingleReadOnly('model', 0, 1, [], None))
-        self.func._procfield([PROG_MODES[PROG_MODE_DAY]], HeatmiserFieldSingleReadOnly('programmode', 0, 1, [], None))
+        self.func._procfield([1], HeatmiserFieldSingleReadOnly('test', 0, [], None))
+        self.func._procfield([1], HeatmiserFieldSingleReadOnly('test', 0, [0, 1], None))
+        self.func._procfield([1, 1], HeatmiserFieldDoubleReadOnly('test', 0, [0, 257], None))
+        self.func._procfield([4], HeatmiserFieldSingleReadOnly('model', 0, [], None))
+        self.func._procfield([PROG_MODES[PROG_MODE_DAY]], HeatmiserFieldSingleReadOnly('programmode', 0, [], None))
         
     def test_procfield_range(self):
         with self.assertRaises(HeatmiserResponseError):
-            self.func._procfield([3], HeatmiserFieldSingleReadOnly('test', 0, 1, [0, 1], None))
+            self.func._procfield([3], HeatmiserFieldSingleReadOnly('test', 0, [0, 1], None))
             
     def test_procfield_model(self):
-        field = HeatmiserFieldSingleReadOnly('model', 0, 1, [], None)
+        field = HeatmiserFieldSingleReadOnly('model', 0, [], None)
         field.expectedvalue = self.func._expected_model_number
         with self.assertRaises(HeatmiserResponseError):
             self.func._procfield([3], field)

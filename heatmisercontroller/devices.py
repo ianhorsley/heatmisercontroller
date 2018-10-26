@@ -13,7 +13,7 @@ import logging
 import time
 
 from genericdevice import HeatmiserDevice
-from fields import HeatmiserFieldUnknown, HeatmiserFieldSingle, HeatmiserFieldSingleReadOnly, HeatmiserFieldDouble, HeatmiserFieldDoubleReadOnly, HeatmiserFieldTime, HeatmiserFieldHeat, HeatmiserFieldWater, HeatmiserFieldHotWaterDemand
+from fields import HeatmiserFieldSingle, HeatmiserFieldSingleReadOnly, HeatmiserFieldDouble, HeatmiserFieldDoubleReadOnly, HeatmiserFieldTime, HeatmiserFieldHeat, HeatmiserFieldWater, HeatmiserFieldHotWaterDemand, HeatmiserFieldDoubleReadOnlyTenths
 from hm_constants import DEFAULT_PROTOCOL, DEFAULT_PROG_MODE, BROADCAST_ADDR, SLAVE_ADDR_MIN, SLAVE_ADDR_MAX, MAX_UNIQUE_ADDRESS
 from hm_constants import MAX_AGE_LONG, MAX_AGE_MEDIUM, MAX_AGE_SHORT, MAX_AGE_USHORT
 from hm_constants import DEVICE_MODELS, PROG_MODES
@@ -40,36 +40,36 @@ class ThermoStatWeek(HeatmiserDevice):
         # dcb addresses could be computed from the completed field list and added to field.
         # all should have the first 4 fields, so put these in generic
         self.fields.extend([
-            HeatmiserFieldSingleReadOnly('tempformat', 5, 1, [0, 1], MAX_AGE_LONG),  # 00 C,  01 F
-            HeatmiserFieldSingleReadOnly('switchdiff', 6, 1, [1, 3], MAX_AGE_LONG),
-            HeatmiserFieldSingleReadOnly('frostprot', 7, 1, [0, 1], MAX_AGE_LONG),  #0=enable frost prot when display off,  (opposite in protocol manual,  but tested and user guide is correct)  (default should be enabled)
-            HeatmiserFieldDoubleReadOnly('caloffset', 8, 1, [], MAX_AGE_LONG),
-            HeatmiserFieldSingleReadOnly('outputdelay', 10, 1, [0, 15], MAX_AGE_LONG),  # minutes (to prevent rapid switching)
-            HeatmiserFieldSingleReadOnly('address', 11, 1, [SLAVE_ADDR_MIN, SLAVE_ADDR_MAX], MAX_AGE_LONG),
-            HeatmiserFieldSingleReadOnly('updwnkeylimit', 12, 1, [0, 10], MAX_AGE_LONG),   #limits use of up and down keys
-            HeatmiserFieldSingleReadOnly('sensorsavaliable', 13, 1, [0, 4], MAX_AGE_LONG),  #00 built in only,  01 remote air only,  02 floor only,  03 built in + floor,  04 remote + floor
-            HeatmiserFieldSingleReadOnly('optimstart', 14, 1, [0, 3], MAX_AGE_LONG),  # 0 to 3 hours,  default 0
-            HeatmiserFieldSingleReadOnly('rateofchange', 15, 1, [], MAX_AGE_LONG),  #number of minutes per degree to raise the temperature,  default 20. Applies to the Wake and Return comfort levels (1st and 3rd)
-            HeatmiserFieldSingleReadOnly('programmode', 16, 1, [0, 1], MAX_AGE_LONG),  #0=5/2,  1= 7day
-            HeatmiserFieldSingle('frosttemp', 17, 1, [7, 17], MAX_AGE_LONG),  #default is 12,  frost protection temperature
-            HeatmiserFieldSingle('setroomtemp', 18, 1, [5, 35], MAX_AGE_USHORT),
-            HeatmiserFieldSingle('floormaxlimit', 19, 1, [20, 45], MAX_AGE_LONG),
-            HeatmiserFieldSingleReadOnly('floormaxlimitenable', 20, 1, [0, 1], MAX_AGE_LONG),  #1=enable
-            HeatmiserFieldSingle('onoff', 21, 1, [0, 1], MAX_AGE_SHORT),  #1 = on
-            HeatmiserFieldSingle('keylock', 22, 1, [0, 1], MAX_AGE_SHORT),  #1 = on
-            HeatmiserFieldSingle('runmode', 23, 1, [0, 1], MAX_AGE_SHORT),   #0 = heating mode,  1 = frost protection mode
-            HeatmiserFieldDouble('holidayhours', 24, 1, [0, 720], MAX_AGE_SHORT),  #range guessed and tested,  setting to 0 cancels hold and puts back to program 
+            HeatmiserFieldSingleReadOnly('tempformat', 5, [0, 1], MAX_AGE_LONG),  # 00 C,  01 F
+            HeatmiserFieldSingleReadOnly('switchdiff', 6, [1, 3], MAX_AGE_LONG),
+            HeatmiserFieldSingleReadOnly('frostprot', 7, [0, 1], MAX_AGE_LONG),  #0=enable frost prot when display off,  (opposite in protocol manual,  but tested and user guide is correct)  (default should be enabled)
+            HeatmiserFieldDoubleReadOnly('caloffset', 8, [], MAX_AGE_LONG),
+            HeatmiserFieldSingleReadOnly('outputdelay', 10, [0, 15], MAX_AGE_LONG),  # minutes (to prevent rapid switching)
+            HeatmiserFieldSingleReadOnly('address', 11, [SLAVE_ADDR_MIN, SLAVE_ADDR_MAX], MAX_AGE_LONG),
+            HeatmiserFieldSingleReadOnly('updwnkeylimit', 12, [0, 10], MAX_AGE_LONG),   #limits use of up and down keys
+            HeatmiserFieldSingleReadOnly('sensorsavaliable', 13, [0, 4], MAX_AGE_LONG),  #00 built in only,  01 remote air only,  02 floor only,  03 built in + floor,  04 remote + floor
+            HeatmiserFieldSingleReadOnly('optimstart', 14, [0, 3], MAX_AGE_LONG),  # 0 to 3 hours,  default 0
+            HeatmiserFieldSingleReadOnly('rateofchange', 15, [], MAX_AGE_LONG),  #number of minutes per degree to raise the temperature,  default 20. Applies to the Wake and Return comfort levels (1st and 3rd)
+            HeatmiserFieldSingleReadOnly('programmode', 16, [0, 1], MAX_AGE_LONG),  #0=5/2,  1= 7day
+            HeatmiserFieldSingle('frosttemp', 17, [7, 17], MAX_AGE_LONG),  #default is 12,  frost protection temperature
+            HeatmiserFieldSingle('setroomtemp', 18, [5, 35], MAX_AGE_USHORT),
+            HeatmiserFieldSingle('floormaxlimit', 19, [20, 45], MAX_AGE_LONG),
+            HeatmiserFieldSingleReadOnly('floormaxlimitenable', 20, [0, 1], MAX_AGE_LONG),  #1=enable
+            HeatmiserFieldSingle('onoff', 21, [0, 1], MAX_AGE_SHORT),  #1 = on
+            HeatmiserFieldSingle('keylock', 22, [0, 1], MAX_AGE_SHORT),  #1 = on
+            HeatmiserFieldSingle('runmode', 23, [0, 1], MAX_AGE_SHORT),   #0 = heating mode,  1 = frost protection mode
+            HeatmiserFieldDouble('holidayhours', 24, [0, 720], MAX_AGE_SHORT),  #range guessed and tested,  setting to 0 cancels hold and puts back to program 
             #HeatmiserFieldUnknown('unknown', 26, 1, [], MAX_AGE_LONG, 6),  # gap from 26 to 31
-            HeatmiserFieldDouble('tempholdmins', 32, 1, [0, 5760], MAX_AGE_SHORT),  #range guessed and tested,  setting to 0 cancels hold and puts setroomtemp back to program
-            HeatmiserFieldDoubleReadOnly('remoteairtemp', 34, 10, [], MAX_AGE_USHORT),  #ffff if no sensor
-            HeatmiserFieldDoubleReadOnly('floortemp', 36, 10, [], MAX_AGE_USHORT),  #ffff if no sensor
-            HeatmiserFieldDoubleReadOnly('airtemp', 38, 10, [], MAX_AGE_USHORT),  #ffff if no sensor
-            HeatmiserFieldSingleReadOnly('errorcode', 40, 1, [0, 3], MAX_AGE_SHORT),  # 0 is no error # errors,  0 built in,  1,  floor,  2 remote
-            HeatmiserFieldSingleReadOnly('heatingdemand', 41, 1, [0, 1], MAX_AGE_USHORT),  #0 none,  1 heating currently
-            HeatmiserFieldTime('currenttime', 43, 1, [[1, 7], [0, 23], [0, 59], [0, 59]], MAX_AGE_USHORT),  #day (Mon - Sun),  hour,  min,  sec.
+            HeatmiserFieldDouble('tempholdmins', 32, [0, 5760], MAX_AGE_SHORT),  #range guessed and tested,  setting to 0 cancels hold and puts setroomtemp back to program
+            HeatmiserFieldDoubleReadOnlyTenths('remoteairtemp', 34, [], MAX_AGE_USHORT),  #ffff if no sensor
+            HeatmiserFieldDoubleReadOnlyTenths('floortemp', 36, [], MAX_AGE_USHORT),  #ffff if no sensor
+            HeatmiserFieldDoubleReadOnlyTenths('airtemp', 38, [], MAX_AGE_USHORT),  #ffff if no sensor
+            HeatmiserFieldSingleReadOnly('errorcode', 40, [0, 3], MAX_AGE_SHORT),  # 0 is no error # errors,  0 built in,  1,  floor,  2 remote
+            HeatmiserFieldSingleReadOnly('heatingdemand', 41, [0, 1], MAX_AGE_USHORT),  #0 none,  1 heating currently
+            HeatmiserFieldTime('currenttime', 43, [[1, 7], [0, 23], [0, 59], [0, 59]], MAX_AGE_USHORT),  #day (Mon - Sun),  hour,  min,  sec.
             #5/2 progamming #if hour = 24 entry not used
-            HeatmiserFieldHeat('wday_heat', 47, 1, [[0, 24], [0, 59], [5, 35]], MAX_AGE_MEDIUM),  #hour,  min,  temp  (should minutes be only 0 and 30?)
-            HeatmiserFieldHeat('wend_heat', 59, 1, [[0, 24], [0, 59], [5, 35]], MAX_AGE_MEDIUM)
+            HeatmiserFieldHeat('wday_heat', 47, [[0, 24], [0, 59], [5, 35]], MAX_AGE_MEDIUM),  #hour,  min,  temp  (should minutes be only 0 and 30?)
+            HeatmiserFieldHeat('wend_heat', 59, [[0, 24], [0, 59], [5, 35]], MAX_AGE_MEDIUM)
             ])
             
         self.water_schedule = None
@@ -158,7 +158,7 @@ class ThermoStatWeek(HeatmiserDevice):
     def read_air_sensor_type(self):
         """Reports airsensor type"""
         #1 local, 2 remote
-        self.read_field('sensorsavaliable', None)
+        self.read_field('sensorsavaliable')
 
         if self.sensorsavaliable == READ_SENSORS_AVALIABLE_INT_ONLY or self.sensorsavaliable == READ_SENSORS_AVALIABLE_INT_FLOOR:
             return 1
@@ -172,13 +172,6 @@ class ThermoStatWeek(HeatmiserDevice):
             return self.read_field('airtemp', self.max_age_temp)
         else:
             return self.read_field('remoteairtemp', self.max_age_temp)
-    
-    def read_raw_data(self, startfieldname=None, endfieldname=None):
-        """Return subset of raw data"""
-        if startfieldname == None or endfieldname == None:
-            return self.rawdata
-        else:
-            return self.rawdata[self._get_dcb_address(uniadd[startfieldname][UNIADD_ADD]):self._get_dcb_address(uniadd[endfieldname][UNIADD_ADD])]
         
     def read_time(self, maxage=0):
         """Readtime, getting from device if required"""
@@ -263,13 +256,13 @@ class ThermoStatDay(ThermoStatWeek):
         """add to list of fields"""
         super(ThermoStatDay, self)._buildfields()
         self.fields.extend([
-            HeatmiserFieldHeat('mon_heat', 103, 1, [[0, 24], [0, 59], [5, 35]], MAX_AGE_MEDIUM),
-            HeatmiserFieldHeat('tues_heat', 115, 1, [[0, 24], [0, 59], [5, 35]], MAX_AGE_MEDIUM),
-            HeatmiserFieldHeat('wed_heat', 127, 1, [[0, 24], [0, 59], [5, 35]], MAX_AGE_MEDIUM),
-            HeatmiserFieldHeat('thurs_heat', 139, 1, [[0, 24], [0, 59], [5, 35]], MAX_AGE_MEDIUM),
-            HeatmiserFieldHeat('fri_heat', 151, 1, [[0, 24], [0, 59], [5, 35]], MAX_AGE_MEDIUM),
-            HeatmiserFieldHeat('sat_heat', 163, 1, [[0, 24], [0, 59], [5, 35]], MAX_AGE_MEDIUM),
-            HeatmiserFieldHeat('sun_heat', 175, 1, [[0, 24], [0, 59], [5, 35]], MAX_AGE_MEDIUM)
+            HeatmiserFieldHeat('mon_heat', 103, [[0, 24], [0, 59], [5, 35]], MAX_AGE_MEDIUM),
+            HeatmiserFieldHeat('tues_heat', 115, [[0, 24], [0, 59], [5, 35]], MAX_AGE_MEDIUM),
+            HeatmiserFieldHeat('wed_heat', 127, [[0, 24], [0, 59], [5, 35]], MAX_AGE_MEDIUM),
+            HeatmiserFieldHeat('thurs_heat', 139, [[0, 24], [0, 59], [5, 35]], MAX_AGE_MEDIUM),
+            HeatmiserFieldHeat('fri_heat', 151, [[0, 24], [0, 59], [5, 35]], MAX_AGE_MEDIUM),
+            HeatmiserFieldHeat('sat_heat', 163, [[0, 24], [0, 59], [5, 35]], MAX_AGE_MEDIUM),
+            HeatmiserFieldHeat('sun_heat', 175, [[0, 24], [0, 59], [5, 35]], MAX_AGE_MEDIUM)
         ])
         
         self.heat_schedule = SchedulerDayHeat()
@@ -290,9 +283,9 @@ class ThermoStatHotWaterWeek(ThermoStatWeek):
         """add to list of fields"""
         super(ThermoStatHotWaterWeek, self)._buildfields()
         self.fields.extend([
-            HeatmiserFieldHotWaterDemand('hotwaterdemand', 42, 1, [0, 2], MAX_AGE_USHORT),  # read [0=off, 1=on],  write [0=as prog, 1=override on, 2=overide off]
-            HeatmiserFieldWater('wday_water', 71, 1, [[0, 24], [0, 59]], MAX_AGE_MEDIUM),  # pairs,  on then off repeated,  hour,  min
-            HeatmiserFieldWater('wend_water', 87, 1, [[0, 24], [0, 59]], MAX_AGE_MEDIUM)
+            HeatmiserFieldHotWaterDemand('hotwaterdemand', 42, [0, 2], MAX_AGE_USHORT),  # read [0=off, 1=on],  write [0=as prog, 1=override on, 2=overide off]
+            HeatmiserFieldWater('wday_water', 71, [[0, 24], [0, 59]], MAX_AGE_MEDIUM),  # pairs,  on then off repeated,  hour,  min
+            HeatmiserFieldWater('wend_water', 87, [[0, 24], [0, 59]], MAX_AGE_MEDIUM)
             #7day progamming
         ])
         
@@ -350,13 +343,13 @@ class ThermoStatHotWaterDay(ThermoStatDay, ThermoStatHotWaterWeek):
         super(ThermoStatHotWaterDay, self)._buildfields()
         self.fields.extend([
             #7day progamming
-            HeatmiserFieldWater('mon_water', 187, 1, [[0, 24], [0, 59]], MAX_AGE_MEDIUM),
-            HeatmiserFieldWater('tues_water', 203, 1, [[0, 24], [0, 59]], MAX_AGE_MEDIUM),
-            HeatmiserFieldWater('wed_water', 219, 1, [[0, 24], [0, 59]], MAX_AGE_MEDIUM),
-            HeatmiserFieldWater('thurs_water', 235, 1, [[0, 24], [0, 59]], MAX_AGE_MEDIUM),
-            HeatmiserFieldWater('fri_water', 251, 1, [[0, 24], [0, 59]], MAX_AGE_MEDIUM),
-            HeatmiserFieldWater('sat_water', 267, 1, [[0, 24], [0, 59]], MAX_AGE_MEDIUM),
-            HeatmiserFieldWater('sun_water', 283, 1, [[0, 24], [0, 59]], MAX_AGE_MEDIUM)
+            HeatmiserFieldWater('mon_water', 187, [[0, 24], [0, 59]], MAX_AGE_MEDIUM),
+            HeatmiserFieldWater('tues_water', 203, [[0, 24], [0, 59]], MAX_AGE_MEDIUM),
+            HeatmiserFieldWater('wed_water', 219, [[0, 24], [0, 59]], MAX_AGE_MEDIUM),
+            HeatmiserFieldWater('thurs_water', 235, [[0, 24], [0, 59]], MAX_AGE_MEDIUM),
+            HeatmiserFieldWater('fri_water', 251, [[0, 24], [0, 59]], MAX_AGE_MEDIUM),
+            HeatmiserFieldWater('sat_water', 267, [[0, 24], [0, 59]], MAX_AGE_MEDIUM),
+            HeatmiserFieldWater('sun_water', 283, [[0, 24], [0, 59]], MAX_AGE_MEDIUM)
         ])
         self.water_schedule = SchedulerDayWater()
         

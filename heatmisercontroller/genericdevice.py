@@ -59,10 +59,10 @@ class HeatmiserDevice(object):
     def _buildfields(self):
         """build list of fields"""
         self.fields = [
-            HeatmiserFieldDoubleReadOnly('DCBlen', 0, 1, [], MAX_AGE_LONG),
-            HeatmiserFieldSingleReadOnly('vendor', 2, 1, [0, 1], MAX_AGE_LONG),  #00 heatmiser,  01 OEM
-            HeatmiserFieldSingleReadOnly('version', 3, 1, [], MAX_AGE_LONG),
-            HeatmiserFieldSingleReadOnly('model', 4, 1, [0, 5], MAX_AGE_LONG),  # DT/DT-E/PRT/PRT-E 00/01/02/03
+            HeatmiserFieldDoubleReadOnly('DCBlen', 0, [], MAX_AGE_LONG),
+            HeatmiserFieldSingleReadOnly('vendor', 2, [0, 1], MAX_AGE_LONG),  #00 heatmiser,  01 OEM
+            HeatmiserFieldSingleReadOnly('version', 3, [], MAX_AGE_LONG),
+            HeatmiserFieldSingleReadOnly('model', 4, [0, 5], MAX_AGE_LONG),  # DT/DT-E/PRT/PRT-E 00/01/02/03
         ]
     
     def _set_expected_field_values(self):
@@ -100,8 +100,12 @@ class HeatmiserDevice(object):
         
     ## Basic reading and getting functions
     
+    def read_raw_data(self, startfieldname, endfieldname):
+        """Return subset of raw data"""
+        return self.rawdata[self.startfieldname.dcbaddress:self.endfieldname.last_dcb_byte_address()]
+    
     def read_all(self):
-        """Returns all the field values having got them from the device"""
+        """Returns all the rawdata having got it from the device"""
         try:
             self.rawdata = self._adaptor.read_all_from_device(self.address, self.protocol, self.dcb_length)
         except serial.SerialException as err:
@@ -298,7 +302,7 @@ class HeatmiserDevice(object):
         field = self.fields[fieldid]
         
         field.is_writable()
-        field.check_payload_values(values)
+        field.check_values(values)
         payloadbytes = field.format_data_from_value(values)
         
         printvalues = values if isinstance(values, list) else [values] #adjust for logging
@@ -321,9 +325,9 @@ class HeatmiserDevice(object):
         fields = [getattr(self, fieldname) for fieldname in fieldnames if hasattr(self, fieldname)]#Get fields
         outputdata = self._get_payload_blocks_from_list(fields, values)
         try:
-            for unique_start_address, lengthbytes, payloadbytes, firstfieldname, lastfieldname, writtenvalues, fields in outputdata:
-                logging.debug("C%i Setting ui %i len %i, proc %s to %s"%(self.address, unique_start_address, lengthbytes, firstfieldname, lastfieldname))
-                self._adaptor.write_to_device(self.address, self.protocol, unique_start_address, lengthbytes, payloadbytes)
+            for fields, lengthbytes, payloadbytes, writtenvalues in outputdata:
+                logging.debug("C%i Setting ui %i len %i, proc %s to %s"%(self.address, fields[0].address, lengthbytes, fields[0].name, fields[-1].name))
+                self._adaptor.write_to_device(self.address, self.protocol, fields[0].address, lengthbytes, payloadbytes)
                 self.lastwritetime = time.time()
                 self._update_fields_values(writtenvalues, fields)
         except serial.SerialException as err:
@@ -338,7 +342,7 @@ class HeatmiserDevice(object):
             
     def _get_payload_blocks_from_list(self, fields, values):
         """Converts list of fields and values into groups of payload data"""
-        #returns unique_start_address, lengthbytes, payloadbytes, firstfieldname, lastfieldname
+        #returns fields, lengthbytes, payloadbytes, values
         sortedfields = sorted(enumerate(fields), key=lambda fielde: fielde[1].address)
         
         valuescopy = copy.deepcopy(values) #force copy of values so doesn't get changed later.
@@ -347,22 +351,19 @@ class HeatmiserDevice(object):
         sorteddata = []
         for orginalindex, field in sortedfields:
             field.is_writable()
-            field.check_payload_values(valuescopy[orginalindex])
+            field.check_values(valuescopy[orginalindex])
             sorteddata.append([field, valuescopy[orginalindex]]) 
         
         #Groups and map to unique addresses
         outputdata = []
-        previousfield = None
         for field, value in sorteddata:
-            if not previousfield is None and field.dcbaddress - previousfield.last_dcb_byte_address() == 1: #if follows previousfield
+            if len(outputdata) > 0 and field.dcbaddress - previousfield.last_dcb_byte_address() == 1: #if follows previous field ##Shouldn't this be based on unique address?
+                outputdata[-1][0].append(field)
                 outputdata[-1][1] += field.fieldlength
                 outputdata[-1][2].extend(field.format_data_from_value(value))
-                outputdata[-1][4] = field.name
-                outputdata[-1][5].append(value)
-                outputdata[-1][6].append(field)
+                outputdata[-1][3].append(value)
+                
             else:
-                #unique_start_address, bytelength, payloadbytes, firstfieldname, lastfieldname, values, firstfieldid
-                outputdata.append([field.address, field.fieldlength, field.format_data_from_value(value), field.name, field.name, [value], [field]])
+                outputdata.append([[field], field.fieldlength, field.format_data_from_value(value), [value] ])
             previousfield = field
-
         return outputdata
