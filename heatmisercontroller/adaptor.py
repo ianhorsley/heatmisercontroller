@@ -102,7 +102,7 @@ class HeatmiserAdaptor(object):
             logging.info("Gen serial port closed")
         else:
             logging.warn("Gen serial port was already closed")
-            
+
     def _send_message(self, message):
         """Send message to serial port and log errors"""
         if not self.serport.isOpen():
@@ -145,7 +145,20 @@ class HeatmiserAdaptor(object):
             self.serport.close()
             logging.warning("Failed to clear input buffer")
             raise
-                    
+    
+    def _read_bytes(self, length):
+        """read from serial port and log errors"""
+        try:
+            return self.serport.read(length)
+        except serial.SerialException as err:
+            #There is no new data from serial port (or port missing) (Doesn't include no response from stat)
+            logging.warning("Gen serial port error: %s" % str(err))
+            self.serport.close()
+            raise
+        finally:
+            self.serport.timeout = self.serport.COM_TIMEOUT #make sure timeout is reverted
+            self.lastreceivetime = time.time() #record last read time. Used to manage bus settling.
+    
     def _receive_message(self, length=MAX_FRAME_RESP_LENGTH):
         """Receive message from serial port and log errors
         
@@ -157,36 +170,22 @@ class HeatmiserAdaptor(object):
         # Listen for the first byte
         timereadstart = time.time()
         self.serport.timeout = self.serport.COM_START_TIMEOUT #wait for start of response
-        try:
-            firstbyteread = self.serport.read(1)
-        except serial.SerialException as err:
-            #There is no new data from serial port (or port missing) (Doesn't include no response from stat)
-            logging.warning("Gen serial port error: %s" % str(err))
-            self.serport.close()
-            raise
-        else:
-            timereadfirstbyte = time.time()-timereadstart
-            logging.debug("Gen waited %.2fs for first byte"%timereadfirstbyte)
-            if len(firstbyteread) == 0:
-                raise HeatmiserResponseError("No Response")
-            
-            # Listen for the rest of the response
-            self.serport.timeout = max(self.serport.COM_MIN_TIMEOUT, self.serport.COM_TIMEOUT - timereadfirstbyte) #wait for full time out for rest of response, but not less than COM_MIN_TIMEOUT)
-            try:
-                byteread = self.serport.read(length - 1)
-            except serial.SerialException as err:
-                #There is no new data from serial port (or port missing) (Doesn't include no response from stat)
-                logging.warning("Gen serial port error: %s" % str(err))
-                self.serport.close()
-                raise
+        
+        firstbyteread = self._read_bytes(1)
 
-            #Convert back to array
-            data = map(ord, firstbyteread) + map(ord, byteread)
+        timereadfirstbyte = time.time()-timereadstart
+        logging.debug("Gen waited %.2fs for first byte"%timereadfirstbyte)
+        if len(firstbyteread) == 0:
+            raise HeatmiserResponseError("No Response")
+        
+        # Listen for the rest of the response
+        self.serport.timeout = max(self.serport.COM_MIN_TIMEOUT, self.serport.COM_TIMEOUT - timereadfirstbyte) #wait for full time out for rest of response, but not less than COM_MIN_TIMEOUT)
+        byteread = self._read_bytes(length - 1)
 
-            return data
-        finally: ### could be moved up to replace else and copied after second try
-            self.serport.timeout = self.serport.COM_TIMEOUT #make sure timeout is reverted
-            self.lastreceivetime = time.time() #record last read time. Used to manage bus settling.
+        #Convert back to array
+        data = map(ord, firstbyteread) + map(ord, byteread)
+
+        return data
 
 ### protocol functions
     
