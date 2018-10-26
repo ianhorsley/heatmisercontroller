@@ -330,23 +330,24 @@ class HeatmiserDevice(object):
         
         valuescopy = copy.deepcopy(values) #force copy of values so doesn't get changed later.
         
-        #Check field data and sort values
-        sorteddata = []
+        outputdata = []
+        #sorteddata = []
         for orginalindex, field in sortedfields:
+            #Check field data and sort values
             field.is_writable()
             field.check_values(valuescopy[orginalindex])
-            sorteddata.append([field, valuescopy[orginalindex]]) 
+            #sorteddata.append([field, valuescopy[orginalindex]]) 
         
         #Groups and map to unique addresses
-        outputdata = []
-        for field, value in sorteddata:
+        
+        #for field, value in sorteddata:
             if len(outputdata) > 0 and field.dcbaddress - previousfield.last_dcb_byte_address() == 1: #if follows previous field ##Shouldn't this be based on unique address?
                 outputdata[-1][0].append(field)
                 outputdata[-1][1] += field.fieldlength
-                outputdata[-1][2].extend(field.format_data_from_value(value))
-                outputdata[-1][3].append(value)
+                outputdata[-1][2].extend(field.format_data_from_value(valuescopy[orginalindex]))
+                outputdata[-1][3].append(valuescopy[orginalindex])
                 
             else:
-                outputdata.append([[field], field.fieldlength, field.format_data_from_value(value), [value] ])
+                outputdata.append([[field], field.fieldlength, field.format_data_from_value(valuescopy[orginalindex]), [valuescopy[orginalindex]] ])
             previousfield = field
         return outputdata
