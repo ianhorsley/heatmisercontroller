@@ -16,6 +16,7 @@ from genericdevice import HeatmiserDevice
 from fields import HeatmiserFieldUnknown, HeatmiserFieldSingle, HeatmiserFieldSingleReadOnly, HeatmiserFieldDouble, HeatmiserFieldDoubleReadOnly, HeatmiserFieldTime, HeatmiserFieldHeat, HeatmiserFieldWater, HeatmiserFieldHotWaterDemand, HeatmiserFieldDoubleReadOnlyTenths
 from hm_constants import MAX_AGE_LONG, MAX_AGE_MEDIUM, MAX_AGE_SHORT, MAX_AGE_USHORT
 from hm_constants import DEVICE_MODELS, PROG_MODES
+from hm_constants import READ_SENSORS_AVALIABLE_INT_ONLY, READ_SENSORS_AVALIABLE_INT_FLOOR
 from .exceptions import HeatmiserResponseError, HeatmiserControllerTimeError
 from schedule_functions import SchedulerDayHeat, SchedulerWeekHeat, SchedulerDayWater, SchedulerWeekWater, SCH_ENT_TEMP
 
@@ -203,7 +204,7 @@ class ThermoStatWeek(HeatmiserDevice):
             
     def read_air_temp(self):
         """Read the air temperature getting data from device if too old"""
-        if read_air_sensor_type(self) == 1:
+        if self.read_air_sensor_type() == 1:
             return self.read_field('airtemp', self.max_age_temp)
         else:
             return self.read_field('remoteairtemp', self.max_age_temp)
