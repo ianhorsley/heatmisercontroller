@@ -27,9 +27,9 @@ class TestBroadcastController(unittest.TestCase):
         self.adaptor = MockHeatmiserAdaptor(setup)
         #network, address, protocol, short_name, long_name, model, mode
         #self.func = ThermoStat(None, 1, HMV3_ID, 'test', 'test controller', 'prt_hw_model', PROG_MODE_DAY)
-        self.settings = {'address':1, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_hw_model', 'expected_prog_mode':PROG_MODE_DAY, 'autoreadall':True}
+        self.settings = {'address':1, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_hw_model', 'expected_prog_mode':PROG_MODE_DAY}
         dev1 = ThermoStatHotWaterDay(self.adaptor, self.settings)
-        self.settings2 = {'address':2, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_hw_model', 'expected_prog_mode':PROG_MODE_DAY, 'autoreadall':True}
+        self.settings2 = {'address':2, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_hw_model', 'expected_prog_mode':PROG_MODE_DAY}
         dev2 = ThermoStatHotWaterDay(self.adaptor, self.settings)
         self.func = HeatmiserBroadcastDevice(self.adaptor, 'Broadcaster', [dev1, dev2])
             
@@ -45,7 +45,7 @@ class TestReadingData(unittest.TestCase):
         #network, address, protocol, short_name, long_name, model, mode
         #self.func = ThermoStat(None, 1, HMV3_ID, 'test', 'test controller', 'prt_hw_model', PROG_MODE_DAY)
         self.settings = {'address':1, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_hw_model', 'expected_prog_mode':PROG_MODE_DAY}
-        self.settings2 = {'address':1, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_e_model', 'expected_prog_mode':PROG_MODE_DAY, 'autoreadall':True}
+        self.settings2 = {'address':1, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_e_model', 'expected_prog_mode':PROG_MODE_DAY}
         self.func = ThermoStatHotWaterDay(None, self.settings)
             
     def test_procfield(self):

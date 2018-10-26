@@ -38,7 +38,6 @@ class HeatmiserDevice(object):
         self.expected_prog_mode = None
         self._expected_model_number = 0
         self.long_name = 'Unknown'
-        self.autoreadall = False
         self._buildfieldtables()
         self.data = dict.fromkeys(self._fieldnametonum.keys(), None)
         self.floorlimiting = None
@@ -134,10 +133,8 @@ class HeatmiserDevice(object):
         fieldids = list(set(fieldids)) #remove duplicates, ordering doesn't matter
         
         if len(fieldids) > 0:
-            if self.autoreadall is True:
-                self._get_fields(fieldids)
-            else:
-                raise ValueError("Need to read fields first")
+            self._get_fields(fieldids)
+
         return [self.data[fieldname] if hasattr(self, fieldname) else None for fieldname in fieldnames ]
     
     def get_field_range(self, firstfieldname, lastfieldname=None):
@@ -176,8 +173,7 @@ class HeatmiserDevice(object):
             except serial.SerialException as err:
                 logging.warn("C%i Read failed of fields %s, Serial Port error %s"%(self.address, fieldstring, str(err)))
                 raise
-            else:
-                logging.info("C%i Read fields %s, in %i blocks"%(self.address, fieldstring, len(blockstoread)))
+            logging.info("C%i Read fields %s, in %i blocks"%(self.address, fieldstring, len(blockstoread)))
         else:
             logging.debug("C%i Read fields %s by read_all, %0.3f %0.3f"%(self.address, fieldstring, estimatedreadtime, self.fullreadtime))
             self.read_all()
@@ -257,22 +253,14 @@ class HeatmiserDevice(object):
         
         fullfirstdcbadd = self.fields[firstfieldid].dcbaddress
         
-        for fieldinfo in self.fields[firstfieldid:lastfieldid + 1]:
-            uniqueaddress = fieldinfo.address
+        for field in self.fields[firstfieldid:lastfieldid + 1]:
+            length = field.fieldlength
+            dcbadd = field.dcbaddress - fullfirstdcbadd #adjust for the start of the request
             
-            length = fieldinfo.fieldlength
-            dcbadd = fieldinfo.dcbaddress
-
-            if dcbadd == DCB_INVALID:
-                getattr(self, fieldinfo.name).value = None
-                self.data[fieldinfo.name] = None
-            else:
-                dcbadd -= fullfirstdcbadd #adjust for the start of the request
-                
-                try:
-                    self._procfield(rawdata[dcbadd:dcbadd+length], fieldinfo)
-                except HeatmiserResponseError as err:
-                    logging.warn("C%i Field %s process failed due to %s"%(self.address, fieldinfo.name, str(err)))
+            try:
+                self._procfield(rawdata[dcbadd:dcbadd+length], field)
+            except HeatmiserResponseError as err:
+                logging.warn("C%i Field %s process failed due to %s"%(self.address, field.name, str(err)))
 
         self.rawdata[fullfirstdcbadd:fullfirstdcbadd+len(rawdata)] = rawdata
     
