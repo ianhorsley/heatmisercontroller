@@ -153,12 +153,12 @@ class TestOtherFunctions(unittest.TestCase):
     def setUp(self):
         logging.basicConfig(level=logging.ERROR)
         self.settings = {'address':1, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_e_model', 'expected_prog_mode':PROG_MODE_DAY}
-        self.func = ThermoStatDay(None, self.settings)
+        self.func = ThermoStatHotWaterDay(None, self.settings)
         
     def test_getfieldblocks(self):
-        self.assertEqual([[25, 29, 8]], self.func._get_field_blocks_from_range('remoteairtemp', 'hotwaterdemand'))
-        self.assertEqual([[31, 31, 4]], self.func._get_field_blocks_from_range('hotwaterdemand', 'currenttime'))
-        self.assertEqual([[0, 22, 26], [24, 29, 10], [31, 31, 4]], self.func._get_field_blocks_from_range('DCBlen', 'currenttime'))
+        self.assertEqual([[25, 29, 8]], self.func._get_field_blocks_from_id_range(self.func._fieldnametonum['remoteairtemp'], self.func._fieldnametonum['hotwaterdemand']))
+        self.assertEqual([[31, 31, 4]], self.func._get_field_blocks_from_id_range('hotwaterdemand', 'currenttime'))
+        self.assertEqual([[0, 22, 26], [24, 29, 10], [31, 31, 4]], self.func._get_field_blocks_from_id_range('DCBlen', 'currenttime'))
         self.assertEqual([[0, 22, 26], [24, 29, 10], [31, 33, 28], [36, 42, 84]], self.func._get_field_blocks_from_range('DCBlen', 'sun_water'))
         
     def test_checkblock4(self):
@@ -167,7 +167,7 @@ class TestOtherFunctions(unittest.TestCase):
         #from timeit import default_timer as timer
         #start = timer()
         for _ in range(1):
-            self.func._get_field_blocks_from_range('DCBlen', 'sun_water')
+            self.func._get_field_blocks_from_id_range(self.func._fieldnametonum['DCBlen'], self.func._fieldnametonum['sun_water'])
         #print (timer()-start)/1000
         
     def test_build_dcb_tables(self):
