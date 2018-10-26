@@ -11,7 +11,7 @@ import serial
 import operator
 
 from fields import HeatmiserFieldSingleReadOnly, HeatmiserFieldDoubleReadOnly
-from hm_constants import DEFAULT_PROTOCOL, DCB_INVALID
+from hm_constants import DEFAULT_PROTOCOL, DCB_INVALID, SLAVE_ADDR_MIN, SLAVE_ADDR_MAX
 from hm_constants import PROG_MODE_DAY, PROG_MODE_WEEK, PROG_MODES
 from hm_constants import MAX_AGE_LONG
 from hm_constants import FIELD_NAME_LENGTH
@@ -63,6 +63,7 @@ class HeatmiserDevice(object):
             HeatmiserFieldSingleReadOnly('vendor', 2, [0, 1], MAX_AGE_LONG),  #00 heatmiser,  01 OEM
             HeatmiserFieldSingleReadOnly('version', 3, [], MAX_AGE_LONG),
             HeatmiserFieldSingleReadOnly('model', 4, [0, 5], MAX_AGE_LONG),  # DT/DT-E/PRT/PRT-E 00/01/02/03
+            HeatmiserFieldSingleReadOnly('address', 11, [SLAVE_ADDR_MIN, SLAVE_ADDR_MAX], MAX_AGE_LONG),
         ]
     
     def _set_expected_field_values(self):
@@ -70,7 +71,6 @@ class HeatmiserDevice(object):
         self.fields[self._fieldnametonum['address']].expectedvalue = self.address
         self.fields[self._fieldnametonum['DCBlen']].expectedvalue = self.dcb_length
         self.fields[self._fieldnametonum['model']].expectedvalue = self._expected_model_number
-        self.fields[self._fieldnametonum['programmode']].expectedvalue = PROG_MODES[self.expected_prog_mode]
 
     def _csvlist_field_names_from(self, fields):
         """return csv of fieldnames from list of fields"""
@@ -120,7 +120,7 @@ class HeatmiserDevice(object):
 
     def read_field(self, fieldname, maxage=None):
         """Returns a fields value, gets from the device if to old"""
-        return read_fields([fieldname], maxage)[0]
+        return self.read_fields([fieldname], maxage)[0]
     
     def read_fields(self, fieldnames, maxage=None):
         """Returns a list of field values, gets from the device if any are to old"""
@@ -197,16 +197,13 @@ class HeatmiserDevice(object):
                 blocks[-1][1] = field
                 blocks[-1][2] = field.last_dcb_byte_address() - blocks[-1][0].dcbaddress + 1
             else:
-                blocks.append([field, None, field.fieldlength])
+                blocks.append([field, field, field.fieldlength])
             previousfield = field
 
-        blocks[-1][1] = previousfield
-        blocks[-1][2] = previousfield.last_dcb_byte_address() - blocks[-1][0].dcbaddress + 1
         return blocks
     
     def _get_field_blocks_from_id_list(self, fieldids):
         """Takes range of fieldids and returns field blocks
-        
         Splits by invalid fields. Uses timing to determine the optimum blocking"""
         #find blocks between lowest and highest field
         fullfieldblock = self._get_field_blocks_from_id_range(min(fieldids), max(fieldids))
@@ -237,24 +234,10 @@ class HeatmiserDevice(object):
         return length * 0.002075 + 0.070727
     
     def _procfield(self, data, fieldinfo):
-        """Process data for a single field storing in relevant.
-        
-        Converts from bytes to integers/floats
-        Checks the validity"""
-        fieldname = fieldinfo.name
-
+        """Process data for a single field storing in relevant."""
         #logging.debug("Processing %s data %s"%(fieldinfo.name, csvlist(data)))
         value = fieldinfo.update_data(data, self.lastreadtime)
-        
-        if fieldname == 'version' and self.expected_model != 'prt_hw_model':
-            value = data[0] & 0x7f
-            self.floorlimiting = data[0] >> 7
-            self.data['floorlimiting'] = self.floorlimiting
-        
-        self.data[fieldname] = value
-        
-        if fieldname == 'currenttime':
-            self._checkcontrollertime()
+        self.data[fieldinfo.name] = value
 
     def _procpartpayload(self, rawdata, firstfieldname, lastfieldname):
         """Wraps procpayload by converting fieldnames to fieldids"""

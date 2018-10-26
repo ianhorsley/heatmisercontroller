@@ -13,14 +13,36 @@ import logging
 import time
 
 from genericdevice import HeatmiserDevice
-from fields import HeatmiserFieldSingle, HeatmiserFieldSingleReadOnly, HeatmiserFieldDouble, HeatmiserFieldDoubleReadOnly, HeatmiserFieldTime, HeatmiserFieldHeat, HeatmiserFieldWater, HeatmiserFieldHotWaterDemand, HeatmiserFieldDoubleReadOnlyTenths
-from hm_constants import DEFAULT_PROTOCOL, DEFAULT_PROG_MODE, BROADCAST_ADDR, SLAVE_ADDR_MIN, SLAVE_ADDR_MAX, MAX_UNIQUE_ADDRESS
+from fields import HeatmiserFieldUnknown, HeatmiserFieldSingle, HeatmiserFieldSingleReadOnly, HeatmiserFieldDouble, HeatmiserFieldDoubleReadOnly, HeatmiserFieldTime, HeatmiserFieldHeat, HeatmiserFieldWater, HeatmiserFieldHotWaterDemand, HeatmiserFieldDoubleReadOnlyTenths
+from hm_constants import DEFAULT_PROTOCOL, DEFAULT_PROG_MODE, BROADCAST_ADDR, MAX_UNIQUE_ADDRESS
 from hm_constants import MAX_AGE_LONG, MAX_AGE_MEDIUM, MAX_AGE_SHORT, MAX_AGE_USHORT
 from hm_constants import DEVICE_MODELS, PROG_MODES
 from .exceptions import HeatmiserResponseError, HeatmiserControllerTimeError
 from schedule_functions import SchedulerDayHeat, SchedulerWeekHeat, SchedulerDayWater, SchedulerWeekWater, SCH_ENT_TEMP
 from decorators import ListWrapperClass, run_function_on_all
 from .logging_setup import csvlist
+
+class ThermoStatUnknown(HeatmiserDevice):
+    """Device class for unknown thermostats operating unknown programmode"""
+    def _build_dcb_tables(self):
+        """update dcb addresses and list of valid fields """
+        super(ThermoStatUnknown, self)._build_dcb_tables()
+        self.dcb_length = 65536 #override dcb_length to prevent readall
+    
+    def _buildfields(self):
+        """add to list of fields"""
+        super(ThermoStatUnknown, self)._buildfields()
+        self.fields.extend([
+            HeatmiserFieldUnknown('unknown', 5, [], MAX_AGE_LONG, 6),  # gap allows single read
+            HeatmiserFieldUnknown('unknown', 12, [], MAX_AGE_LONG, 4),  # gap allows single read
+            HeatmiserFieldSingleReadOnly('programmode', 16, [0, 1], MAX_AGE_LONG)  #0=5/2,  1= 7day
+        ])
+        
+    def _set_expected_field_values(self):
+        """set the expected values for fields that should be fixed
+        Removes expectation on model"""
+        self.fields[self._fieldnametonum['address']].expectedvalue = self.address
+        self.fields[self._fieldnametonum['DCBlen']].expectedvalue = self.dcb_length
 
 class ThermoStatWeek(HeatmiserDevice):
     """Device class for thermostats operating weekly programmode
@@ -44,8 +66,7 @@ class ThermoStatWeek(HeatmiserDevice):
             HeatmiserFieldSingleReadOnly('switchdiff', 6, [1, 3], MAX_AGE_LONG),
             HeatmiserFieldSingleReadOnly('frostprot', 7, [0, 1], MAX_AGE_LONG),  #0=enable frost prot when display off,  (opposite in protocol manual,  but tested and user guide is correct)  (default should be enabled)
             HeatmiserFieldDoubleReadOnly('caloffset', 8, [], MAX_AGE_LONG),
-            HeatmiserFieldSingleReadOnly('outputdelay', 10, [0, 15], MAX_AGE_LONG),  # minutes (to prevent rapid switching)
-            HeatmiserFieldSingleReadOnly('address', 11, [SLAVE_ADDR_MIN, SLAVE_ADDR_MAX], MAX_AGE_LONG),
+            HeatmiserFieldSingleReadOnly('outputdelay', 10, [0, 15], MAX_AGE_LONG),  # minutes (to prevent rapid switching)            
             HeatmiserFieldSingleReadOnly('updwnkeylimit', 12, [0, 10], MAX_AGE_LONG),   #limits use of up and down keys
             HeatmiserFieldSingleReadOnly('sensorsavaliable', 13, [0, 4], MAX_AGE_LONG),  #00 built in only,  01 remote air only,  02 floor only,  03 built in + floor,  04 remote + floor
             HeatmiserFieldSingleReadOnly('optimstart', 14, [0, 3], MAX_AGE_LONG),  # 0 to 3 hours,  default 0
@@ -74,6 +95,23 @@ class ThermoStatWeek(HeatmiserDevice):
             
         self.water_schedule = None
         self.heat_schedule = SchedulerWeekHeat()
+    
+    def _set_expected_field_values(self):
+        """set the expected values for fields that should be fixed"""
+        super(ThermoStatWeek, self)._set_expected_field_values()
+        self.fields[self._fieldnametonum['programmode']].expectedvalue = PROG_MODES[self.expected_prog_mode]
+    
+    def _procfield(self, data, fieldinfo):
+        """Process data for a single field storing in relevant."""
+        super(ThermoStatWeek, self)._procfield(data, fieldinfo)
+        
+        if fieldinfo.name == 'version' and self.expected_model != 'prt_hw_model':
+            value = data[0] & 0x7f
+            self.floorlimiting = data[0] >> 7
+            self.data['floorlimiting'] = self.floorlimiting
+            
+        if fieldinfo.name == 'currenttime':
+            self._checkcontrollertime()
     
     def _checkcontrollertime(self):
         """run check of device time against local read time, and try to fix if _autocorrectime"""
@@ -352,32 +390,21 @@ class ThermoStatHotWaterDay(ThermoStatDay, ThermoStatHotWaterWeek):
             HeatmiserFieldWater('sun_water', 283, [[0, 24], [0, 59]], MAX_AGE_MEDIUM)
         ])
         self.water_schedule = SchedulerDayWater()
+
+
+devicetypes = {
+    None: HeatmiserDevice,
+    'prt_e_model': {'week': ThermoStatWeek, 'day': ThermoStatDay},
+    'prt_hw_model': {'week': ThermoStatHotWaterWeek, 'day': ThermoStatHotWaterDay}
+}
         
 #other
 #set floor limit
 
-class HeatmiserUnknownDevice(HeatmiserDevice):
-    """Device class for unknown thermostats"""
+class HeatmiserBroadcastDevice(ThermoStatHotWaterDay):
+    """Broadcast device class for broadcast set functions and managing reading on all devices
+    Based class with most complete field list"""
     
-    def _update_settings(self, settings, generalsettings):
-        """Check settings and get network data if needed"""
-
-        self._load_settings(settings, generalsettings)
-        
-        # some basic config required before reading fields
-        self._uniquetodcb = range(MAX_UNIQUE_ADDRESS + 1)
-        self.rawdata = [None] * (MAX_UNIQUE_ADDRESS + 1)
-        # assume fullreadtime is the worst case
-        self.fullreadtime = self._estimate_read_time(MAX_UNIQUE_ADDRESS) 
-        # use fields from device rather to set the expected mode and type
-        self.read_fields(['model', 'programmode'], 0)
-        self.expected_model = DEVICE_MODELS.keys()[DEVICE_MODELS.values().index(self.model.value)]
-        self.expected_prog_mode = PROG_MODES.keys()[PROG_MODES.values().index(self.programmode.value)]
-        
-        self._process_settings()
-
-class HeatmiserBroadcastDevice(HeatmiserDevice):
-    """Broadcast device class for broadcast set functions and managing reading on all devices"""
     #List wrapper used to provide arguement to dectorator
     _controllerlist = ListWrapperClass()
 
