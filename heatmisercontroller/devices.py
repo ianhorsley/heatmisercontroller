@@ -99,31 +99,7 @@ class ThermoStatWeek(HeatmiserDevice):
         """Prints heating schedule to stdout"""
         self.heat_schedule.display()
 
-    def print_target(self):
-        """Returns text describing current heating state"""    
-        current_state = self.read_temp_state()
-        print "CS", current_state
-        if current_state == self.TEMP_STATE_OFF:
-            return "controller off without frost protection"
-        elif current_state == self.TEMP_STATE_OFF_FROST:
-            return "controller off"
-        elif current_state == self.TEMP_STATE_HOLIDAY:
-            return "controller on holiday for %s hours" % (self.holidayhours)
-        elif current_state == self.TEMP_STATE_FROST:
-            return "controller in frost mode"
-        elif current_state == self.TEMP_STATE_HELD:
-            return "temp held for %i mins at %i"%(self.tempholdmins, self.setroomtemp)
-        elif current_state == self.TEMP_STATE_OVERRIDDEN:
-            locatimenow = self.currenttime.localtimearray()
-            nexttarget = self.heat_schedule.get_next_schedule_item(locatimenow)
-            return "temp overridden to %0.1f until %02d:%02d" % (self.setroomtemp, nexttarget[1], nexttarget[2])
-        elif current_state == self.TEMP_STATE_PROGRAM:
-            locatimenow = self.currenttime.localtimearray()
-            nexttarget = self.heat_schedule.get_next_schedule_item(locatimenow)
-            return "temp set to %0.1f until %02d:%02d" % (self.setroomtemp, nexttarget[1], nexttarget[2])
     
-    ## External functions for reading data
-
     TEMP_STATE_OFF = 0    #thermostat display is off and frost protection disabled
     TEMP_STATE_OFF_FROST = 1 #thermostat display is off and frost protection enabled
     TEMP_STATE_FROST = 2 #frost protection enabled indefinitely
@@ -131,6 +107,27 @@ class ThermoStatWeek(HeatmiserDevice):
     TEMP_STATE_HELD = 4 #temperature held for a number of hours
     TEMP_STATE_OVERRIDDEN = 5 #temperature overridden until next program time
     TEMP_STATE_PROGRAM = 6 #following program
+        
+    target_texts = {
+        TEMP_STATE_OFF: lambda self: "controller off without frost protection",
+        TEMP_STATE_OFF_FROST: lambda self: "controller off",
+        TEMP_STATE_HOLIDAY: lambda self: "controller on holiday for %s hours" % (self.holidayhours),
+        TEMP_STATE_FROST: lambda self: "controller in frost mode",
+        TEMP_STATE_HELD: lambda self: "temp held for %i mins at %i"%(self.tempholdmins, self.setroomtemp),
+        TEMP_STATE_OVERRIDDEN: lambda self: "temp overridden to %0.1f until %02d:%02d" % (self.setroomtemp, self.nexttarget[1], self.nexttarget[2]),
+        TEMP_STATE_PROGRAM: lambda self: "temp set to %0.1f until %02d:%02d" % (self.setroomtemp, self.nexttarget[1], self.nexttarget[2])
+    }
+
+    def nexttarget(self):
+        """get next heat target"""
+        return self.heat_schedule.get_next_schedule_item(self.currenttime.localtimearray())
+
+    def print_target(self):
+        """Returns text describing current heating state"""    
+        current_state = self.read_temp_state()
+        return self.target_texts[currernt_state](self)
+            
+    ## External functions for reading data
     
     def read_temp_state(self):
         """Returns the current temperature control state from off to following program"""
@@ -148,9 +145,7 @@ class ThermoStatWeek(HeatmiserDevice):
         elif self.tempholdmins.value != 0:
             return self.TEMP_STATE_HELD
         else:
-        
-            if not self.currenttime.check_data_fresh(MAX_AGE_MEDIUM):
-                self.read_time()
+            self.read_field('currenttime',MAX_AGE_MEDIUM)
             
             locatimenow = self.currenttime.localtimearray()
             scheduletarget = self.heat_schedule.get_current_schedule_item(locatimenow)
@@ -162,28 +157,21 @@ class ThermoStatWeek(HeatmiserDevice):
                 
     def read_air_sensor_type(self):
         """Reports airsensor type"""
-        #1 local, 3 remote
-        if not self.sensorsavaliable.check_data_valid():
-            return False
+        #1 local, 2 remote
+        self.read_field('sensorsavaliable', None)
 
         if self.sensorsavaliable == READ_SENSORS_AVALIABLE_INT_ONLY or self.sensorsavaliable == READ_SENSORS_AVALIABLE_INT_FLOOR:
             return 1
         elif self.sensorsavaliable == READ_SENSORS_AVALIABLE_EXT_ONLY or self.sensorsavaliable == READ_SENSORS_AVALIABLE_EXT_FLOOR:
             return 2
-        else:
-            return 0
+        raise ValueError("sensorsavaliable field invalid")
             
     def read_air_temp(self):
         """Read the air temperature getting data from device if too old"""
-        #if not read before read sensorsavaliable field
-        self.read_field('sensorsavaliable', None)
-        
-        if self.sensorsavaliable == READ_SENSORS_AVALIABLE_INT_ONLY or self.sensorsavaliable == READ_SENSORS_AVALIABLE_INT_FLOOR:
+        if read_air_sensor_type(self) == 1:
             return self.read_field('airtemp', self.max_age_temp)
-        elif self.sensorsavaliable == READ_SENSORS_AVALIABLE_EXT_ONLY or self.sensorsavaliable == READ_SENSORS_AVALIABLE_EXT_FLOOR:
-            return self.read_field('remoteairtemp', self.max_age_temp)
         else:
-            raise ValueError("sensorsavaliable field invalid")
+            return self.read_field('remoteairtemp', self.max_age_temp)
     
     def read_raw_data(self, startfieldname=None, endfieldname=None):
         """Return subset of raw data"""

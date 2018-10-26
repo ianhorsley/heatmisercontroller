@@ -89,7 +89,7 @@ class Scheduler(object):
             return [self._get_previous_day(timearray)] + scheduletarget
         else:
             return [timearray[CURRENT_TIME_DAY]] + scheduletarget
-            
+    
     def get_next_schedule_item(self, timearray):
         """Gets the next item from schedule"""
         todayschedule = self._get_schedule_entry(timearray[CURRENT_TIME_DAY])

@@ -175,6 +175,11 @@ class TestOtherFunctions(unittest.TestCase):
         expected = [[0, 0], [25, 25], [26, None], [31, None], [32, 26], [186, 147], [187, None], [298, None]]
         for u, d in expected:
             self.assertEqual(d, self.func._uniquetodcb[u])
+            
+    def test_print_target(self):
+        self.assertEqual("controller off without frost protection", self.func.target_texts[self.func.TEMP_STATE_OFF](self.func))
+        self.func.holidayhours = 12
+        self.assertEqual("controller on holiday for 12 hours", self.func.target_texts[self.func.TEMP_STATE_HOLIDAY](self.func))
 
 def get_offset(timenum):
     #gettime zone offset for that date
