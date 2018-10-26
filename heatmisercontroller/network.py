@@ -10,7 +10,8 @@ import logging
 #import sys
 
 # Import our own stuff
-from devices import devicetypes, ThermoStatUnknown, HeatmiserBroadcastDevice, ThermoStatWeek, ThermoStatDay
+from devices import devicetypes, ThermoStatUnknown, ThermoStatWeek, ThermoStatDay
+from broadcastdevice import HeatmiserBroadcastDevice
 from adaptor import HeatmiserAdaptor
 from hm_constants import SLAVE_ADDR_MIN, SLAVE_ADDR_MAX, DEVICE_MODELS, PROG_MODES
 from .exceptions import HeatmiserResponseError

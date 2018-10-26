@@ -14,13 +14,10 @@ import time
 
 from genericdevice import HeatmiserDevice
 from fields import HeatmiserFieldUnknown, HeatmiserFieldSingle, HeatmiserFieldSingleReadOnly, HeatmiserFieldDouble, HeatmiserFieldDoubleReadOnly, HeatmiserFieldTime, HeatmiserFieldHeat, HeatmiserFieldWater, HeatmiserFieldHotWaterDemand, HeatmiserFieldDoubleReadOnlyTenths
-from hm_constants import DEFAULT_PROTOCOL, DEFAULT_PROG_MODE, BROADCAST_ADDR, MAX_UNIQUE_ADDRESS
 from hm_constants import MAX_AGE_LONG, MAX_AGE_MEDIUM, MAX_AGE_SHORT, MAX_AGE_USHORT
 from hm_constants import DEVICE_MODELS, PROG_MODES
 from .exceptions import HeatmiserResponseError, HeatmiserControllerTimeError
 from schedule_functions import SchedulerDayHeat, SchedulerWeekHeat, SchedulerDayWater, SchedulerWeekWater, SCH_ENT_TEMP
-from decorators import ListWrapperClass, run_function_on_all
-from .logging_setup import csvlist
 
 class ThermoStatUnknown(HeatmiserDevice):
     """Device class for unknown thermostats operating unknown programmode"""
@@ -346,17 +343,14 @@ class ThermoStatHotWaterWeek(ThermoStatWeek):
         elif self.holidayhours != 0:
             return self.TEMP_STATE_HOLIDAY
         else:
-        
-            if not self.currenttime.check_data_fresh(MAX_AGE_MEDIUM):
-                self.read_time()
+            self.read_field('currenttime',MAX_AGE_MEDIUM)
             
             locatimenow = self.currenttime.localtimearray()
             scheduletarget = self.water_schedule.get_current_schedule_item(locatimenow)
 
             if scheduletarget[SCH_ENT_TEMP] != self.hotwaterdemand:
                 return self.TEMP_STATE_OVERRIDDEN
-            else:
-                return self.TEMP_STATE_PROGRAM
+        return self.TEMP_STATE_PROGRAM
                 
     def set_water_schedule(self, day, schedule):
         """Set water schedule for a single day"""
@@ -391,7 +385,6 @@ class ThermoStatHotWaterDay(ThermoStatDay, ThermoStatHotWaterWeek):
         ])
         self.water_schedule = SchedulerDayWater()
 
-
 devicetypes = {
     None: HeatmiserDevice,
     'prt_e_model': {'week': ThermoStatWeek, 'day': ThermoStatDay},
@@ -400,60 +393,3 @@ devicetypes = {
         
 #other
 #set floor limit
-
-class HeatmiserBroadcastDevice(ThermoStatHotWaterDay):
-    """Broadcast device class for broadcast set functions and managing reading on all devices
-    Based class with most complete field list"""
-    
-    #List wrapper used to provide arguement to dectorator
-    _controllerlist = ListWrapperClass()
-
-    def __init__(self, network, long_name, controllerlist=None):
-        self._controllerlist.list = controllerlist
-        settings = {
-            'address':BROADCAST_ADDR,
-            'display_order': 0,
-            'long_name': long_name,
-            'protocol':DEFAULT_PROTOCOL,
-            'expected_model':False,
-            'expected_prog_mode':DEFAULT_PROG_MODE
-            }
-        super(HeatmiserBroadcastDevice, self).__init__(network, settings)
-    
-    #run read functions on all stats
-    @run_function_on_all(_controllerlist)
-    def read_field(self, fieldname, maxage=None):
-        logging.info("All reading %s from %i controllers"%(fieldname, len(self._controllerlist.list)))
-            
-    @run_function_on_all(_controllerlist)
-    def read_fields(self, fieldnames, maxage=None):
-        logging.info("All reading %s from %i controllers"%(csvlist(fieldnames), len(self._controllerlist.list)))
-        
-    @run_function_on_all(_controllerlist)
-    def read_air_temp(self):
-        pass
-    
-    @run_function_on_all(_controllerlist)
-    def read_temp_state(self):
-        pass
-    
-    @run_function_on_all(_controllerlist)
-    def read_water_state(self):
-        pass
-    
-    @run_function_on_all(_controllerlist)
-    def read_air_sensor_type(self):
-        pass
-            
-    @run_function_on_all(_controllerlist)
-    def read_time(self, maxage=0):
-        pass
-    
-    #run set functions which require a read on all stats
-    @run_function_on_all(_controllerlist)
-    def set_temp(self, temp):
-        pass
-    
-    @run_function_on_all(_controllerlist)
-    def release_temp(self):
-        pass
