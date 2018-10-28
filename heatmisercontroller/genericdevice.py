@@ -77,7 +77,7 @@ class HeatmiserDevice(object):
         
     def _csvlist_field_names_from_ids(self, fieldids):
         """return csv of fieldnames from list of fieldids"""
-        return operator.itemgetter(*fieldids)(self.fields)
+        return self._csvlist_field_names_from(operator.itemgetter(*fieldids)(self.fields))
         
     def _buildfieldtables(self):
         """build dict to map field name to index"""

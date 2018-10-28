@@ -16,7 +16,7 @@ MODULE_PATH = os.path.abspath(os.path.dirname(__file__))
 CONFIGFILE = os.path.join(MODULE_PATH, "nocontrollers.conf")
 
 HMN = HeatmiserNetwork(CONFIGFILE)
-HMN.find_devices()
+HMN.find_devices(10)
 
 # CYCLE THROUGH ALL CONTROLLERS
 for current_controller in HMN.controllers:
@@ -28,9 +28,9 @@ for current_controller in HMN.controllers:
         print("C%d in %s Failed to Read due to %s" %(current_controller.address, current_controller.name.ljust(4), str(err)))
     else:
         disptext = "C%d Air Temp is %.1f from type %.f and Target set to %d    Boiler Demand %d" % (current_controller.address, current_controller.read_air_temp(), current_controller.read_air_sensor_type(), current_controller.setroomtemp, current_controller.heatingdemand)
-        if current_controller.is_hot_water():
+        if current_controller.is_hot_water:
             print("%s Hot Water Demand %d" %(disptext, current_controller.hotwaterdemand))
+            current_controller.display_water_schedule()
         else:
             print(disptext)
         current_controller.display_heating_schedule()
-        current_controller.display_water_schedule()
