@@ -11,8 +11,7 @@ import serial
 import operator
 
 from fields import HeatmiserFieldSingleReadOnly, HeatmiserFieldDoubleReadOnly
-from hm_constants import DEFAULT_PROTOCOL, DCB_INVALID, SLAVE_ADDR_MIN, SLAVE_ADDR_MAX
-from hm_constants import PROG_MODE_DAY, PROG_MODE_WEEK, PROG_MODES
+from hm_constants import DEFAULT_PROTOCOL, SLAVE_ADDR_MIN, SLAVE_ADDR_MAX
 from hm_constants import MAX_AGE_LONG
 from hm_constants import FIELD_NAME_LENGTH
 from .exceptions import HeatmiserResponseError
@@ -71,7 +70,8 @@ class HeatmiserDevice(object):
         self.fields[self._fieldnametonum['DCBlen']].expectedvalue = self.dcb_length
         self.fields[self._fieldnametonum['model']].expectedvalue = self._expected_model_number
 
-    def _csvlist_field_names_from(self, fields):
+    @staticmethod
+    def _csvlist_field_names_from(fields):
         """return csv of fieldnames from list of fields"""
         return ', '.join(field.name for field in fields)
         
@@ -101,7 +101,7 @@ class HeatmiserDevice(object):
     
     def read_raw_data(self, startfieldname, endfieldname):
         """Return subset of raw data"""
-        return self.rawdata[self.startfieldname.dcbaddress:self.endfieldname.last_dcb_byte_address()]
+        return self.rawdata[getattr(self, startfieldname).dcbaddress:getattr(self, endfieldname).last_dcb_byte_address()]
     
     def read_all(self):
         """Returns all the rawdata having got it from the device"""
@@ -135,7 +135,7 @@ class HeatmiserDevice(object):
         if len(fieldids) > 0:
             self._get_fields(fieldids)
 
-        return [self.data[fieldname] if hasattr(self, fieldname) else None for fieldname in fieldnames ]
+        return [self.data[fieldname] if hasattr(self, fieldname) else None for fieldname in fieldnames]
     
     def get_field_range(self, firstfieldname, lastfieldname=None):
         """gets fieldrange from device
@@ -310,8 +310,9 @@ class HeatmiserDevice(object):
         """update the field values once data successfully written"""
         for field, value in zip(fields, values):
             self.data[field.name] = field.update_value(value, self.lastwritetime)
-            
-    def _get_payload_blocks_from_list(self, fields, values):
+    
+    @staticmethod
+    def _get_payload_blocks_from_list(fields, values):
         """Converts list of fields and values into groups of payload data"""
         #returns fields, lengthbytes, payloadbytes, values
         sortedfields = sorted(enumerate(fields), key=lambda fielde: fielde[1].address)
@@ -329,6 +330,7 @@ class HeatmiserDevice(object):
         #Groups and map to unique addresses
         
         #for field, value in sorteddata:
+            previousfield = None
             if len(outputdata) > 0 and field.dcbaddress - previousfield.last_dcb_byte_address() == 1: #if follows previous field ##Shouldn't this be based on unique address?
                 outputdata[-1][0].append(field)
                 outputdata[-1][1] += field.fieldlength
