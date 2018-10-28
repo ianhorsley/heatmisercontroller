@@ -8,12 +8,11 @@ from .exceptions import HeatmiserResponseError, HeatmiserControllerTimeError
 
 class HeatmiserFieldUnknown(object):
     """Class for variable length unknown read only field"""
-    def __init__(self, name, address, validrange, max_age, length):
+    def __init__(self, name, address, max_age, length):
         self.name = name
         self.address = address
         self.dcbaddress = address
         self.divisor = 1
-        self.validrange = validrange
         self.max_age = max_age
         self.writeable = False
         self.fieldlength = length
@@ -24,13 +23,10 @@ class HeatmiserFieldUnknown(object):
         
     def __int__(self):
         return self.value
-        
-    #def __repr__(self):
-    #    return str(self.value)
-     
+
     def __str__(self):
         return str(self.value)
-    
+
     def _reset(self):
         """Reset data and values to unknown."""
         self.data = None
@@ -93,7 +89,8 @@ class HeatmiserField(HeatmiserFieldUnknown):
     """Base class for fields providing basic method calls"""
     #single value and hence single range
     def __init__(self, name, address, validrange, max_age):
-        super(HeatmiserField, self).__init__(name, address, validrange, max_age, self.fieldlength)
+        super(HeatmiserField, self).__init__(name, address, max_age, self.fieldlength)
+        self.validrange = validrange
         self.writeable = True
         self.value = None
         self.expectedvalue = None
@@ -114,17 +111,17 @@ class HeatmiserField(HeatmiserFieldUnknown):
 
     def update_value(self, value, writetime):
         """Update the field value once successfully written to network"""
-        self._validate_range(value)
+        self._validate_range(value, ValueError)
         data = self.format_data_from_value(value)
         self.data = data
         self.value = value
         self.lastreadtime = writetime
         return value
         
-    def _validate_range(self, values):
+    def _validate_range(self, values, errortype=HeatmiserResponseError):
         """validate the value is within range."""
         if values < self.validrange[0] or values > self.validrange[1]:
-            raise HeatmiserResponseError("Value %i outside expected range for %s"%(values, self.name))
+            raise errortype("Value %i outside expected range for %s"%(values, self.name))
 
     def _calculate_value(self, data):
         """Calculate value from payload bytes"""
@@ -141,8 +138,7 @@ class HeatmiserField(HeatmiserFieldUnknown):
             raise TypeError("set_field: invalid requested value")
 
         #checks the values matches the ranges if ranges are defined
-        if values < self.validrange[0] or values > self.validrange[1]:
-            raise ValueError("Value %i outside expected range for %s"%(values, self.name))
+        self._validate_range(values, ValueError)
 
 class HeatmiserFieldSingle(HeatmiserField):
     """Class for writable 1 byte field"""
@@ -165,6 +161,13 @@ class HeatmiserFieldSingleReadOnly(HeatmiserFieldSingle):
         super(HeatmiserFieldSingleReadOnly, self).__init__(name, address, validrange, max_age)
         self.writeable = False
 
+class HeatmiserFieldHotWaterVersion(HeatmiserFieldSingleReadOnly):
+    """Class for version on hotwater models."""
+    def _calculate_value(self, data):
+        """Calculate value from payload bytes"""
+        self.floorlimiting = data[0] >> 7
+        return data[0] & 0x7f
+        
 class HeatmiserFieldHotWaterDemand(HeatmiserFieldSingle):
     """Class to impliment read and write differences for hotwater demand field."""
     def __init__(self, name, address, validrange, max_age):
@@ -219,12 +222,12 @@ class HeatmiserFieldMulti(HeatmiserField):
         self.maxdatavalue = None
         super(HeatmiserFieldMulti, self).__init__(name, address, validrange, max_age)
         
-    def _validate_range(self, values):
+    def _validate_range(self, values, errortype=HeatmiserResponseError):
         """validate the value is within range."""
         for i, item in enumerate(values):
             rangepair = self.validrange[i % len(self.validrange)]
             if item < rangepair[0] or item > rangepair[1]:
-                raise HeatmiserResponseError("Value %i outside expected range for %s"%(item, self.name))
+                raise errortype("Value %i outside expected range for %s"%(item, self.name))
         
     def _calculate_value(self, data):
         """Calculate value from payload bytes"""
@@ -241,10 +244,7 @@ class HeatmiserFieldMulti(HeatmiserField):
             raise ValueError("set_field: invalid payload length")
 
         #checks the values matches the ranges if ranges are defined
-        for i, item in enumerate(values):
-            rangepair = self.validrange[i % len(self.validrange)]
-            if item < rangepair[0] or item > rangepair[1]:
-                raise ValueError("Value %i outside expected range for %s"%(item, self.name))
+        self._validate_range(values, ValueError)
 
 class HeatmiserFieldTime(HeatmiserFieldMulti):
     """Class for time field"""

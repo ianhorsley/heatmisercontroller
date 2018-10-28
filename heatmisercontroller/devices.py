@@ -13,11 +13,11 @@ import logging
 import time
 
 from genericdevice import HeatmiserDevice
-from fields import HeatmiserFieldUnknown, HeatmiserFieldSingle, HeatmiserFieldSingleReadOnly, HeatmiserFieldDouble, HeatmiserFieldDoubleReadOnly, HeatmiserFieldTime, HeatmiserFieldHeat, HeatmiserFieldWater, HeatmiserFieldHotWaterDemand, HeatmiserFieldDoubleReadOnlyTenths
+from fields import HeatmiserFieldUnknown, HeatmiserFieldSingle, HeatmiserFieldSingleReadOnly, HeatmiserFieldDouble, HeatmiserFieldDoubleReadOnly, HeatmiserFieldTime, HeatmiserFieldHeat, HeatmiserFieldWater, HeatmiserFieldHotWaterDemand, HeatmiserFieldDoubleReadOnlyTenths, HeatmiserFieldHotWaterVersion
 from hm_constants import MAX_AGE_LONG, MAX_AGE_MEDIUM, MAX_AGE_SHORT, MAX_AGE_USHORT
-from hm_constants import DEVICE_MODELS, PROG_MODES
+from hm_constants import PROG_MODES
 from hm_constants import READ_SENSORS_AVALIABLE_INT_ONLY, READ_SENSORS_AVALIABLE_INT_FLOOR
-from .exceptions import HeatmiserResponseError, HeatmiserControllerTimeError
+from .exceptions import HeatmiserControllerTimeError
 from schedule_functions import SchedulerDayHeat, SchedulerWeekHeat, SchedulerDayWater, SchedulerWeekWater, SCH_ENT_TEMP
 
 class ThermoStatUnknown(HeatmiserDevice):
@@ -31,8 +31,8 @@ class ThermoStatUnknown(HeatmiserDevice):
         """add to list of fields"""
         super(ThermoStatUnknown, self)._buildfields()
         self.fields.extend([
-            HeatmiserFieldUnknown('unknown', 5, [], MAX_AGE_LONG, 6),  # gap allows single read
-            HeatmiserFieldUnknown('unknown', 12, [], MAX_AGE_LONG, 4),  # gap allows single read
+            HeatmiserFieldUnknown('unknown', 5, MAX_AGE_LONG, 6),  # gap allows single read
+            HeatmiserFieldUnknown('unknown', 12, MAX_AGE_LONG, 4),  # gap allows single read
             HeatmiserFieldSingleReadOnly('programmode', 16, [0, 1], MAX_AGE_LONG)  #0=5/2,  1= 7day
         ])
         
@@ -103,9 +103,7 @@ class ThermoStatWeek(HeatmiserDevice):
         """Process data for a single field storing in relevant."""
         super(ThermoStatWeek, self)._procfield(data, fieldinfo)
         
-        if fieldinfo.name == 'version' and self.expected_model != 'prt_hw_model':
-            value = data[0] & 0x7f
-            self.floorlimiting = data[0] >> 7
+        if fieldinfo.name == 'version' and hasattr(fieldinfo, 'floorlimiting'):
             self.data['floorlimiting'] = self.floorlimiting
             
         if fieldinfo.name == 'currenttime':
@@ -181,7 +179,7 @@ class ThermoStatWeek(HeatmiserDevice):
         elif self.tempholdmins.value != 0:
             return self.TEMP_STATE_HELD
         else:
-            self.read_field('currenttime',MAX_AGE_MEDIUM)
+            self.read_field('currenttime', MAX_AGE_MEDIUM)
             
             locatimenow = self.currenttime.localtimearray()
             scheduletarget = self.heat_schedule.get_current_schedule_item(locatimenow)
@@ -314,6 +312,8 @@ class ThermoStatHotWaterWeek(ThermoStatWeek):
         
         #thermostat specific
         self.is_hot_water = True
+        
+        self.version = HeatmiserFieldHotWaterVersion('version', 3, [], MAX_AGE_LONG),
     
     def _buildfields(self):
         """add to list of fields"""

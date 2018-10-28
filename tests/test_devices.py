@@ -4,9 +4,9 @@ import logging
 import time
 
 from heatmisercontroller.fields import HeatmiserFieldSingleReadOnly, HeatmiserFieldDoubleReadOnly
-from heatmisercontroller.devices import ThermoStatWeek, ThermoStatDay, ThermoStatHotWaterWeek, ThermoStatHotWaterDay
+from heatmisercontroller.devices import ThermoStatDay, ThermoStatHotWaterWeek, ThermoStatHotWaterDay
 from heatmisercontroller.broadcastdevice import HeatmiserBroadcastDevice
-from heatmisercontroller.hm_constants import HMV3_ID, PROG_MODES, PROG_MODE_DAY, DCB_INVALID, WRITE_HOTWATERDEMAND_OVER_OFF, READ_HOTWATERDEMAND_OFF, WRITE_HOTWATERDEMAND_PROG
+from heatmisercontroller.hm_constants import HMV3_ID, PROG_MODES, PROG_MODE_DAY, WRITE_HOTWATERDEMAND_OVER_OFF, READ_HOTWATERDEMAND_OFF, WRITE_HOTWATERDEMAND_PROG
 from heatmisercontroller.exceptions import HeatmiserResponseError, HeatmiserControllerTimeError
 
 from mock_serial import SetupTestClass, MockHeatmiserAdaptor
