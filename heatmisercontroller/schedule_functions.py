@@ -53,14 +53,14 @@ class Scheduler(object):
 
     def display(self):
         """Prints schedule to stdout"""
-        print self.title + " Schedule"
+        print(self.title + " Schedule")
 
         for name, entry in itertools.izip(self.printnames, self.entrynames):
             if self.entries[entry] is None:
                 textstr = "None"
             else:
                 textstr = self.entry_text(self.entries[entry])
-            print name.ljust(10) + textstr
+            print(name.ljust(10) + textstr)
             logging.info(textstr)
 
     @staticmethod

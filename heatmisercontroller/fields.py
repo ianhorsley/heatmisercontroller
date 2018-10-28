@@ -163,6 +163,10 @@ class HeatmiserFieldSingleReadOnly(HeatmiserFieldSingle):
 
 class HeatmiserFieldHotWaterVersion(HeatmiserFieldSingleReadOnly):
     """Class for version on hotwater models."""
+    def __init__(self, name, address, validrange, max_age):
+        super(HeatmiserFieldHotWaterVersion, self).__init__(name, address, validrange, max_age)
+        self.floorlimiting = None
+        
     def _calculate_value(self, data):
         """Calculate value from payload bytes"""
         self.floorlimiting = data[0] >> 7

@@ -344,7 +344,7 @@ class ThermoStatHotWaterWeek(ThermoStatWeek):
         elif self.holidayhours != 0:
             return self.TEMP_STATE_HOLIDAY
         else:
-            self.read_field('currenttime',MAX_AGE_MEDIUM)
+            self.read_field('currenttime', MAX_AGE_MEDIUM)
             
             locatimenow = self.currenttime.localtimearray()
             scheduletarget = self.water_schedule.get_current_schedule_item(locatimenow)
