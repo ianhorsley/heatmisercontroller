@@ -77,7 +77,8 @@ class HeatmiserDevice(object):
         
     def _csvlist_field_names_from_ids(self, fieldids):
         """return csv of fieldnames from list of fieldids"""
-        return self._csvlist_field_names_from(operator.itemgetter(*fieldids)(self.fields))
+        fields = [self.fields[fieldid] for fieldid in fieldids]
+        return self._csvlist_field_names_from(fields)
         
     def _buildfieldtables(self):
         """build dict to map field name to index"""
@@ -131,7 +132,7 @@ class HeatmiserDevice(object):
         
         fieldids = [self._fieldnametonum[fieldname] for fieldname in fieldnames if hasattr(self, fieldname) and (maxage == 0 or not getattr(self, fieldname).check_data_fresh(maxage))]
         fieldids = list(set(fieldids)) #remove duplicates, ordering doesn't matter
-        
+
         if len(fieldids) > 0:
             self._get_fields(fieldids)
 
@@ -160,7 +161,6 @@ class HeatmiserDevice(object):
         """gets field blocks from device
         NOT safe for dcb gaps"""
         #blockstoread list of [field, field, blocklength in bytes]
-        logging.debug(blockstoread)
         estimatedreadtime = self._estimate_blocks_read_time(blockstoread)
 
         if estimatedreadtime < self.fullreadtime - 0.02: #if to close to full read time, then read all
