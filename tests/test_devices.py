@@ -155,12 +155,17 @@ class TestOtherFunctions(unittest.TestCase):
         logging.basicConfig(level=logging.ERROR)
         self.settings = {'address':1, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_e_model', 'expected_prog_mode':PROG_MODE_DAY}
         self.func = ThermoStatHotWaterDay(None, self.settings)
-        
+    
+    @staticmethod
+    def extract_addresses(blocklist):
+        return [[block[0].address, block[1].address, block[2]] for block in blocklist]
+    
     def test_getfieldblocks(self):
-        self.assertEqual([[25, 29, 8]], self.func._get_field_blocks_from_id_range(self.func._fieldnametonum['remoteairtemp'], self.func._fieldnametonum['hotwaterdemand']))
-        self.assertEqual([[31, 31, 4]], self.func._get_field_blocks_from_id_range('hotwaterdemand', 'currenttime'))
-        self.assertEqual([[0, 22, 26], [24, 29, 10], [31, 31, 4]], self.func._get_field_blocks_from_id_range('DCBlen', 'currenttime'))
-        self.assertEqual([[0, 22, 26], [24, 29, 10], [31, 33, 28], [36, 42, 84]], self.func._get_field_blocks_from_range('DCBlen', 'sun_water'))
+        self.assertEqual([[34, 42, 9]], self.extract_addresses(self.func._get_field_blocks_from_id_range(self.func._fieldnametonum['remoteairtemp'], self.func._fieldnametonum['hotwaterdemand'])))
+        self.assertEqual([[42, 43, 5]], self.extract_addresses(self.func._get_field_blocks_from_id_range(self.func._fieldnametonum['hotwaterdemand'], self.func._fieldnametonum['currenttime'])))
+        self.func = ThermoStatDay(None, self.settings)
+        self.assertEqual([[0, 24, 26], [32, 41, 10], [43, 43, 4]], self.extract_addresses(self.func._get_field_blocks_from_id_range(self.func._fieldnametonum['DCBlen'], self.func._fieldnametonum['currenttime'])))
+        self.assertEqual([[0, 24, 26], [32, 41, 10], [43, 59, 28], [103, 175, 84]], self.extract_addresses(self.func._get_field_blocks_from_id_range(self.func._fieldnametonum['DCBlen'], self.func._fieldnametonum['sun_heat'])))
         
     def test_checkblock4(self):
         #print 'DCBlen','sun_water'
@@ -173,9 +178,9 @@ class TestOtherFunctions(unittest.TestCase):
         
     def test_build_dcb_tables(self):
         self.func._build_dcb_tables()
-        expected = [[0, 0], [25, 25], [26, None], [31, None], [32, 26], [186, 147], [187, None], [298, None]]
+        expected = [[0, 0], [25, 30], [26, 32], [31, 41], [32, 53], [40, 157], [48, 277]]
         for u, d in expected:
-            self.assertEqual(d, self.func._uniquetodcb[u])
+            self.assertEqual(d, self.func.fields[u].dcbaddress)
             
     def test_print_target(self):
         self.assertEqual("controller off without frost protection", self.func.target_texts[self.func.TEMP_STATE_OFF](self.func))
@@ -255,7 +260,7 @@ class TestSettingData(unittest.TestCase):
         self.assertEqual(self.tester.arguments, [(5, 3, 43, 4, loctime)])
 
     def test_setfield_notvalid(self):
-        with self.assertRaises(IndexError):
+        with self.assertRaises(KeyError):
             self.func.set_field('hotwaterdemand', WRITE_HOTWATERDEMAND_OVER_OFF)
         
     def test_setfield_3(self):
