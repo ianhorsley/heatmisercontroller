@@ -8,7 +8,6 @@ import logging
 import time
 import copy
 import serial
-import operator
 
 from fields import HeatmiserFieldSingleReadOnly, HeatmiserFieldDoubleReadOnly
 from hm_constants import DEFAULT_PROTOCOL, SLAVE_ADDR_MIN, SLAVE_ADDR_MAX
