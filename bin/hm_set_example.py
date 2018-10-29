@@ -5,11 +5,11 @@ Ian Horsley 2018
 
 import logging
 
-from heatmisercontroller.logging_setup import initialize_logger
+from heatmisercontroller.logging_setup import initialize_logger_full
 from heatmisercontroller.hm_constants import *
 from heatmisercontroller.network import HeatmiserNetwork
 
-initialize_logger('logs', logging.INFO, True)
+initialize_logger_full('logs', logging.INFO)
 
 HMN = HeatmiserNetwork()
 
@@ -57,10 +57,10 @@ WKDAY_ZSTARTNIGHT = WKEND_ZOFF
 HMN.Kit.set_heating_schedule('mon_heat', WKEND_ZOFF)
 HMN.Kit.set_heating_schedule('tues_heat', WKEND_ZOFF)
 HMN.Kit.set_heating_schedule('wed_heat', WKEND_ZOFF)
-HMN.Kit.set_heating_schedule('thurs_heat', WKEND_ZOFF)
-HMN.Kit.set_heating_schedule('fri_heat', WKEND_ZOFF)
-HMN.Kit.set_heating_schedule('sat_heat', WKEND_ZOFF)
-HMN.Kit.set_heating_schedule('sun_heat', WKEND_ZOFF)
+HMN.Kit.set_heating_schedule('thurs_heat', WKDAY_ZLATE)
+HMN.Kit.set_heating_schedule('fri_heat', WKDAY_ZEARLY)
+HMN.Kit.set_heating_schedule('sat_heat', WKEND_ZEARLY)
+HMN.Kit.set_heating_schedule('sun_heat', WKEND_ZLATE)
 
 EVENINGWATER = [17, 30, 18, 30]
 NOWATER = []

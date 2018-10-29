@@ -15,7 +15,7 @@ import time
 from genericdevice import HeatmiserDevice
 from fields import HeatmiserFieldUnknown, HeatmiserFieldSingle, HeatmiserFieldSingleReadOnly, HeatmiserFieldDouble, HeatmiserFieldDoubleReadOnly, HeatmiserFieldTime, HeatmiserFieldHeat, HeatmiserFieldWater, HeatmiserFieldHotWaterDemand, HeatmiserFieldDoubleReadOnlyTenths, HeatmiserFieldHotWaterVersion
 from hm_constants import MAX_AGE_LONG, MAX_AGE_MEDIUM, MAX_AGE_SHORT, MAX_AGE_USHORT
-from hm_constants import PROG_MODES
+from hm_constants import PROG_MODES, WRITE_ONOFF_ON, WRITE_RUNMODE_FROST
 from hm_constants import READ_SENSORS_AVALIABLE_INT_ONLY, READ_SENSORS_AVALIABLE_INT_FLOOR, READ_SENSORS_AVALIABLE_EXT_ONLY, READ_SENSORS_AVALIABLE_EXT_FLOOR
 from .exceptions import HeatmiserControllerTimeError
 from schedule_functions import SchedulerDayHeat, SchedulerWeekHeat, SchedulerDayWater, SchedulerWeekWater, SCH_ENT_TEMP
