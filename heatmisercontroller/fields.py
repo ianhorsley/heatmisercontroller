@@ -94,7 +94,7 @@ class HeatmiserFieldUnknown(Notifier):
 class HeatmiserField(HeatmiserFieldUnknown):
     """Base class for fields providing basic method calls"""
     #single value and hence single range
-    def __init__(self, name, address, validrange, max_age, readvalues = None):
+    def __init__(self, name, address, validrange, max_age, readvalues=None):
         super(HeatmiserField, self).__init__(name, address, max_age, self.fieldlength)
         self.validrange = validrange
         self.writeable = True
@@ -106,6 +106,7 @@ class HeatmiserField(HeatmiserFieldUnknown):
             self.validrange = [0, self.maxdatavalue / self.divisor]
     
     def is_value(self, name):
+        """Returns true if value matches read value."""
         return self.value == self.readvalues[name]
     
     def read_value(self):

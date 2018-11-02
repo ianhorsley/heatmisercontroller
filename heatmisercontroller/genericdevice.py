@@ -333,6 +333,6 @@ class HeatmiserDevice(object):
                 outputdata[-1][3].append(valuescopy[orginalindex])
                 
             else:
-                outputdata.append([[field], field.fieldlength, field.format_data_from_value(valuescopy[orginalindex]), [valuescopy[orginalindex]] ])
+                outputdata.append([[field], field.fieldlength, field.format_data_from_value(valuescopy[orginalindex]), [valuescopy[orginalindex]]])
             previousfield = field
         return outputdata

@@ -6,7 +6,6 @@ Ian Horsley 2018
 import logging
 
 from heatmisercontroller.logging_setup import initialize_logger_full
-from heatmisercontroller.hm_constants import *
 from heatmisercontroller.network import HeatmiserNetwork
 
 initialize_logger_full('logs', logging.INFO)
@@ -20,14 +19,14 @@ HMN = HeatmiserNetwork()
 #HMN.All.set_field('holidayhours', 96)
 HMN.All.release_holiday()
 
-HMN.Kit.set_field('hotwaterdemand', WRITE_HOTWATERDEMAND_PROG)
+HMN.Kit.set_field('hotwaterdemand', HMN.Kit.hotwaterdemand.writevalues['PROG'])
 
 HMN.All.set_on()
 HMN.All.set_frost()
 #HMN.hmUpdateTime(2)
 
-HMN.All.set_field('runmode', WRITE_RUNMODE_HEATING)
-HMN.Cons.set_field('runmode', WRITE_RUNMODE_FROST)
+HMN.All.set_field('runmode', HMN.Kit.runmode.writevalues['HEAT'])
+HMN.Cons.set_field('runmode', HMN.Kit.runmode.writevalues['FROST'])
 
 #HMN.B2.set_temp(24)
 #HMN.Kit.set_temp(24)
