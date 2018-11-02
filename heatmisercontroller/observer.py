@@ -1,89 +1,95 @@
-class Observable:#Synchronization):
+"""Observer framework to trigger methods"""
+
+class Observable(object):
+    """Observerable object that manages observer methods"""
     def __init__(self):
         self.obs = []
         self.changed = 0
-        #Synchronization.__init__(self)
 
-    def addObserver(self, observer):
+    def add_observer(self, observer):
+        """add obserser method if not already connected"""
         if observer not in self.obs:
             self.obs.append(observer)
 
-    def deleteObserver(self, observer):
+    def delete_observer(self, observer):
+        """remove observer method"""
         self.obs.remove(observer)
 
-    def notifyObservers(self, arg = None):
+    def notify_observers(self, arg = None):
         '''If 'changed' indicates that this object
         has changed, notify all its observers, then
-        call clearChanged(). Each observer has its
-        update() called with two arguments: this
-        observable object and the generic 'arg'.'''
+        call clearChanged(). Each observer is called directly'''
        
         if not self.changed: return
-        # Make a local copy in case of synchronous
         # additions of observers:
-        localArray = self.obs[:]
-        self.clearChanged()
-        for observer in localArray:
+        self.clear_changed()
+        for observer in self.obs:
             #observer.update(self, arg)
             observer()
 
-    def deleteObservers(self): self.obs = []
-    def setChanged(self): self.changed = 1
-    def clearChanged(self): self.changed = 0
-    def hasChanged(self): return self.changed
-    def countObservers(self): return len(self.obs)
+    def delete_observers(self): self.obs = []
+    def set_changed(self): self.changed = 1
+    def clear_changed(self): self.changed = 0
+    def has_changed(self): return self.changed
+    def count_observers(self): return len(self.obs)
 
 class Notifier(object):
+    """Object that notfies observers when value changes.
+    Either triggers on is/is not or on any change."""
     def __init__(self):
         self.value = None
         self.nots_is = {}
         self.nots_is_not = self.GeneralNotifier(self)
         self.nots_changed = self.GeneralNotifier(self)
         self.previousvalue = None
-        self.notify_value_change = lambda _ : True
+        self.notify_value_change = lambda _ : True # no action, unless observers added
     
     def notify_value_change_is(self, value):
-        #self.cappedvalue = min(value, self.valuecap)
-        #print "cv", self.cappedvalue
-        #stop time waste
-        if self.value in self.nots_is:
-            print "in is", self.previousvalue, self.value
-            self.nots_is[self.value].notifyObservers()
+        """Nofifies observers if value is, otherwise notifies other observers."""
+        if value in self.nots_is:
+            print("in is", self.previousvalue, self.value)
+            self.nots_is[self.value].notify_observers()
         else:
-            print "in not"
-            self.nots_is_not.notifyObservers()
+            print("in not")
+            self.nots_is_not.notify_observers()
             
-    def notify_value_change_changed(self, value):        
-        self.nots_changed.notifyObservers()
+    def notify_value_change_changed(self, _):
+        """Notifies obersers on any change."""
+        self.nots_changed.notify_observers()
         
     class GeneralNotifier(Observable):
+        """Notifier which only triggers on change of outer value"""
         def __init__(self, outer):
             Observable.__init__(self)
             self.previousvalue = None
             self.outer = outer
-        def notifyObservers(self, arg = None):
+
+        def notify_observers(self, arg = None):
+            """Notify if changed."""
             if not self.outer.value == self.outer.previousvalue:
-                print self.outer.name, "changed to", self.outer.value, "from", self.outer.previousvalue
-                self.setChanged()
-                Observable.notifyObservers(self, arg)
+                print(self.outer.name, "changed to", self.outer.value, "from", self.outer.previousvalue)
+                self.set_changed()
+                Observable.notify_observers(self, arg)
                 self.outer.previousvalue = self.outer.value
-                
-    def get_value(self):
-        """method to return the current value"""
-        return value
         
     def add_notifable_is(self, value, method):
-        self.nots_is.setdefault(value, self.GeneralNotifier(self)).addObserver(method)
+        """Add notifable for value is."""
+        self.nots_is.setdefault(value, self.GeneralNotifier(self)).add_observer(method)
         self.notify_value_change = self.notify_value_change_is
     def delete_notifable_is(self, value, method):
-        self.nots_is.get(value, self.GeneralNotifierCompare(self)).deleteObserver(method)
+        """Remove notifiable."""
+        self.nots_is.get(value, self.GeneralNotifierCompare(self)).delete_observer(method)
     def add_notifable_is_not(self, method):
+        """Add notifable for value is not."""
         self.notify_value_change = self.notify_value_change_is
-        self.nots_is_not.addObserver(method)
+        self.nots_is_not.add_observer(method)
     def delete_notifable_is_not(self, method):
-        self.nots_is_not.deleteObserver(method)
+        """Remove notifiable."""
+        self.nots_is_not.delete_dbserver(method)
     def add_notifable_changed(self, method):
-        self.nots_changed.addObserver(method)
+        """Add notifable for value changes."""
+        self.nots_changed.add_observer(method)
         self.notify_value_change = self.notify_value_change_changed
     def delete_notifable_changed(self, method):
-        self.nots_changed.deleteObserver(method) 
+        """Remove notifiable."""
+        self.nots_changed.delete_observer(method)

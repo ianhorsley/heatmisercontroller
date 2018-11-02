@@ -159,8 +159,6 @@ class HeatmiserFieldSingle(HeatmiserField):
         self.maxdatavalue = 255
         self.fieldlength = 1
         super(HeatmiserFieldSingle, self).__init__(name, address, validrange, max_age, readvalues)
-        if not readvalues is None:
-            self.valuecap = max(readvalues.values()) + 1
 
     def _calculate_value(self, data):
         """Calculate value from payload bytes"""
@@ -211,8 +209,6 @@ class HeatmiserFieldDouble(HeatmiserField):
         self.maxdatavalue = 65536
         self.fieldlength = 2
         super(HeatmiserFieldDouble, self).__init__(name, address, validrange, max_age, readvalues)
-        if not readvalues is None:
-            self.valuecap = max(readvalues.values()) + 1
         
     def _calculate_value(self, data):
         """Calculate value from payload bytes"""
