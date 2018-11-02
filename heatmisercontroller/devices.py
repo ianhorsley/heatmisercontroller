@@ -158,7 +158,7 @@ class ThermoStatWeek(HeatmiserDevice):
     def print_target(self):
         """Returns text describing current heating state"""    
         current_state = self.read_temp_state()
-        return self.target_texts[currernt_state](self)
+        return self.target_texts[current_state](self)
             
     ## External functions for reading data
     
@@ -385,7 +385,7 @@ class ThermoStatHotWaterDay(ThermoStatDay, ThermoStatHotWaterWeek):
         ])
         self.water_schedule = SchedulerDayWater()
 
-devicetypes = {
+DEVICETYPES = {
     None: HeatmiserDevice,
     'prt_e_model': {'week': ThermoStatWeek, 'day': ThermoStatDay},
     'prt_hw_model': {'week': ThermoStatHotWaterWeek, 'day': ThermoStatHotWaterDay}

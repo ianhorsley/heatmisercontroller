@@ -10,7 +10,7 @@ import logging
 #import sys
 
 # Import our own stuff
-from devices import devicetypes, ThermoStatUnknown, ThermoStatWeek, ThermoStatDay
+from devices import DEVICETYPES, ThermoStatUnknown, ThermoStatWeek, ThermoStatDay
 from broadcastdevice import HeatmiserBroadcastDevice
 from adaptor import HeatmiserAdaptor
 from hm_constants import SLAVE_ADDR_MIN, SLAVE_ADDR_MAX
@@ -70,7 +70,7 @@ class HeatmiserNetwork(object):
         """Add device to network"""
         expected_model = controllersettings['expected_model']
         expected_prog_mode = controllersettings['expected_prog_mode']
-        new_device = devicetypes[expected_model][expected_prog_mode](self.adaptor, controllersettings, generalsettings)
+        new_device = DEVICETYPES[expected_model][expected_prog_mode](self.adaptor, controllersettings, generalsettings)
         setattr(self, name, new_device)
         setattr(new_device, 'name', name) #make name avaliable when accessing by id
         self._addresses_in_use.append(controllersettings['address'])
