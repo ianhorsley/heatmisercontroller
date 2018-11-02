@@ -2,7 +2,6 @@
 import logging
 import time
 
-from .hm_constants import WRITE_HOTWATERDEMAND_PROG, WRITE_HOTWATERDEMAND_OVER_OFF, READ_HOTWATERDEMAND_OFF
 from hm_constants import CURRENT_TIME_DAY, CURRENT_TIME_HOUR, CURRENT_TIME_MIN, CURRENT_TIME_SEC, TIME_ERR_LIMIT
 from hm_constants import BYTEMASK
 from .exceptions import HeatmiserResponseError, HeatmiserControllerTimeError
@@ -109,6 +108,13 @@ class HeatmiserField(HeatmiserFieldUnknown):
     def is_value(self, name):
         return self.value == self.readvalues[name]
     
+    def read_value(self):
+        """returns value converting to label if known"""
+        if self.readvalues is None:
+            return self.value
+        else:
+            return self.readvalues.keys()[self.readvalues.values().index(self.value)]
+    
     def update_data(self, data, readtime):
         """update stored data and readtime if data valid. Compute and store value from data."""
         value = self._calculate_value(data)
@@ -195,11 +201,11 @@ class HeatmiserFieldHotWaterDemand(HeatmiserFieldSingle):
         """Update the field value once successfully written to network if known. Otherwise reset"""
         #handle odd effect on WRITE_hotwaterdemand_PROG
         
-        if value == WRITE_HOTWATERDEMAND_PROG: #returned to program so outcome is unknown
+        if value == self.writevalues['PROG']: #returned to program so outcome is unknown
             self._reset()
             return None
-        elif value == WRITE_HOTWATERDEMAND_OVER_OFF: #if overridden off store the off read value
-            return super(HeatmiserFieldHotWaterDemand, self).update_value(READ_HOTWATERDEMAND_OFF, writetime)
+        elif value == self.writevalues['OVER_OFF']: #if overridden off store the off read value
+            return super(HeatmiserFieldHotWaterDemand, self).update_value(self.readvalues['OFF'], writetime)
         else:
             return super(HeatmiserFieldHotWaterDemand, self).update_value(value, writetime)
         

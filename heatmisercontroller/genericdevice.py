@@ -57,9 +57,9 @@ class HeatmiserDevice(object):
         """build list of fields"""
         self.fields = [
             HeatmiserFieldDoubleReadOnly('DCBlen', 0, [], MAX_AGE_LONG),
-            HeatmiserFieldSingleReadOnly('vendor', 2, [0, 1], MAX_AGE_LONG),  #00 heatmiser,  01 OEM
+            HeatmiserFieldSingleReadOnly('vendor', 2, [0, 1], MAX_AGE_LONG, {'heatmiser': 0, 'OEM': 1}),
             HeatmiserFieldSingleReadOnly('version', 3, [], MAX_AGE_LONG),
-            HeatmiserFieldSingleReadOnly('model', 4, [0, 5], MAX_AGE_LONG),  # DT/DT-E/PRT/PRT-E 00/01/02/03
+            HeatmiserFieldSingleReadOnly('model', 4, [0, 5], MAX_AGE_LONG, {'prt_e_model': 3, 'prt_hw_model': 4, False: 0}),  # DT/DT-E/PRT/PRT-E 00/01/02/03
             HeatmiserFieldSingleReadOnly('address', 11, [SLAVE_ADDR_MIN, SLAVE_ADDR_MAX], MAX_AGE_LONG),
         ]
     

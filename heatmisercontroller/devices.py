@@ -14,9 +14,8 @@ import time
 
 from genericdevice import HeatmiserDevice
 from fields import HeatmiserFieldUnknown, HeatmiserFieldSingle, HeatmiserFieldSingleReadOnly, HeatmiserFieldDouble, HeatmiserFieldDoubleReadOnly, HeatmiserFieldTime, HeatmiserFieldHeat, HeatmiserFieldWater, HeatmiserFieldHotWaterDemand, HeatmiserFieldDoubleReadOnlyTenths, HeatmiserFieldHotWaterVersion
+from fields import VALUES_ON_OFF, VALUES_OFF_ON, VALUES_OFF
 from hm_constants import MAX_AGE_LONG, MAX_AGE_MEDIUM, MAX_AGE_SHORT, MAX_AGE_USHORT
-from hm_constants import PROG_MODES, WRITE_ONOFF_ON, WRITE_RUNMODE_FROST
-from hm_constants import READ_SENSORS_AVALIABLE_INT_ONLY, READ_SENSORS_AVALIABLE_INT_FLOOR, READ_SENSORS_AVALIABLE_EXT_ONLY, READ_SENSORS_AVALIABLE_EXT_FLOOR
 from .exceptions import HeatmiserControllerTimeError
 from schedule_functions import SchedulerDayHeat, SchedulerWeekHeat, SchedulerDayWater, SchedulerWeekWater, SCH_ENT_TEMP
 
@@ -33,7 +32,7 @@ class ThermoStatUnknown(HeatmiserDevice):
         self.fields.extend([
             HeatmiserFieldUnknown('unknown', 5, MAX_AGE_LONG, 6),  # gap allows single read
             HeatmiserFieldUnknown('unknown', 12, MAX_AGE_LONG, 4),  # gap allows single read
-            HeatmiserFieldSingleReadOnly('programmode', 16, [0, 1], MAX_AGE_LONG)  #0=5/2,  1= 7day
+            HeatmiserFieldSingleReadOnly('programmode', 16, [0, 1], MAX_AGE_LONG, {'day':1, 'week':0})  #0=5/2,  1= 7day
         ])
         
     def _set_expected_field_values(self):
@@ -62,24 +61,24 @@ class ThermoStatWeek(HeatmiserDevice):
         self.fields.extend([
             HeatmiserFieldSingleReadOnly('tempformat', 5, [0, 1], MAX_AGE_LONG),  # 00 C,  01 F
             HeatmiserFieldSingleReadOnly('switchdiff', 6, [1, 3], MAX_AGE_LONG),
-            HeatmiserFieldSingleReadOnly('frostprot', 7, [0, 1], MAX_AGE_LONG),  #0=enable frost prot when display off,  (opposite in protocol manual,  but tested and user guide is correct)  (default should be enabled)
+            HeatmiserFieldSingleReadOnly('frostprotdisable', 7, [0, 1], MAX_AGE_LONG, VALUES_OFF_ON),  #0=enable frost prot when display off,  (opposite in protocol manual,  but tested and user guide is correct)  (default should be enabled)
             HeatmiserFieldDoubleReadOnly('caloffset', 8, [], MAX_AGE_LONG),
             HeatmiserFieldSingleReadOnly('outputdelay', 10, [0, 15], MAX_AGE_LONG),  # minutes (to prevent rapid switching)            
             HeatmiserFieldSingleReadOnly('updwnkeylimit', 12, [0, 10], MAX_AGE_LONG),   #limits use of up and down keys
-            HeatmiserFieldSingleReadOnly('sensorsavaliable', 13, [0, 4], MAX_AGE_LONG),  #00 built in only,  01 remote air only,  02 floor only,  03 built in + floor,  04 remote + floor
+            HeatmiserFieldSingleReadOnly('sensorsavaliable', 13, [0, 4], MAX_AGE_LONG, {'INT_ONLY': 0, 'EXT_ONLY': 1, 'FLOOR_ONLY': 2, 'INT_FLOOR': 3, 'EXT_FLOOR': 4}),  #00 built in only,  01 remote air only,  02 floor only,  03 built in + floor,  04 remote + floor
             HeatmiserFieldSingleReadOnly('optimstart', 14, [0, 3], MAX_AGE_LONG),  # 0 to 3 hours,  default 0
             HeatmiserFieldSingleReadOnly('rateofchange', 15, [], MAX_AGE_LONG),  #number of minutes per degree to raise the temperature,  default 20. Applies to the Wake and Return comfort levels (1st and 3rd)
-            HeatmiserFieldSingleReadOnly('programmode', 16, [0, 1], MAX_AGE_LONG),  #0=5/2,  1= 7day
+            HeatmiserFieldSingleReadOnly('programmode', 16, [0, 1], MAX_AGE_LONG, {'day':1, 'week':0}),  #0=5/2,  1= 7day
             HeatmiserFieldSingle('frosttemp', 17, [7, 17], MAX_AGE_LONG),  #default is 12,  frost protection temperature
             HeatmiserFieldSingle('setroomtemp', 18, [5, 35], MAX_AGE_USHORT),
             HeatmiserFieldSingle('floormaxlimit', 19, [20, 45], MAX_AGE_LONG),
             HeatmiserFieldSingleReadOnly('floormaxlimitenable', 20, [0, 1], MAX_AGE_LONG),  #1=enable
-            HeatmiserFieldSingle('onoff', 21, [0, 1], MAX_AGE_SHORT),  #1 = on
-            HeatmiserFieldSingle('keylock', 22, [0, 1], MAX_AGE_SHORT),  #1 = on
-            HeatmiserFieldSingle('runmode', 23, [0, 1], MAX_AGE_SHORT),   #0 = heating mode,  1 = frost protection mode
-            HeatmiserFieldDouble('holidayhours', 24, [0, 720], MAX_AGE_SHORT),  #range guessed and tested,  setting to 0 cancels hold and puts back to program 
+            HeatmiserFieldSingle('onoff', 21, [0, 1], MAX_AGE_SHORT, VALUES_ON_OFF),  #1 = on
+            HeatmiserFieldSingle('keylock', 22, [0, 1], MAX_AGE_SHORT, VALUES_ON_OFF),  #1 = on
+            HeatmiserFieldSingle('runmode', 23, [0, 1], MAX_AGE_SHORT, {'HEAT': 0, 'FROST': 1}),   #0 = heating mode,  1 = frost protection mode
+            HeatmiserFieldDouble('holidayhours', 24, [0, 720], MAX_AGE_SHORT, VALUES_OFF),  #range guessed and tested,  setting to 0 cancels hold and puts back to program 
             #HeatmiserFieldUnknown('unknown', 26, 1, [], MAX_AGE_LONG, 6),  # gap from 26 to 31
-            HeatmiserFieldDouble('tempholdmins', 32, [0, 5760], MAX_AGE_SHORT),  #range guessed and tested,  setting to 0 cancels hold and puts setroomtemp back to program
+            HeatmiserFieldDouble('tempholdmins', 32, [0, 5760], MAX_AGE_SHORT, VALUES_OFF),  #range guessed and tested,  setting to 0 cancels hold and puts setroomtemp back to program
             HeatmiserFieldDoubleReadOnlyTenths('remoteairtemp', 34, [], MAX_AGE_USHORT),  #ffff if no sensor
             HeatmiserFieldDoubleReadOnlyTenths('floortemp', 36, [], MAX_AGE_USHORT),  #ffff if no sensor
             HeatmiserFieldDoubleReadOnlyTenths('airtemp', 38, [], MAX_AGE_USHORT),  #ffff if no sensor
@@ -97,7 +96,7 @@ class ThermoStatWeek(HeatmiserDevice):
     def _set_expected_field_values(self):
         """set the expected values for fields that should be fixed"""
         super(ThermoStatWeek, self)._set_expected_field_values()
-        self.fields[self._fieldnametonum['programmode']].expectedvalue = PROG_MODES[self.expected_prog_mode]
+        self.fields[self._fieldnametonum['programmode']].expectedvalue = self.programmode.readvalues[self.expected_prog_mode]
     
     def _procfield(self, data, fieldinfo):
         """Process data for a single field storing in relevant."""
@@ -166,15 +165,15 @@ class ThermoStatWeek(HeatmiserDevice):
     def read_temp_state(self):
         """Returns the current temperature control state from off to following program"""
         self.read_fields(['mon_heat', 'tues_heat', 'wed_heat', 'thurs_heat', 'fri_heat', 'wday_heat', 'wend_heat'], -1)
-        self.read_fields(['onoff', 'frostprot', 'holidayhours', 'runmode', 'tempholdmins', 'setroomtemp'])
+        self.read_fields(['onoff', 'frostprotdisable', 'holidayhours', 'runmode', 'tempholdmins', 'setroomtemp'])
         
-        if self.onoff.value == WRITE_ONOFF_OFF and self.frostprot.value == READ_FROST_PROT_OFF:
+        if self.onoff.is_value('OFF') and self.frostprotdisable.is_value('OFF'):
             return self.TEMP_STATE_OFF
-        elif self.onoff.value == WRITE_ONOFF_OFF and self.frostprot.value == READ_FROST_PROT_ON:
+        elif self.onoff.is_value('OFF') and self.frostprotdisable.is_value('ON'):
             return self.TEMP_STATE_OFF_FROST
         elif self.holidayhours.value != 0:
             return self.TEMP_STATE_HOLIDAY
-        elif self.runmode.value == WRITE_RUNMODE_FROST:
+        elif self.runmode.is_value('FROST'):
             return self.TEMP_STATE_FROST
         elif self.tempholdmins.value != 0:
             return self.TEMP_STATE_HELD
@@ -194,9 +193,9 @@ class ThermoStatWeek(HeatmiserDevice):
         #1 local, 2 remote
         self.read_field('sensorsavaliable')
 
-        if self.sensorsavaliable == READ_SENSORS_AVALIABLE_INT_ONLY or self.sensorsavaliable == READ_SENSORS_AVALIABLE_INT_FLOOR:
+        if self.sensorsavaliable.is_value('INT_ONLY') or self.sensorsavaliable.is_value('INT_FLOOR'):
             return 1
-        elif self.sensorsavaliable == READ_SENSORS_AVALIABLE_EXT_ONLY or self.sensorsavaliable == READ_SENSORS_AVALIABLE_EXT_FLOOR:
+        elif self.sensorsavaliable.is_value('EXT_ONLY') or self.sensorsavaliable.is_value('EXT_FLOOR'):
             return 2
         raise ValueError("sensorsavaliable field invalid")
             
@@ -263,24 +262,24 @@ class ThermoStatWeek(HeatmiserDevice):
 
     def set_on(self):
         """Switch stat on"""
-        return self.set_field('onoff', WRITE_ONOFF_ON)
+        return self.set_field('onoff', self.onoff.writevalues['ON'])
     def set_off(self):
         """Switch stat off"""
-        return self.set_field('onoff', WRITE_ONOFF_OFF)
+        return self.set_field('onoff', self.onoff.writevalues['OFF'])
         
     def set_heat(self):
         """Switch stat to follow heat program"""
-        return self.set_field('runmode', WRITE_RUNMODE_HEATING)
+        return self.set_field('runmode', self.runmode.writevalues['HEAT'])
     def set_frost(self):
         """Switch stat to frost only"""
-        return self.set_field('runmode', WRITE_RUNMODE_FROST)
+        return self.set_field('runmode', self.runmode.writevalues['FROST'])
         
     def set_lock(self):
         """Lock keypad"""
-        return self.set_field('keylock', WRITE_KEYLOCK_ON)
+        return self.set_field('keylock', self.keylock.writevalues['ON'])
     def set_unlock(self):
         """Unlock keypad"""
-        return self.set_field('keylock', WRITE_KEYLOCK_OFF)
+        return self.set_field('keylock', self.keylock.writevalues['ON'])
 
 class ThermoStatDay(ThermoStatWeek):
     """Device class for thermostats operating daily programmode

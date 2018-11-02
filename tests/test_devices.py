@@ -6,7 +6,7 @@ import time
 from heatmisercontroller.fields import HeatmiserFieldSingleReadOnly, HeatmiserFieldDoubleReadOnly
 from heatmisercontroller.devices import ThermoStatDay, ThermoStatHotWaterWeek, ThermoStatHotWaterDay
 from heatmisercontroller.broadcastdevice import HeatmiserBroadcastDevice
-from heatmisercontroller.hm_constants import HMV3_ID, PROG_MODES, PROG_MODE_DAY, WRITE_HOTWATERDEMAND_OVER_OFF, READ_HOTWATERDEMAND_OFF, WRITE_HOTWATERDEMAND_PROG
+from heatmisercontroller.hm_constants import HMV3_ID, PROG_MODE_DAY
 from heatmisercontroller.exceptions import HeatmiserResponseError, HeatmiserControllerTimeError
 
 from mock_serial import SetupTestClass, MockHeatmiserAdaptor
@@ -55,7 +55,7 @@ class TestReadingData(unittest.TestCase):
         self.func._procfield([1], HeatmiserFieldSingleReadOnly('test', 0, [0, 1], None))
         self.func._procfield([1, 1], HeatmiserFieldDoubleReadOnly('test', 0, [0, 257], None))
         self.func._procfield([4], HeatmiserFieldSingleReadOnly('model', 0, [], None))
-        self.func._procfield([PROG_MODES[PROG_MODE_DAY]], HeatmiserFieldSingleReadOnly('programmode', 0, [], None))
+        #self.func._procfield([PROG_MODES[PROG_MODE_DAY]], HeatmiserFieldSingleReadOnly('programmode', 0, [], None))
         
     def test_procfield_range(self):
         with self.assertRaises(HeatmiserResponseError):
@@ -261,7 +261,7 @@ class TestSettingData(unittest.TestCase):
 
     def test_setfield_notvalid(self):
         with self.assertRaises(KeyError):
-            self.func.set_field('hotwaterdemand', WRITE_HOTWATERDEMAND_OVER_OFF)
+            self.func.set_field('hotwaterdemand', 0)
         
     def test_setfield_3(self):
         """Check hotwaterdemand mapping"""
@@ -269,13 +269,13 @@ class TestSettingData(unittest.TestCase):
         #self.func._update_settings(settings2, None)
         self.func = ThermoStatHotWaterDay(self.tester, settings2)
         #make sure read time is set and check value
-        self.func.set_field('hotwaterdemand', WRITE_HOTWATERDEMAND_OVER_OFF)
+        self.func.set_field('hotwaterdemand', self.func.hotwaterdemand.writevalues['OVER_OFF'])
         self.assertNotEqual(getattr(self.func, 'hotwaterdemand').lastreadtime, None)
-        self.assertEqual(self.func.data['hotwaterdemand'], READ_HOTWATERDEMAND_OFF)
+        self.assertEqual(self.func.data['hotwaterdemand'], self.func.hotwaterdemand.readvalues['OFF'])
         self.func._adaptor.reset()
         #check releasing works
-        self.func.set_field('hotwaterdemand', WRITE_HOTWATERDEMAND_PROG)
-        self.assertEqual(self.tester.arguments, [(1, 3, 42, 1, [WRITE_HOTWATERDEMAND_PROG])])
+        self.func.set_field('hotwaterdemand', self.func.hotwaterdemand.writevalues['PROG'])
+        self.assertEqual(self.tester.arguments, [(1, 3, 42, 1, [self.func.hotwaterdemand.writevalues['PROG']])])
         self.assertEqual(self.func.hotwaterdemand.value, None)
         self.assertEqual(self.func.hotwaterdemand.lastreadtime, None)
         

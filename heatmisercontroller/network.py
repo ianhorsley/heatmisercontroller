@@ -13,7 +13,7 @@ import logging
 from devices import devicetypes, ThermoStatUnknown, ThermoStatWeek, ThermoStatDay
 from broadcastdevice import HeatmiserBroadcastDevice
 from adaptor import HeatmiserAdaptor
-from hm_constants import SLAVE_ADDR_MIN, SLAVE_ADDR_MAX, DEVICE_MODELS, PROG_MODES
+from hm_constants import SLAVE_ADDR_MIN, SLAVE_ADDR_MAX
 from .exceptions import HeatmiserResponseError
 import setup as hms
 
@@ -88,8 +88,8 @@ class HeatmiserNetwork(object):
             except HeatmiserResponseError as err:
                 logging.info("C%i device not found, library error %s"%(address, err))
             else:
-                model = DEVICE_MODELS.keys()[DEVICE_MODELS.values().index(test_device.model.value)]
-                prog_mode = PROG_MODES.keys()[PROG_MODES.values().index(test_device.programmode.value)]
+                model = test_device.model.read_value()
+                prog_mode = test_device.programmode.read_value()
                 logging.info("C%i device %s found, with program %s"%(address, model, prog_mode))
                 controllersettings = {
                     'address': address,
