@@ -6,10 +6,16 @@ from .hm_constants import WRITE_HOTWATERDEMAND_PROG, WRITE_HOTWATERDEMAND_OVER_O
 from hm_constants import CURRENT_TIME_DAY, CURRENT_TIME_HOUR, CURRENT_TIME_MIN, CURRENT_TIME_SEC, TIME_ERR_LIMIT
 from hm_constants import BYTEMASK
 from .exceptions import HeatmiserResponseError, HeatmiserControllerTimeError
+from .observer import Notifier
 
-class HeatmiserFieldUnknown(object):
+VALUES_ON_OFF = {'ON': 1, 'OFF': 0} #assusme that default comes first, need to swtich to ordered dictionary to make it possible to get default value
+VALUES_OFF_ON = {'OFF': 0, 'ON': 1}
+VALUES_OFF = {'OFF': 0}
+
+class HeatmiserFieldUnknown(Notifier):
     """Class for variable length unknown read only field"""
     def __init__(self, name, address, max_age, length):
+        Notifier.__init__(self)
         self.name = name
         self.address = address
         self.dcbaddress = address
@@ -89,15 +95,19 @@ class HeatmiserFieldUnknown(object):
 class HeatmiserField(HeatmiserFieldUnknown):
     """Base class for fields providing basic method calls"""
     #single value and hence single range
-    def __init__(self, name, address, validrange, max_age):
+    def __init__(self, name, address, validrange, max_age, readvalues = None):
         super(HeatmiserField, self).__init__(name, address, max_age, self.fieldlength)
         self.validrange = validrange
         self.writeable = True
         self.value = None
         self.expectedvalue = None
+        self.writevalues = self.readvalues = readvalues
         #check isinstance(fieldrange[0], (int, long)) and isinstance(fieldrange[1], (int, long))
         if len(validrange) < 2:
             self.validrange = [0, self.maxdatavalue / self.divisor]
+    
+    def is_value(self, name):
+        return self.value == self.readvalues[name]
     
     def update_data(self, data, readtime):
         """update stored data and readtime if data valid. Compute and store value from data."""
@@ -108,6 +118,7 @@ class HeatmiserField(HeatmiserFieldUnknown):
         self.data = data
         self.value = value
         self.lastreadtime = readtime
+        self.notify_value_change(value)
         return value
 
     def update_value(self, value, writetime):
@@ -117,6 +128,7 @@ class HeatmiserField(HeatmiserFieldUnknown):
         self.data = data
         self.value = value
         self.lastreadtime = writetime
+        self.notify_value_change(value)
         return value
         
     def _validate_range(self, values, errortype=HeatmiserResponseError):
@@ -143,10 +155,12 @@ class HeatmiserField(HeatmiserFieldUnknown):
 
 class HeatmiserFieldSingle(HeatmiserField):
     """Class for writable 1 byte field"""
-    def __init__(self, name, address, validrange, max_age):
+    def __init__(self, name, address, validrange, max_age, readvalues = None):
         self.maxdatavalue = 255
         self.fieldlength = 1
-        super(HeatmiserFieldSingle, self).__init__(name, address, validrange, max_age)
+        super(HeatmiserFieldSingle, self).__init__(name, address, validrange, max_age, readvalues)
+        if not readvalues is None:
+            self.valuecap = max(readvalues.values()) + 1
 
     def _calculate_value(self, data):
         """Calculate value from payload bytes"""
@@ -158,8 +172,8 @@ class HeatmiserFieldSingle(HeatmiserField):
 
 class HeatmiserFieldSingleReadOnly(HeatmiserFieldSingle):
     """Class for read only 1 byte field"""
-    def __init__(self, name, address, validrange, max_age):
-        super(HeatmiserFieldSingleReadOnly, self).__init__(name, address, validrange, max_age)
+    def __init__(self, name, address, validrange, max_age, readvalues = None):
+        super(HeatmiserFieldSingleReadOnly, self).__init__(name, address, validrange, max_age, readvalues)
         self.writeable = False
 
 class HeatmiserFieldHotWaterVersion(HeatmiserFieldSingleReadOnly):
@@ -176,7 +190,8 @@ class HeatmiserFieldHotWaterVersion(HeatmiserFieldSingleReadOnly):
 class HeatmiserFieldHotWaterDemand(HeatmiserFieldSingle):
     """Class to impliment read and write differences for hotwater demand field."""
     def __init__(self, name, address, validrange, max_age):
-        super(HeatmiserFieldHotWaterDemand, self).__init__(name, address, validrange, max_age)
+        super(HeatmiserFieldHotWaterDemand, self).__init__(name, address, validrange, max_age, VALUES_ON_OFF)
+        self.writevalues = {'PROG': 0, 'OVER_ON': 1, 'OVER_OFF': 2}
 
     def update_value(self, value, writetime):
         """Update the field value once successfully written to network if known. Otherwise reset"""
@@ -192,10 +207,12 @@ class HeatmiserFieldHotWaterDemand(HeatmiserFieldSingle):
         
 class HeatmiserFieldDouble(HeatmiserField):
     """Class for writable 2 byte field"""
-    def __init__(self, name, address, validrange, max_age):
+    def __init__(self, name, address, validrange, max_age, readvalues = None):
         self.maxdatavalue = 65536
         self.fieldlength = 2
-        super(HeatmiserFieldDouble, self).__init__(name, address, validrange, max_age)
+        super(HeatmiserFieldDouble, self).__init__(name, address, validrange, max_age, readvalues)
+        if not readvalues is None:
+            self.valuecap = max(readvalues.values()) + 1
         
     def _calculate_value(self, data):
         """Calculate value from payload bytes"""
