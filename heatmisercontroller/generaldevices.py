@@ -1,15 +1,40 @@
 """Heatmiser Device Classes
 
 Broadcast to all devices on the Heatmiser network
+UnknownThermoStat
 
 Ian Horsley 2018
 """
 import logging
 
+from genericdevice import HeatmiserDevice
 from devices import ThermoStatHotWaterDay
+from fields import HeatmiserFieldUnknown, HeatmiserFieldSingleReadOnly
 from decorators import ListWrapperClass, run_function_on_all
 from hm_constants import DEFAULT_PROTOCOL, DEFAULT_PROG_MODE, BROADCAST_ADDR
+from hm_constants import MAX_AGE_LONG
 from .logging_setup import csvlist
+
+class ThermoStatUnknown(HeatmiserDevice):
+    """Device class for unknown thermostats operating unknown programmode"""
+    def _configure_fields(self):
+        """build dict to map field name to index, map fields tables to properties and set dcb addresses."""
+        super(ThermoStatUnknown, self)._configure_fields()
+        self.dcb_length = 65536 #override dcb_length to prevent readall, given unknown full length
+    
+    def _buildfields(self):
+        """add to list of fields"""
+        super(ThermoStatUnknown, self)._buildfields()
+        self.fields.extend([
+            HeatmiserFieldUnknown('unknown', 5, MAX_AGE_LONG, 6),  # gap allows single read
+            HeatmiserFieldUnknown('unknown', 12, MAX_AGE_LONG, 4),  # gap allows single read
+            HeatmiserFieldSingleReadOnly('programmode', 16, [0, 1], MAX_AGE_LONG, {'day':1, 'week':0})  #0=5/2,  1= 7day
+        ])
+        
+    def _set_expected_field_values(self):
+        """set the expected values for fields that should be fixed. Overriding prevents expected model being setup."""
+        self.address.expectedvalue = self.set_address
+        self.DCBlen.expectedvalue = self.dcb_length
 
 class HeatmiserBroadcastDevice(ThermoStatHotWaterDay):
     """Broadcast device class for broadcast set functions and managing reading on all devices

@@ -4,41 +4,15 @@ Thermostat classes on the Heatmiser network
 
 Ian Horsley 2018
 """
-
-#read = return local if not to old, otherwise gets
-#get = goes to network to get
-#each field should it's own maximum age
-
 import logging
 import time
 
 from genericdevice import HeatmiserDevice
-from fields import HeatmiserFieldUnknown, HeatmiserFieldSingle, HeatmiserFieldSingleReadOnly, HeatmiserFieldDouble, HeatmiserFieldDoubleReadOnly, HeatmiserFieldTime, HeatmiserFieldHeat, HeatmiserFieldWater, HeatmiserFieldHotWaterDemand, HeatmiserFieldDoubleReadOnlyTenths, HeatmiserFieldHotWaterVersion
+from fields import HeatmiserFieldSingle, HeatmiserFieldSingleReadOnly, HeatmiserFieldDouble, HeatmiserFieldDoubleReadOnly, HeatmiserFieldTime, HeatmiserFieldHeat, HeatmiserFieldWater, HeatmiserFieldHotWaterDemand, HeatmiserFieldDoubleReadOnlyTenths, HeatmiserFieldHotWaterVersion
 from fields import VALUES_ON_OFF, VALUES_OFF_ON, VALUES_OFF
 from hm_constants import MAX_AGE_LONG, MAX_AGE_MEDIUM, MAX_AGE_SHORT, MAX_AGE_USHORT
 from .exceptions import HeatmiserControllerTimeError
 from schedule_functions import SchedulerDayHeat, SchedulerWeekHeat, SchedulerDayWater, SchedulerWeekWater, SCH_ENT_TEMP
-
-class ThermoStatUnknown(HeatmiserDevice):
-    """Device class for unknown thermostats operating unknown programmode"""
-    def _configure_fields(self):
-        """build dict to map field name to index, map fields tables to properties and set dcb addresses."""
-        super(ThermoStatUnknown, self)._configure_fields()
-        self.dcb_length = 65536 #override dcb_length to prevent readall, given unknown full length
-    
-    def _buildfields(self):
-        """add to list of fields"""
-        super(ThermoStatUnknown, self)._buildfields()
-        self.fields.extend([
-            HeatmiserFieldUnknown('unknown', 5, MAX_AGE_LONG, 6),  # gap allows single read
-            HeatmiserFieldUnknown('unknown', 12, MAX_AGE_LONG, 4),  # gap allows single read
-            HeatmiserFieldSingleReadOnly('programmode', 16, [0, 1], MAX_AGE_LONG, {'day':1, 'week':0})  #0=5/2,  1= 7day
-        ])
-        
-    def _set_expected_field_values(self):
-        """set the expected values for fields that should be fixed. Overriding prevents expected model being setup."""
-        self.address.expectedvalue = self.set_address
-        self.DCBlen.expectedvalue = self.dcb_length
 
 class ThermoStatWeek(HeatmiserDevice):
     """Device class for thermostats operating weekly programmode
