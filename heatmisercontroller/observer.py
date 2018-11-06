@@ -15,7 +15,7 @@ class Observable(object):
         """remove observer method"""
         self.obs.remove(observer)
 
-    def notify_observers(self, arg = None):
+    def notify_observers(self, arg=None):
         '''If 'changed' indicates that this object
         has changed, notify all its observers, then
         call clearChanged(). Each observer is called directly'''
@@ -42,7 +42,7 @@ class Notifier(object):
         self.nots_is_not = self.GeneralNotifier(self)
         self.nots_changed = self.GeneralNotifier(self)
         self.previousvalue = None
-        self.notify_value_change = lambda _ : True # no action, unless observers added
+        self.notify_value_change = lambda _: True # no action, unless observers added
     
     def notify_value_change_is(self, value):
         """Nofifies observers if value is, otherwise notifies other observers."""

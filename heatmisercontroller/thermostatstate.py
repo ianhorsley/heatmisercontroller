@@ -1,14 +1,20 @@
+"""Thermostat statemachine to represent heat controller in Heatmiser ThermoStats
+
+Ian Horsley 2018
+"""
+
 from transitions import Machine
 
 class Thermostat(object):
-
-    states = [ { 'name': 'off', 'on_enter': 'thres_off' },
-            { 'name': 'offfrost', 'on_enter': 'thres_frost' },
-            { 'name': 'frost', 'on_enter': 'thres_frost' },
-            { 'name': 'setpoint', 'on_enter': 'thres_setpoint' }
+    """Thermostat statemachine"""
+    states = [{'name': 'off', 'on_enter': 'thres_off' },
+            {'name': 'offfrost', 'on_enter': 'thres_frost' },
+            {'name': 'frost', 'on_enter': 'thres_frost' },
+            {'name': 'setpoint', 'on_enter': 'thres_setpoint' }
             ]
     
     def thres_off(self, arg=None):
+        """Entry to off, set threshold to None"""
         print "STATE off"
         self.threshold = None
         
@@ -19,6 +25,15 @@ class Thermostat(object):
     def thres_frost(self, arg=None):
         print "STATE to", self.state
         self.threshold = self.frosttemp
+        
+        if self.onoff.is_value('OFF'):
+            self.text =  lambda input: "controller off"
+        elif self.holidayhours.value != 0:
+            self.text = lambda input: "controller on holiday for %s hours" % (input.holidayhours)
+        elif self.runmode.is_value('FROST'):
+            self.text = lambda input: "controller in frost mode"
+        else:
+            self.text = None
     
     def cond_frost(self, arg=None):
         return self.holidayhours.is_value('OFF') and self.runmode.is_value('HEAT')
@@ -38,6 +53,7 @@ class Thermostat(object):
         self.runmode = None #point to field value
         self.setroomtemp = None
         self.onoff = None
+        self.text = None
         
         self.machine = Machine(model=self, states=Thermostat.states, initial='off')
         
