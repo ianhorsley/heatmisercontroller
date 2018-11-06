@@ -17,41 +17,41 @@ from .exceptions import HeatmiserResponseError
 from .logging_setup import csvlist
 
 class HeatmiserDevice(object):
-    """General device class"""
-    ## Variables used by code
-    lastreadtime = 0 #records last time of a successful read
+    """General device class"""    
 
     ## Initialisation functions and low level functions
     def __init__(self, adaptor, devicesettings, generalsettings={}):
-        
         self._adaptor = adaptor
 
-        # initialise external parameters
-        self.protocol = DEFAULT_PROTOCOL
-        self._buildfields()
-        self._build_dcb_tables()
-        # estimated read time for read_all method
-        self.fullreadtime = self._estimate_read_time(self.dcb_length)
-        # initialise data structures
-        self.expected_prog_mode = None
-        self._expected_model_number = 0
-        self.long_name = 'Unknown'
-        self._buildfieldtables()
-        self.data = dict.fromkeys(self._fieldnametonum.keys(), None)
+        # initalise variables
         self.floorlimiting = None
         self.lastwritetime = None
         self.lastreadtime = None
-        self._load_settings(devicesettings, generalsettings)
-        self._set_expected_field_values()
+        # initalise variables that may be overriden by settings
+        self.set_protocol = DEFAULT_PROTOCOL #
+        self.set_expected_prog_mode = None
+        self.set_long_name = 'Unknown'
+        self._load_settings(devicesettings, generalsettings) #take all settings and make them attributes
+
+        # initialise external parameters
+        self._buildfields() # add fields to self.fields and insome cases add schdulers (extended regularly)
+        self._configure_fields() #build fieldname to number dictionary and attached fields to attributes add dcb address to fields and add set dcb_length  (extended in unknown to change length)
+        # estimated read time for read_all method
+        self.fullreadtime = self._estimate_read_time(self.dcb_length)
+        # initialise data structure
+        self.data = dict.fromkeys(self._fieldnametonum.keys(), None)
+        
+        self._set_expected_field_values() #set some fields expected values (extended in week)
+        self._connect_observers() #connect various observers methods (extended regularly)
         self.rawdata = [None] * self.dcb_length
     
     def _load_settings(self, settings, generalsettings):
         """Loading settings from dictionary into properties"""
         for name, value in generalsettings.iteritems():
-            setattr(self, name, value)
+            setattr(self, "set_" + name, value)
 
         for name, value in settings.iteritems():
-            setattr(self, name, value)
+            setattr(self, "set_" + name, value)
 
     def _buildfields(self):
         """build list of fields"""
@@ -65,9 +65,9 @@ class HeatmiserDevice(object):
     
     def _set_expected_field_values(self):
         """set the expected values for fields that should be fixed"""
-        self.fields[self._fieldnametonum['address']].expectedvalue = self.address
-        self.fields[self._fieldnametonum['DCBlen']].expectedvalue = self.dcb_length
-        self.fields[self._fieldnametonum['model']].expectedvalue = self._expected_model_number
+        self.address.expectedvalue = self.set_address
+        self.DCBlen.expectedvalue = self.dcb_length
+        self.model.expectedvalue = self.model.readvalues[self.set_expected_model]
 
     @staticmethod
     def _csvlist_field_names_from(fields):
@@ -79,24 +79,27 @@ class HeatmiserDevice(object):
         fields = [self.fields[fieldid] for fieldid in fieldids]
         return self._csvlist_field_names_from(fields)
         
-    def _buildfieldtables(self):
-        """build dict to map field name to index"""
-        self._fieldnametonum = {}
-        for key, field in enumerate(self.fields):
-            fieldname = field.name
-            self._fieldnametonum[fieldname] = key
-            setattr(self, fieldname, field)
-                
-    def _build_dcb_tables(self):
-        """update dcb addresses and list of valid fields """
+    def _configure_fields(self):
+        """build dict to map field name to index, map fields tables to properties and set dcb addresses."""
         self.fields.sort(key=lambda field: field.address)
         
         dcbaddress = 0
-        for field in self.fields:
+        self._fieldnametonum = {}
+        for key, field in enumerate(self.fields):
+            #set dcbaddress
             field.dcbaddress = dcbaddress
             dcbaddress += field.fieldlength
+            #add field to key lookup
+            self._fieldnametonum[field.name] = key
+            #store field pointer as property
+            setattr(self, field.name, field)
+            
         self.dcb_length = dcbaddress
-        
+    
+    def _connect_observers(self):
+        """called to connect obersers to fields"""
+        pass
+    
     ## Basic reading and getting functions
     
     def read_raw_data(self, startfieldname, endfieldname):
@@ -106,12 +109,12 @@ class HeatmiserDevice(object):
     def read_all(self):
         """Returns all the rawdata having got it from the device"""
         try:
-            self.rawdata = self._adaptor.read_all_from_device(self.address, self.protocol, self.dcb_length)
+            self.rawdata = self._adaptor.read_all_from_device(self.set_address, self.set_protocol, self.dcb_length)
         except serial.SerialException as err:
-            logging.warn("C%i Read all failed, Serial Port error %s"%(self.address, str(err)))
+            logging.warn("C%i Read all failed, Serial Port error %s"%(self.set_address, str(err)))
             raise
 
-        logging.info("C%i Read all"%(self.address))
+        logging.info("C%i Read all"%(self.set_address))
 
         self.lastreadtime = time.time()
         self._procpayload(self.rawdata)
@@ -165,16 +168,16 @@ class HeatmiserDevice(object):
         if estimatedreadtime < self.fullreadtime - 0.02: #if to close to full read time, then read all
             try:
                 for firstfield, lastfield, blocklength in blockstoread:
-                    logging.debug("C%i Reading ui %i to %i len %i, proc %s to %s"%(self.address, firstfield.address, lastfield.address, blocklength, firstfield.name, lastfield.name))
-                    rawdata = self._adaptor.read_from_device(self.address, self.protocol, firstfield.address, blocklength)
+                    logging.debug("C%i Reading ui %i to %i len %i, proc %s to %s"%(self.set_address, firstfield.address, lastfield.address, blocklength, firstfield.name, lastfield.name))
+                    rawdata = self._adaptor.read_from_device(self.set_address, self.set_protocol, firstfield.address, blocklength)
                     self.lastreadtime = time.time()
                     self._procpartpayload(rawdata, firstfield.name, lastfield.name)
             except serial.SerialException as err:
-                logging.warn("C%i Read failed of fields %s, Serial Port error %s"%(self.address, fieldstring, str(err)))
+                logging.warn("C%i Read failed of fields %s, Serial Port error %s"%(self.set_address, fieldstring, str(err)))
                 raise
-            logging.info("C%i Read fields %s, in %i blocks"%(self.address, fieldstring, len(blockstoread)))
+            logging.info("C%i Read fields %s, in %i blocks"%(self.set_address, fieldstring, len(blockstoread)))
         else:
-            logging.debug("C%i Read fields %s by read_all, %0.3f %0.3f"%(self.address, fieldstring, estimatedreadtime, self.fullreadtime))
+            logging.debug("C%i Read fields %s by read_all, %0.3f %0.3f"%(self.set_address, fieldstring, estimatedreadtime, self.fullreadtime))
             self.read_all()
               
         #data can only be requested from the controller in contiguous blocks
@@ -238,15 +241,14 @@ class HeatmiserDevice(object):
         """Wraps procpayload by converting fieldnames to fieldids"""
         #rawdata must be a list
         #converts field names to field numbers to allow process of shortened raw data
-        logging.debug("C%i Processing Payload from field %s to %s"%(self.address, firstfieldname, lastfieldname))
+        logging.debug("C%i Processing Payload from field %s to %s"%(self.set_address, firstfieldname, lastfieldname))
         firstfieldid = self._fieldnametonum[firstfieldname]
         lastfieldid = self._fieldnametonum[lastfieldname]
         self._procpayload(rawdata, firstfieldid, lastfieldid)
         
     def _procpayload(self, rawdata, firstfieldid=0, lastfieldid=False):
         """Split payload with field information and processes each field"""
-        logging.debug("C%i Processing Payload from field %i to %i"%(self.address, firstfieldid, lastfieldid))
-        
+        logging.debug("C%i Processing Payload from field %i to %i"%(self.set_address, firstfieldid, lastfieldid))
         if not lastfieldid:
             lastfieldid = len(self.fields)
         
@@ -259,7 +261,7 @@ class HeatmiserDevice(object):
             try:
                 self._procfield(rawdata[dcbadd:dcbadd+length], field)
             except HeatmiserResponseError as err:
-                logging.warn("C%i Field %s process failed due to %s"%(self.address, field.name, str(err)))
+                logging.warn("C%i Field %s process failed due to %s"%(self.set_address, field.name, str(err)))
 
         self.rawdata[fullfirstdcbadd:fullfirstdcbadd+len(rawdata)] = rawdata
     
@@ -278,11 +280,11 @@ class HeatmiserDevice(object):
         printvalues = values if isinstance(values, list) else [values] #adjust for logging
             
         try:
-            self._adaptor.write_to_device(self.address, self.protocol, field.address, field.fieldlength, payloadbytes)
+            self._adaptor.write_to_device(self.set_address, self.set_protocol, field.address, field.fieldlength, payloadbytes)
         except serial.SerialException as err:
-            logging.warn("C%i failed to set field %s to %s, due to %s"%(self.address, fieldname.ljust(FIELD_NAME_LENGTH), csvlist(printvalues), str(err)))
+            logging.warn("C%i failed to set field %s to %s, due to %s"%(self.set_address, fieldname.ljust(FIELD_NAME_LENGTH), csvlist(printvalues), str(err)))
             raise
-        logging.info("C%i set field %s to %s"%(self.address, fieldname.ljust(FIELD_NAME_LENGTH), csvlist(printvalues)))
+        logging.info("C%i set field %s to %s"%(self.set_address, fieldname.ljust(FIELD_NAME_LENGTH), csvlist(printvalues)))
         
         self.lastwritetime = time.time()
         self.data[fieldname] = field.update_value(values, self.lastwritetime)
@@ -296,14 +298,14 @@ class HeatmiserDevice(object):
         outputdata = self._get_payload_blocks_from_list(fields, values)
         try:
             for fields, lengthbytes, payloadbytes, writtenvalues in outputdata:
-                logging.debug("C%i Setting ui %i len %i, proc %s to %s"%(self.address, fields[0].address, lengthbytes, fields[0].name, fields[-1].name))
-                self._adaptor.write_to_device(self.address, self.protocol, fields[0].address, lengthbytes, payloadbytes)
+                logging.debug("C%i Setting ui %i len %i, proc %s to %s"%(self.set_address, fields[0].address, lengthbytes, fields[0].name, fields[-1].name))
+                self._adaptor.write_to_device(self.set_address, self.set_protocol, fields[0].address, lengthbytes, payloadbytes)
                 self.lastwritetime = time.time()
                 self._update_fields_values(writtenvalues, fields)
         except serial.SerialException as err:
-            logging.warn("C%i settings failed of fields %s, Serial Port error %s"%(self.address, self._csvlist_field_names_from(fields), str(err)))
+            logging.warn("C%i settings failed of fields %s, Serial Port error %s"%(self.set_address, self._csvlist_field_names_from(fields), str(err)))
             raise
-        logging.info("C%i set fields %s in %i blocks"%(self.address, self._csvlist_field_names_from(fields), len(outputdata)))
+        logging.info("C%i set fields %s in %i blocks"%(self.set_address, self._csvlist_field_names_from(fields), len(outputdata)))
 
     def _update_fields_values(self, values, fields):
         """update the field values once data successfully written"""

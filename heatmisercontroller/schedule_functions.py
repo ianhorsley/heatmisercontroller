@@ -43,6 +43,10 @@ class Scheduler(object):
             raise ValueError('Schedule entry wrong length %i'%len(entry))
         self.entries[entry] = schedule
 
+    def set_raw_field(self, field):
+        """Set single field to schedule from field pointer"""
+        self.set_raw(field.name, field.value)
+        
     def pad_schedule(self, schedule):
         """Pads a partial schedule up to correct length"""
         if not len(schedule)%self.valuesperentry == 0:

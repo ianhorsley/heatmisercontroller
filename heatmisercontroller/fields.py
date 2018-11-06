@@ -32,6 +32,9 @@ class HeatmiserFieldUnknown(Notifier):
 
     def __str__(self):
         return str(self.value)
+        
+    def __cmp__(self, value):
+        return cmp(self.value, value)
 
     def _reset(self):
         """Reset data and values to unknown."""

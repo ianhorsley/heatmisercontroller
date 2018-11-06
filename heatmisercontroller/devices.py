@@ -21,10 +21,10 @@ from schedule_functions import SchedulerDayHeat, SchedulerWeekHeat, SchedulerDay
 
 class ThermoStatUnknown(HeatmiserDevice):
     """Device class for unknown thermostats operating unknown programmode"""
-    def _build_dcb_tables(self):
-        """update dcb addresses and list of valid fields """
-        super(ThermoStatUnknown, self)._build_dcb_tables()
-        self.dcb_length = 65536 #override dcb_length to prevent readall
+    def _configure_fields(self):
+        """build dict to map field name to index, map fields tables to properties and set dcb addresses."""
+        super(ThermoStatUnknown, self)._configure_fields()
+        self.dcb_length = 65536 #override dcb_length to prevent readall, given unknown full length
     
     def _buildfields(self):
         """add to list of fields"""
@@ -36,10 +36,9 @@ class ThermoStatUnknown(HeatmiserDevice):
         ])
         
     def _set_expected_field_values(self):
-        """set the expected values for fields that should be fixed
-        Removes expectation on model"""
-        self.fields[self._fieldnametonum['address']].expectedvalue = self.address
-        self.fields[self._fieldnametonum['DCBlen']].expectedvalue = self.dcb_length
+        """set the expected values for fields that should be fixed. Overriding prevents expected model being setup."""
+        self.address.expectedvalue = self.set_address
+        self.DCBlen.expectedvalue = self.dcb_length
 
 class ThermoStatWeek(HeatmiserDevice):
     """Device class for thermostats operating weekly programmode
@@ -47,8 +46,6 @@ class ThermoStatWeek(HeatmiserDevice):
     
     def __init__(self, adaptor, devicesettings, generalsettings={}):
         super(ThermoStatWeek, self).__init__(adaptor, devicesettings, generalsettings)
-        self._expected_model_number = 3
-        self._set_expected_field_values()
         #thermostat specific
         self.is_hot_water = False #returns True if stat is a model with hotwater control, False otherwise
     
@@ -93,10 +90,16 @@ class ThermoStatWeek(HeatmiserDevice):
         self.water_schedule = None
         self.heat_schedule = SchedulerWeekHeat()
     
+    def _connect_observers(self):
+        """connect obersers to fields"""
+        super(ThermoStatWeek, self)._connect_observers()
+        self.wday_heat.add_notifable_changed(self.heat_schedule.set_raw_field)
+        self.wend_heat.add_notifable_changed(self.heat_schedule.set_raw_field)
+
     def _set_expected_field_values(self):
         """set the expected values for fields that should be fixed"""
         super(ThermoStatWeek, self)._set_expected_field_values()
-        self.fields[self._fieldnametonum['programmode']].expectedvalue = self.programmode.readvalues[self.expected_prog_mode]
+        self.programmode.expectedvalue = self.programmode.readvalues[self.set_expected_prog_mode]
     
     def _procfield(self, data, fieldinfo):
         """Process data for a single field storing in relevant."""
@@ -142,13 +145,13 @@ class ThermoStatWeek(HeatmiserDevice):
     TEMP_STATE_PROGRAM = 6 #following program
         
     target_texts = {
-        TEMP_STATE_OFF: lambda self: "controller off without frost protection",
-        TEMP_STATE_OFF_FROST: lambda self: "controller off",
-        TEMP_STATE_HOLIDAY: lambda self: "controller on holiday for %s hours" % (self.holidayhours),
-        TEMP_STATE_FROST: lambda self: "controller in frost mode",
-        TEMP_STATE_HELD: lambda self: "temp held for %i mins at %i"%(self.tempholdmins, self.setroomtemp),
-        TEMP_STATE_OVERRIDDEN: lambda self: "temp overridden to %0.1f until %02d:%02d" % (self.setroomtemp, self.nexttarget[1], self.nexttarget[2]),
-        TEMP_STATE_PROGRAM: lambda self: "temp set to %0.1f until %02d:%02d" % (self.setroomtemp, self.nexttarget[1], self.nexttarget[2])
+        TEMP_STATE_OFF: lambda input: "controller off without frost protection",
+        TEMP_STATE_OFF_FROST: lambda input: "controller off",
+        TEMP_STATE_HOLIDAY: lambda input: "controller on holiday for %s hours" % (input.holidayhours),
+        TEMP_STATE_FROST: lambda input: "controller in frost mode",
+        TEMP_STATE_HELD: lambda input: "temp held for %i mins at %i"%(input.tempholdmins, input.setroomtemp),
+        TEMP_STATE_OVERRIDDEN: lambda input: "temp overridden to %0.1f until %02d:%02d" % (input.setroomtemp.value, input.nexttarget()[1], input.nexttarget()[2]),
+        TEMP_STATE_PROGRAM: lambda input: "temp set to %0.1f until %02d:%02d" % (input.setroomtemp.value, input.nexttarget()[1], input.nexttarget()[2])
     }
 
     def nexttarget(self):
@@ -183,7 +186,7 @@ class ThermoStatWeek(HeatmiserDevice):
             locatimenow = self.currenttime.localtimearray()
             scheduletarget = self.heat_schedule.get_current_schedule_item(locatimenow)
 
-            if scheduletarget[SCH_ENT_TEMP] != self.setroomtemp:
+            if self.setroomtemp != scheduletarget[SCH_ENT_TEMP]:
                 return self.TEMP_STATE_OVERRIDDEN
             else:
                 return self.TEMP_STATE_PROGRAM
@@ -202,9 +205,9 @@ class ThermoStatWeek(HeatmiserDevice):
     def read_air_temp(self):
         """Read the air temperature getting data from device if too old"""
         if self.read_air_sensor_type() == 1:
-            return self.read_field('airtemp', self.max_age_temp)
+            return self.read_field('airtemp', self.set_max_age_temp)
         else:
-            return self.read_field('remoteairtemp', self.max_age_temp)
+            return self.read_field('remoteairtemp', self.set_max_age_temp)
         
     def read_time(self, maxage=0):
         """Readtime, getting from device if required"""
@@ -299,20 +302,23 @@ class ThermoStatDay(ThermoStatWeek):
         ])
         
         self.heat_schedule = SchedulerDayHeat()
- 
+
+    def _connect_observers(self):
+        """connect obersers to fields"""
+        super(ThermoStatDay, self)._connect_observers()
+        fieldnames = ['mon_heat', 'tues_heat', 'wed_heat', 'thurs_heat', 'fri_heat', 'sat_heat', 'sun_heat']
+        for fieldname in fieldnames:
+            getattr(self, fieldname).add_notifable_changed(self.heat_schedule.set_raw_field)
+        
 class ThermoStatHotWaterWeek(ThermoStatWeek):
     """Device class for thermostats with hotwater operating weekly programmode
     Heatmiser prt_hw_model."""
     
     def __init__(self, adaptor, devicesettings, generalsettings={}):
         super(ThermoStatHotWaterWeek, self).__init__(adaptor, devicesettings, generalsettings)
-        self._expected_model_number = 4
-        self._set_expected_field_values()
-        
         #thermostat specific
         self.is_hot_water = True
-        
-        self.version = HeatmiserFieldHotWaterVersion('version', 3, [], MAX_AGE_LONG),
+        self.version = HeatmiserFieldHotWaterVersion('version', 3, [], MAX_AGE_LONG) # override field after creation to add functitionality
     
     def _buildfields(self):
         """add to list of fields"""
@@ -323,9 +329,15 @@ class ThermoStatHotWaterWeek(ThermoStatWeek):
             HeatmiserFieldWater('wend_water', 87, [[0, 24], [0, 59]], MAX_AGE_MEDIUM)
             #7day progamming
         ])
-        
+
         self.water_schedule = SchedulerWeekWater()
-        
+    
+    def _connect_observers(self):
+        """connect obersers to fields"""
+        super(ThermoStatHotWaterWeek, self)._connect_observers()
+        self.wday_water.add_notifable_changed(self.water_schedule.set_raw_field)
+        self.wend_water.add_notifable_changed(self.water_schedule.set_raw_field)
+    
     def display_water_schedule(self):
         """Prints water schedule to stdout"""
         if not self.water_schedule is None:
@@ -384,6 +396,13 @@ class ThermoStatHotWaterDay(ThermoStatDay, ThermoStatHotWaterWeek):
             HeatmiserFieldWater('sun_water', 283, [[0, 24], [0, 59]], MAX_AGE_MEDIUM)
         ])
         self.water_schedule = SchedulerDayWater()
+
+    def _connect_observers(self):
+        """connect obersers to fields"""
+        super(ThermoStatHotWaterDay, self)._connect_observers()
+        fieldnames = ['mon_water', 'tues_water', 'wed_water', 'thurs_water', 'fri_water', 'sat_water', 'sun_water']
+        for fieldname in fieldnames:
+            getattr(self, fieldname).add_notifable_changed(self.water_schedule.set_raw_field)
 
 DEVICETYPES = {
     None: HeatmiserDevice,

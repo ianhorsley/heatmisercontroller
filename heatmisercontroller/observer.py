@@ -25,7 +25,7 @@ class Observable(object):
         self.clear_changed()
         for observer in self.obs:
             #observer.update(self, arg)
-            observer()
+            observer(arg)
 
     def delete_observers(self): self.obs = []
     def set_changed(self): self.changed = 1
@@ -47,15 +47,13 @@ class Notifier(object):
     def notify_value_change_is(self, value):
         """Nofifies observers if value is, otherwise notifies other observers."""
         if value in self.nots_is:
-            print("in is", self.previousvalue, self.value)
-            self.nots_is[self.value].notify_observers()
+            self.nots_is[self.value].notify(self)
         else:
-            print("in not")
-            self.nots_is_not.notify_observers()
+            self.nots_is_not.notify(self)
             
     def notify_value_change_changed(self, _):
         """Notifies obersers on any change."""
-        self.nots_changed.notify_observers()
+        self.nots_changed.notify(self)
         
     class GeneralNotifier(Observable):
         """Notifier which only triggers on change of outer value"""
@@ -64,10 +62,9 @@ class Notifier(object):
             self.previousvalue = None
             self.outer = outer
 
-        def notify_observers(self, arg = None):
+        def notify(self, arg = None):
             """Notify if changed."""
             if not self.outer.value == self.outer.previousvalue:
-                print(self.outer.name, "changed to", self.outer.value, "from", self.outer.previousvalue)
                 self.set_changed()
                 Observable.notify_observers(self, arg)
                 self.outer.previousvalue = self.outer.value

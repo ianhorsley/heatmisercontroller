@@ -11,13 +11,13 @@ from heatmisercontroller.network import HeatmiserNetwork
 from heatmisercontroller.exceptions import HeatmiserResponseError
 
 #start logging
-initialize_logger_full('logs', logging.INFO)
+initialize_logger_full('logs', logging.WARN)
 
 HMN = HeatmiserNetwork()
 
 # CYCLE THROUGH ALL CONTROLLERS
 for current_controller in HMN.controllers:
-    print("\r\nGetting all data control %2d in %s *****************************" %(current_controller.address, current_controller.long_name))
+    print("\r\nGetting all data control %2d in %s *****************************" %(current_controller.set_address, current_controller.set_long_name))
 
     try:
         current_controller.read_all()

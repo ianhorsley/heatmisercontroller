@@ -38,7 +38,7 @@ class TestNetwork(unittest.TestCase):
         self.assertEqual(len(hmn.controllers), 2)
         self.assertIsInstance(hmn.controllers[0], HeatmiserDevice)
         self.assertIsInstance(hmn.controllers[1], HeatmiserDevice)
-        self.assertEqual(hmn.controllers[1].address, 2)
+        self.assertEqual(hmn.controllers[1].set_address, 2)
         
     def test_network_stat_add(self):
         module_path = os.path.abspath(os.path.dirname(__file__))

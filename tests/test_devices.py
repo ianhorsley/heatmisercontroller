@@ -63,7 +63,7 @@ class TestReadingData(unittest.TestCase):
             
     def test_procfield_model(self):
         field = HeatmiserFieldSingleReadOnly('model', 0, [], None)
-        field.expectedvalue = self.func._expected_model_number
+        field.expectedvalue = 4
         with self.assertRaises(HeatmiserResponseError):
             self.func._procfield([3], field)
         
@@ -176,8 +176,8 @@ class TestOtherFunctions(unittest.TestCase):
             self.func._get_field_blocks_from_id_range(self.func._fieldnametonum['DCBlen'], self.func._fieldnametonum['sun_water'])
         #print (timer()-start)/1000
         
-    def test_build_dcb_tables(self):
-        self.func._build_dcb_tables()
+    def test_configure_fields(self):
+        self.func._configure_fields()
         expected = [[0, 0], [25, 30], [26, 32], [31, 41], [32, 53], [40, 157], [48, 277]]
         for u, d in expected:
             self.assertEqual(d, self.func.fields[u].dcbaddress)
