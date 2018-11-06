@@ -1,66 +1,10 @@
-from transitions import Machine
+
 from heatmisercontroller.fields import *
 from heatmisercontroller.hm_constants import *
 
-class Thermostat(object):
+from heatmisercontroller.thermostatstate import Thermostat
 
-    states = [ { 'name': 'off', 'on_enter': 'thres_off' },
-            { 'name': 'offfrost', 'on_enter': 'thres_frost' },
-            { 'name': 'frost', 'on_enter': 'thres_frost' },
-            { 'name': 'setpoint', 'on_enter': 'thres_setpoint' }
-            ]
-    
-    def thres_off(self):
-        print "STATE off"
-        self.threshold = None
-        
-    def thres_setpoint(self):
-        print "STATE to setpoint ", self.setroomtemp
-        self.threshold = self.setroomtemp
-    
-    def thres_frost(self):
-        print "STATE to", self.state
-        self.threshold = self.frosttemp
-    
-    #def runmode(self): return True
-    
-    def cond_frost(self):
-        return self.holidayhours.is_value('OFF') and self.runmode.is_value('HEAT')
-
-    def cond_on(self):
-        return self.onoff.is_value('ON')
-        
-    def cond_frostprocdisable(self):
-        return self.frostprocdisable.is_value('ON')
-   
-    #to_on. triggered by holidayhours to zero, runmode to heat, onoff to on
-    
-    #def off_to_on
-    
-    def __init__(self, name):
-    
-        self.name = name
-        self.threshold = None
-        self.frosttemp = None #point to field value
-        self.frostprocdisable = None # point to field value
-        self.runmode = None #point to field value
-        self.setroomtemp = None
-        self.onoff = None
-        
-        self.machine = Machine(model=self, states=Thermostat.states, initial='off')
-        
-        self.machine.add_transition('switch_off', ['frost', 'setpoint'], 'off', conditions='cond_frostprocdisable')
-        self.machine.add_transition('switch_off', ['frost', 'setpoint'], 'offfrost', unless='cond_frostprocdisable')
-        self.machine.add_transition('switch_off', 'offfrost', 'off', conditions='cond_frostprocdisable')
-        self.machine.add_transition('switch_off', 'off', 'offfrost', unless='cond_frostprocdisable')
-        
-        #self.machine.add_transition('switch_on', ['off', 'offfrost'], 'setpoint', conditions='cond_frost')
-        #self.machine.add_transition('switch_on', ['off', 'offfrost'], 'frost', unless='cond_frost')
-        
-        self.machine.add_transition('switch_swap', '*', 'setpoint', conditions=['cond_frost','cond_on'])
-        self.machine.add_transition('switch_swap', ['off', 'offfrost', 'setpoint'], 'frost', conditions='cond_on', unless='cond_frost')
-
-from heatmisercontroller import fields        
+from heatmisercontroller import fields  
 
 ffrostprocdisable = HeatmiserFieldSingleReadOnly('frostprotdisable', 7, [0, 1], MAX_AGE_LONG, VALUES_OFF_ON)  #0=enable frost prot when display off,  (opposite in protocol manual,  but tested and user guide is correct)  (default should be frost proc enabled)
 fprogrammode = HeatmiserFieldSingleReadOnly('programmode', 16, [0, 1], MAX_AGE_LONG, {'5_2': 0, '7': 1})  #0=5/2,  1= 7day
