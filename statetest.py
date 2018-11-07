@@ -22,7 +22,7 @@ t1.runmode = frunmode
 t1.frostprocdisable = ffrostprocdisable
 t1.setroomtemp = fsetroomtemp
 t1.onoff = fonoff
-print "intial", t1.state
+print("intial", t1.state)
 
 #on and off
 ffrostprocdisable.add_notifable_is(ffrostprocdisable.readvalues['ON'], t1.switch_off)
@@ -40,12 +40,12 @@ frunmode.add_notifable_is(frunmode.readvalues['HEAT'], t1.switch_swap)
 frunmode.add_notifable_is(frunmode.readvalues['FROST'], t1.switch_swap)
 fholidayhours.add_notifable_is(fholidayhours.readvalues['OFF'], t1.switch_swap)
 fholidayhours.add_notifable_is_not(t1.switch_swap)
-print "finished connecting observers"
+print("finished connecting observers")
 fonoff.update_value(fonoff.readvalues['OFF'], 0)
 ffrostprocdisable.update_value(ffrostprocdisable.readvalues['OFF'], 0)
 fholidayhours.update_value(fholidayhours.readvalues['OFF'], 0)
 frunmode.update_value(frunmode.readvalues['HEAT'], 0)
-print "finished setting initial values"
+print("finished setting initial values")
 
 ffrostprocdisable.update_value(1, 0)
 fonoff.update_value(1, 0)
@@ -58,4 +58,4 @@ fholidayhours.update_value(5, 0)
 frunmode.update_value(0, 0)
 fholidayhours.update_value(0, 0)
 
-print "end", fholidayhours.nots_is[0], fholidayhours.nots_is_not
+print("end", fholidayhours.nots_is[0], fholidayhours.nots_is_not)

@@ -145,13 +145,10 @@ class crc16:
 
     def _update_4_bits(self, val):
         # Step one, extract the Most significant 4 bits of the CRC register
-        #print "val is %d" %(val)
         t = self.high>>4
-        #print "t is %d" %(t)
 
         # XOR in the Message Data into the extracted bits
         t = t^val
-        #print "t is %d" %(t)
 
         # Shift the CRC Register left 4 bits
         self.high = (self.high << 4)|(self.low>>4)
@@ -160,12 +157,10 @@ class crc16:
         self.low = self.low & BYTEMASK # force char
 
         # Do the table lookups and XOR the result into the CRC tables
-        #print "t for lookup is %d" %(t)
         self.high = self.high ^ self.LookupHigh[t]
         self.high = self.high & BYTEMASK # force char
         self.low = self.low ^ self.LookupLow[t]
         self.low = self.low & BYTEMASK # force char
-        #print "high is %d Low is %d" %(self.high, self.low)
 
     def _crc16_update(self, val):
         self._update_4_bits(val>>4) # High nibble first
@@ -174,7 +169,5 @@ class crc16:
     def run(self, message):
         """Calculates a CRC"""
         for c in message:
-            #print c
             self._crc16_update(c)
-        #print "CRC is Low %d High    %d" %(self.low, self.high)
         return [self.low, self.high]

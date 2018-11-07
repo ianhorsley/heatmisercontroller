@@ -35,7 +35,6 @@ def _add_allfilehandler(output_dir, logger):
     
     allhandler = RotatingFileHandler(os.path.join(output_dir, "all.log"), mode='a', maxBytes=5*1024*1024,
                                  backupCount=2, encoding=None, delay=0)
-    #handler = logging.FileHandler(os.path.join(output_dir, "all.log"),"w", encoding=None, delay="true")
     allhandler.setLevel(logging.DEBUG)
     allformatter = logging.Formatter("%(asctime)-15s %(levelname)s - %(message)s")
     allhandler.setFormatter(allformatter)

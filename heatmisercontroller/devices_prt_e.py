@@ -128,25 +128,6 @@ class ThermoStatWeek(HeatmiserDevice):
         """Prints heating schedule to stdout"""
         self.heat_schedule.display()
 
-    
-    TEMP_STATE_OFF = 0    #thermostat display is off and frost protection disabled
-    TEMP_STATE_OFF_FROST = 1 #thermostat display is off and frost protection enabled
-    TEMP_STATE_FROST = 2 #frost protection enabled indefinitely
-    TEMP_STATE_HOLIDAY = 3 #holiday mode, frost protection for a period
-    TEMP_STATE_HELD = 4 #temperature held for a number of hours
-    TEMP_STATE_OVERRIDDEN = 5 #temperature overridden until next program time
-    TEMP_STATE_PROGRAM = 6 #following program
-        
-    target_texts = {
-        TEMP_STATE_OFF: lambda input: "controller off without frost protection",
-        TEMP_STATE_OFF_FROST: lambda input: "controller off",
-        TEMP_STATE_HOLIDAY: lambda input: "controller on holiday for %s hours" % (input.holidayhours),
-        TEMP_STATE_FROST: lambda input: "controller in frost mode",
-        TEMP_STATE_HELD: lambda input: "temp held for %i mins at %i"%(input.tempholdmins, input.setroomtemp),
-        TEMP_STATE_OVERRIDDEN: lambda input: "temp overridden to %0.1f until %02d:%02d" % (input.setroomtemp.value, input.nexttarget()[1], input.nexttarget()[2]),
-        TEMP_STATE_PROGRAM: lambda input: "temp set to %0.1f until %02d:%02d" % (input.setroomtemp.value, input.nexttarget()[1], input.nexttarget()[2])
-    }
-
     def nexttarget(self):
         """get next heat target"""
         return self.heat_schedule.get_next_schedule_item(self.currenttime.localtimearray())

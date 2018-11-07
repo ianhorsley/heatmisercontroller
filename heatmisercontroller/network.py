@@ -7,7 +7,6 @@ Ian Horsley 2018
 
 import os
 import logging
-#import sys
 
 # Import our own stuff
 from genericdevice import DEVICETYPES

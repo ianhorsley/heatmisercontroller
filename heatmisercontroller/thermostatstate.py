@@ -16,6 +16,14 @@ class Thermostat(object):
             {'name': 'setpoint', 'on_enter': 'thres_setpoint'}
             ]
     
+    TEMP_STATE_OFF = 0    #thermostat display is off and frost protection disabled
+    TEMP_STATE_OFF_FROST = 1 #thermostat display is off and frost protection enabled
+    TEMP_STATE_FROST = 2 #frost protection enabled indefinitely
+    TEMP_STATE_HOLIDAY = 3 #holiday mode, frost protection for a period
+    TEMP_STATE_HELD = 4 #temperature held for a number of hours
+    TEMP_STATE_OVERRIDDEN = 5 #temperature overridden until next program time
+    TEMP_STATE_PROGRAM = 6 #following program
+    
     def thres_off(self, arg=None):
         """Entry to off state, set threshold to None and set text."""
         print("STATE off")
