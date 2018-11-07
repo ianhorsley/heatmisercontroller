@@ -43,9 +43,9 @@ class ThermoStatWeek(HeatmiserDevice):
             HeatmiserFieldSingle('frosttemp', 17, [7, 17], MAX_AGE_LONG),  #default is 12,  frost protection temperature
             HeatmiserFieldSingle('setroomtemp', 18, [5, 35], MAX_AGE_USHORT),
             HeatmiserFieldSingle('floormaxlimit', 19, [20, 45], MAX_AGE_LONG),
-            HeatmiserFieldSingleReadOnly('floormaxlimitenable', 20, [0, 1], MAX_AGE_LONG),  #1=enable
-            HeatmiserFieldSingle('onoff', 21, [0, 1], MAX_AGE_SHORT, VALUES_ON_OFF),  #1 = on
-            HeatmiserFieldSingle('keylock', 22, [0, 1], MAX_AGE_SHORT, VALUES_ON_OFF),  #1 = on
+            HeatmiserFieldSingleReadOnly('floormaxlimitenable', 20, [0, 1], MAX_AGE_LONG),  #1=enable, 0=disable
+            HeatmiserFieldSingle('onoff', 21, [0, 1], MAX_AGE_SHORT, VALUES_ON_OFF),  #1=on, 0=off
+            HeatmiserFieldSingle('keylock', 22, [0, 1], MAX_AGE_SHORT, VALUES_ON_OFF),  #1=on, 0=off
             HeatmiserFieldSingle('runmode', 23, [0, 1], MAX_AGE_SHORT, {'HEAT': 0, 'FROST': 1}),   #0 = heating mode,  1 = frost protection mode
             HeatmiserFieldDouble('holidayhours', 24, [0, 720], MAX_AGE_SHORT, VALUES_OFF),  #range guessed and tested,  setting to 0 cancels hold and puts back to program 
             #HeatmiserFieldUnknown('unknown', 26, 1, [], MAX_AGE_LONG, 6),  # gap from 26 to 31
