@@ -30,17 +30,7 @@ class Thermostat(object):
         if self.fieldscont.tempholdmins.value != 0:
             self.text_function = lambda input: "temp held for %i mins at %i"%(input.tempholdmins.value, input.setroomtemp.value)
         else:
-            self.fieldscont.read_field('currenttime', MAX_AGE_MEDIUM)
-            
-            locatimenow = self.fieldscont.currenttime.localtimearray()
-            scheduletarget = self.fieldscont.heat_schedule.get_current_schedule_item(locatimenow)
-
-            if self.setroomtemp.value != scheduletarget[SCH_ENT_TEMP]:
-                basetext = "temp overridden"
-                
-            else:
-                basetext = "temp set"
-            self.text_function = lambda input: basetext + "temp overridden to %0.1f until %02d:%02d" % (input.setroomtemp.value, input.nexttarget()[1], input.nexttarget()[2])
+            self.text_function = self._text_function_over_prog
 
     def thres_frost(self, arg=None):
         print("STATE to", self.state)
@@ -54,6 +44,19 @@ class Thermostat(object):
             self.text_function = lambda input: "controller in frost mode"
         else:
             self.text_function = None
+    
+    @staticmethod
+    def _text_function_over_prog(input):
+        input.read_field('currenttime', MAX_AGE_MEDIUM)
+            
+        locatimenow = input.currenttime.localtimearray()
+        scheduletarget = input.heat_schedule.get_current_schedule_item(locatimenow)
+
+        if input.setroomtemp.value != scheduletarget[SCH_ENT_TEMP]:
+            basetext = "temp overridden"
+        else:
+            basetext = "temp set"
+        return basetext + "temp overridden to %0.1f until %02d:%02d" % (input.setroomtemp.value, input.nexttarget()[1], input.nexttarget()[2])
     
     def get_state_text(self):
         """Return text desription of current state"""
