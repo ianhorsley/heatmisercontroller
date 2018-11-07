@@ -13,6 +13,7 @@ from fields import VALUES_ON_OFF, VALUES_OFF_ON, VALUES_OFF
 from hm_constants import MAX_AGE_LONG, MAX_AGE_MEDIUM, MAX_AGE_SHORT, MAX_AGE_USHORT
 from .exceptions import HeatmiserControllerTimeError
 from schedule_functions import SchedulerDayHeat, SchedulerWeekHeat, SCH_ENT_TEMP
+from thermostatstate import Thermostat
 
 class ThermoStatWeek(HeatmiserDevice):
     """Device class for thermostats operating weekly programmode
@@ -63,12 +64,30 @@ class ThermoStatWeek(HeatmiserDevice):
             
         self.water_schedule = None
         self.heat_schedule = SchedulerWeekHeat()
+        self.thermostat = Thermostat('Heating', self)
     
     def _connect_observers(self):
         """connect obersers to fields"""
         super(ThermoStatWeek, self)._connect_observers()
         self.wday_heat.add_notifable_changed(self.heat_schedule.set_raw_field)
         self.wend_heat.add_notifable_changed(self.heat_schedule.set_raw_field)
+        
+        #on and off
+        self.frostprotdisable.add_notifable_is(self.frostprotdisable.readvalues['ON'], self.thermostat.switch_off)
+        self.frostprotdisable.add_notifable_is(self.frostprotdisable.readvalues['OFF'], self.thermostat.switch_off)
+        self.onoff.add_notifable_is(self.onoff.readvalues['OFF'], self.thermostat.switch_off)
+        self.onoff.add_notifable_is(self.onoff.readvalues['ON'], self.thermostat.switch_swap)
+        #change within on
+        self.setroomtemp.add_notifable_changed(self.thermostat.switch_swap)
+        ###don't need the following if not modelling override holds or program events internally
+        ###program change event
+        self.tempholdmins.add_notifable_is(self.tempholdmins.readvalues['OFF'], self.thermostat.switch_swap) #check triggered by value force change and data change
+        self.tempholdmins.add_notifable_is_not(self.thermostat.switch_swap)
+        #between frost and setpoint
+        self.runmode.add_notifable_is(self.runmode.readvalues['HEAT'], self.thermostat.switch_swap)
+        self.runmode.add_notifable_is(self.runmode.readvalues['FROST'], self.thermostat.switch_swap)
+        self.holidayhours.add_notifable_is(self.holidayhours.readvalues['OFF'], self.thermostat.switch_swap)
+        self.holidayhours.add_notifable_is_not(self.thermostat.switch_swap)
 
     def _set_expected_field_values(self):
         """set the expected values for fields that should be fixed"""
@@ -134,8 +153,8 @@ class ThermoStatWeek(HeatmiserDevice):
 
     def print_target(self):
         """Returns text describing current heating state"""    
-        current_state = self.read_temp_state()
-        return self.target_texts[current_state](self)
+        self.read_temp_state()
+        return self.thermostat.get_state_text()
             
     ## External functions for reading data
     
@@ -143,28 +162,9 @@ class ThermoStatWeek(HeatmiserDevice):
         """Returns the current temperature control state from off to following program"""
         self.read_fields(['mon_heat', 'tues_heat', 'wed_heat', 'thurs_heat', 'fri_heat', 'wday_heat', 'wend_heat'], -1)
         self.read_fields(['onoff', 'frostprotdisable', 'holidayhours', 'runmode', 'tempholdmins', 'setroomtemp'])
+        print "outer", self.tempholdmins.value
+        return self.thermostat.state
         
-        if self.onoff.is_value('OFF') and self.frostprotdisable.is_value('OFF'):
-            return self.TEMP_STATE_OFF
-        elif self.onoff.is_value('OFF') and self.frostprotdisable.is_value('ON'):
-            return self.TEMP_STATE_OFF_FROST
-        elif self.holidayhours.value != 0:
-            return self.TEMP_STATE_HOLIDAY
-        elif self.runmode.is_value('FROST'):
-            return self.TEMP_STATE_FROST
-        elif self.tempholdmins.value != 0:
-            return self.TEMP_STATE_HELD
-        else:
-            self.read_field('currenttime', MAX_AGE_MEDIUM)
-            
-            locatimenow = self.currenttime.localtimearray()
-            scheduletarget = self.heat_schedule.get_current_schedule_item(locatimenow)
-
-            if self.setroomtemp != scheduletarget[SCH_ENT_TEMP]:
-                return self.TEMP_STATE_OVERRIDDEN
-            else:
-                return self.TEMP_STATE_PROGRAM
-                
     def read_air_sensor_type(self):
         """Reports airsensor type"""
         #1 local, 2 remote
