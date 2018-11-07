@@ -4,7 +4,8 @@ import logging
 import time
 
 from heatmisercontroller.fields import HeatmiserFieldSingleReadOnly, HeatmiserFieldDoubleReadOnly
-from heatmisercontroller.devices import ThermoStatDay, ThermoStatHotWaterDay
+from heatmisercontroller.devices_prt_e import ThermoStatDay
+from heatmisercontroller.devices_prt_hw import  ThermoStatHotWaterDay
 from heatmisercontroller.generaldevices import HeatmiserBroadcastDevice
 from heatmisercontroller.hm_constants import HMV3_ID, PROG_MODE_DAY
 from heatmisercontroller.exceptions import HeatmiserResponseError, HeatmiserControllerTimeError

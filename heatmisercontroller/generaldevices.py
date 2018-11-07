@@ -8,7 +8,7 @@ Ian Horsley 2018
 import logging
 
 from genericdevice import HeatmiserDevice
-from devices import ThermoStatHotWaterDay
+from devices_prt_hw import ThermoStatHotWaterDay
 from fields import HeatmiserFieldUnknown, HeatmiserFieldSingleReadOnly
 from decorators import ListWrapperClass, run_function_on_all
 from hm_constants import DEFAULT_PROTOCOL, DEFAULT_PROG_MODE, BROADCAST_ADDR

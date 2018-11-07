@@ -338,3 +338,7 @@ class HeatmiserDevice(object):
                 outputdata.append([[field], field.fieldlength, field.format_data_from_value(valuescopy[orginalindex]), [valuescopy[orginalindex]]])
             previousfield = field
         return outputdata
+
+DEVICETYPES = {
+    None: HeatmiserDevice
+}

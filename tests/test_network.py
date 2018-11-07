@@ -5,7 +5,7 @@ import os
 
 from heatmisercontroller.network import HeatmiserNetwork
 from heatmisercontroller.exceptions import HeatmiserControllerSetupInitError
-from heatmisercontroller.devices import HeatmiserDevice
+from heatmisercontroller.genericdevice import HeatmiserDevice
 from mock_serial import SetupTestClass, MockHeatmiserAdaptor
 
 class TestNetwork(unittest.TestCase):

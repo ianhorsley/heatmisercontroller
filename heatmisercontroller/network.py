@@ -10,7 +10,7 @@ import logging
 #import sys
 
 # Import our own stuff
-from devices import DEVICETYPES
+from genericdevice import DEVICETYPES
 from generaldevices import HeatmiserBroadcastDevice, ThermoStatUnknown
 from adaptor import HeatmiserAdaptor
 from hm_constants import SLAVE_ADDR_MIN, SLAVE_ADDR_MAX

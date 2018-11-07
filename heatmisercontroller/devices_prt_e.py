@@ -1,18 +1,18 @@
 """Heatmiser Device Classes
 
-Thermostat classes on the Heatmiser network
+PRT-E Thermostat classes on the Heatmiser network
 
 Ian Horsley 2018
 """
 import logging
 import time
 
-from genericdevice import HeatmiserDevice
-from fields import HeatmiserFieldSingle, HeatmiserFieldSingleReadOnly, HeatmiserFieldDouble, HeatmiserFieldDoubleReadOnly, HeatmiserFieldTime, HeatmiserFieldHeat, HeatmiserFieldWater, HeatmiserFieldHotWaterDemand, HeatmiserFieldDoubleReadOnlyTenths, HeatmiserFieldHotWaterVersion
+from genericdevice import HeatmiserDevice, DEVICETYPES
+from fields import HeatmiserFieldSingle, HeatmiserFieldSingleReadOnly, HeatmiserFieldDouble, HeatmiserFieldDoubleReadOnly, HeatmiserFieldTime, HeatmiserFieldHeat, HeatmiserFieldDoubleReadOnlyTenths
 from fields import VALUES_ON_OFF, VALUES_OFF_ON, VALUES_OFF
 from hm_constants import MAX_AGE_LONG, MAX_AGE_MEDIUM, MAX_AGE_SHORT, MAX_AGE_USHORT
 from .exceptions import HeatmiserControllerTimeError
-from schedule_functions import SchedulerDayHeat, SchedulerWeekHeat, SchedulerDayWater, SchedulerWeekWater, SCH_ENT_TEMP
+from schedule_functions import SchedulerDayHeat, SchedulerWeekHeat, SCH_ENT_TEMP
 
 class ThermoStatWeek(HeatmiserDevice):
     """Device class for thermostats operating weekly programmode
@@ -283,106 +283,8 @@ class ThermoStatDay(ThermoStatWeek):
         fieldnames = ['mon_heat', 'tues_heat', 'wed_heat', 'thurs_heat', 'fri_heat', 'sat_heat', 'sun_heat']
         for fieldname in fieldnames:
             getattr(self, fieldname).add_notifable_changed(self.heat_schedule.set_raw_field)
-        
-class ThermoStatHotWaterWeek(ThermoStatWeek):
-    """Device class for thermostats with hotwater operating weekly programmode
-    Heatmiser prt_hw_model."""
-    
-    def __init__(self, adaptor, devicesettings, generalsettings={}):
-        super(ThermoStatHotWaterWeek, self).__init__(adaptor, devicesettings, generalsettings)
-        #thermostat specific
-        self.is_hot_water = True
-        self.version = HeatmiserFieldHotWaterVersion('version', 3, [], MAX_AGE_LONG) # override field after creation to add functitionality
-    
-    def _buildfields(self):
-        """add to list of fields"""
-        super(ThermoStatHotWaterWeek, self)._buildfields()
-        self.fields.extend([
-            HeatmiserFieldHotWaterDemand('hotwaterdemand', 42, [0, 2], MAX_AGE_USHORT),  # read [0=off, 1=on],  write [0=as prog, 1=override on, 2=overide off]
-            HeatmiserFieldWater('wday_water', 71, [[0, 24], [0, 59]], MAX_AGE_MEDIUM),  # pairs,  on then off repeated,  hour,  min
-            HeatmiserFieldWater('wend_water', 87, [[0, 24], [0, 59]], MAX_AGE_MEDIUM)
-            #7day progamming
-        ])
 
-        self.water_schedule = SchedulerWeekWater()
-    
-    def _connect_observers(self):
-        """connect obersers to fields"""
-        super(ThermoStatHotWaterWeek, self)._connect_observers()
-        self.wday_water.add_notifable_changed(self.water_schedule.set_raw_field)
-        self.wend_water.add_notifable_changed(self.water_schedule.set_raw_field)
-    
-    def display_water_schedule(self):
-        """Prints water schedule to stdout"""
-        if not self.water_schedule is None:
-            self.water_schedule.display()
-            
-    ### UNTESTED # last part about scheduletarget doesn't work
-    def read_water_state(self):
-        """Returns the current hot water control state from off to following program"""
-        #does runmode affect hot water state?
-        self.read_fields(['mon_water', 'tues_water', 'wed_water', 'thurs_water', 'fri_water', 'wday_water', 'wend_water'], -1)
-        self.read_fields(['onoff', 'holidayhours', 'hotwaterdemand'])
-        
-        if self.onoff == WRITE_ONOFF_OFF:
-            return self.TEMP_STATE_OFF
-        elif self.holidayhours != 0:
-            return self.TEMP_STATE_HOLIDAY
-        else:
-            self.read_field('currenttime', MAX_AGE_MEDIUM)
-            
-            locatimenow = self.currenttime.localtimearray()
-            scheduletarget = self.water_schedule.get_current_schedule_item(locatimenow)
-
-            if scheduletarget[SCH_ENT_TEMP] != self.hotwaterdemand:
-                return self.TEMP_STATE_OVERRIDDEN
-        return self.TEMP_STATE_PROGRAM
-                
-    def set_water_schedule(self, day, schedule):
-        """Set water schedule for a single day"""
-        padschedule = self.water_schedule.pad_schedule(schedule)
-        if day == 'all':
-            self.set_field('mon_water', padschedule)
-            self.set_field('tues_water', padschedule)
-            self.set_field('wed_water', padschedule)
-            self.set_field('thurs_water', padschedule)
-            self.set_field('fri_water', padschedule)
-            self.set_field('sat_water', padschedule)
-            self.set_field('sun_water', padschedule)
-        else:
-            self.set_field(day, padschedule)
-    
-class ThermoStatHotWaterDay(ThermoStatDay, ThermoStatHotWaterWeek):
-    """Device class for thermostats with hotwater operating daily programmode
-    Heatmiser prt_hw_model."""
-    
-    def _buildfields(self):
-        """add to list of fields"""
-        super(ThermoStatHotWaterDay, self)._buildfields()
-        self.fields.extend([
-            #7day progamming
-            HeatmiserFieldWater('mon_water', 187, [[0, 24], [0, 59]], MAX_AGE_MEDIUM),
-            HeatmiserFieldWater('tues_water', 203, [[0, 24], [0, 59]], MAX_AGE_MEDIUM),
-            HeatmiserFieldWater('wed_water', 219, [[0, 24], [0, 59]], MAX_AGE_MEDIUM),
-            HeatmiserFieldWater('thurs_water', 235, [[0, 24], [0, 59]], MAX_AGE_MEDIUM),
-            HeatmiserFieldWater('fri_water', 251, [[0, 24], [0, 59]], MAX_AGE_MEDIUM),
-            HeatmiserFieldWater('sat_water', 267, [[0, 24], [0, 59]], MAX_AGE_MEDIUM),
-            HeatmiserFieldWater('sun_water', 283, [[0, 24], [0, 59]], MAX_AGE_MEDIUM)
-        ])
-        self.water_schedule = SchedulerDayWater()
-
-    def _connect_observers(self):
-        """connect obersers to fields"""
-        super(ThermoStatHotWaterDay, self)._connect_observers()
-        fieldnames = ['mon_water', 'tues_water', 'wed_water', 'thurs_water', 'fri_water', 'sat_water', 'sun_water']
-        for fieldname in fieldnames:
-            getattr(self, fieldname).add_notifable_changed(self.water_schedule.set_raw_field)
-
-DEVICETYPES = {
-    None: HeatmiserDevice,
-    'prt_e_model': {'week': ThermoStatWeek, 'day': ThermoStatDay},
-    'prt_hw_model': {'week': ThermoStatHotWaterWeek, 'day': ThermoStatHotWaterDay}
-}
-        
+DEVICETYPES.setdefault('prt_e_model', {'week': ThermoStatWeek, 'day': ThermoStatDay})
+           
 #other
 #set floor limit
