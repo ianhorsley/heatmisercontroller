@@ -21,10 +21,10 @@ field = 'tempholdmins' #Kit
 #field = 'mon_heat' #Others on day
 
 #print STAT._getFieldBlocks('DCBlen','sun_water')
-print STAT.dcb_length
+print(STAT.dcb_length)
 
 def testall():
-    print "All No proc"
+    print("All No proc")
     times = []
     for _ in range(TESTS):
         try:
@@ -32,12 +32,12 @@ def testall():
             HMN.adaptor.read_all_from_device(ADDRESS, HMV3_ID, DCBLEN)
             times.append(timer() - start - HMN.adaptor.serport.COM_BUS_RESET_TIME) 
         except HeatmiserResponseError:
-            print "errored"
+            print("errored")
             time.sleep(5)
-    print "%.3f"%np.median(times), len(times)
+    print("%.3f"%np.median(times), len(times))
 
 def test(number):
-    print "%i No proc"%number
+    print("%i No proc"%number)
     times = []
     for _ in range(TESTS):
         try:
@@ -45,8 +45,8 @@ def test(number):
             HMN.adaptor.read_from_device(ADDRESS, HMV3_ID, fields[fieldnametonum[field]][FIELD_ADD], number)
             times.append(timer() - start - HMN.adaptor.serport.COM_BUS_RESET_TIME) 
         except HeatmiserResponseError:
-            print "errored"
-    print "%.3f"%np.median(times), len(times)
+            print("errored")
+    print("%.3f"%np.median(times), len(times))
 
 fieldnametonum = {}
 for key, data in enumerate(fields):
