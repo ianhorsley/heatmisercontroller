@@ -18,16 +18,15 @@ class Thermostat(object):
     
     def thres_off(self, arg=None):
         """Entry to off state, set threshold to None and set text."""
-        print "STATE off"
+        print("STATE off")
         self.threshold = None
         self.text_function = lambda input: "controller off without frost protection",
         
     def thres_setpoint(self, arg=None):
         """Entry to setpoint state, set threshold to setpoint and set text override, hold or program."""
-        print "STATE to setpoint ", self.fieldscont.setroomtemp.value
+        print("STATE to setpoint ", self.fieldscont.setroomtemp.value)
         self.threshold = self.fieldscont.setroomtemp.value
         
-        print "inner", self.fieldscont.tempholdmins.value
         if self.fieldscont.tempholdmins.value != 0:
             self.text_function = lambda input: "temp held for %i mins at %i"%(input.tempholdmins.value, input.setroomtemp.value)
         else:
@@ -44,7 +43,7 @@ class Thermostat(object):
             self.text_function = lambda input: basetext + "temp overridden to %0.1f until %02d:%02d" % (input.setroomtemp.value, input.nexttarget()[1], input.nexttarget()[2])
 
     def thres_frost(self, arg=None):
-        print "STATE to", self.state
+        print("STATE to", self.state)
         self.threshold = self.fieldscont.frosttemp.value
         
         if self.fieldscont.onoff.is_value('OFF'):

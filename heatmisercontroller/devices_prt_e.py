@@ -44,9 +44,9 @@ class ThermoStatWeek(HeatmiserDevice):
             HeatmiserFieldSingle('frosttemp', 17, [7, 17], MAX_AGE_LONG),  #default is 12,  frost protection temperature
             HeatmiserFieldSingle('setroomtemp', 18, [5, 35], MAX_AGE_USHORT),
             HeatmiserFieldSingle('floormaxlimit', 19, [20, 45], MAX_AGE_LONG),
-            HeatmiserFieldSingleReadOnly('floormaxlimitenable', 20, [0, 1], MAX_AGE_LONG),  #1=enable, 0=disable
-            HeatmiserFieldSingle('onoff', 21, [0, 1], MAX_AGE_SHORT, VALUES_ON_OFF),  #1=on, 0=off
-            HeatmiserFieldSingle('keylock', 22, [0, 1], MAX_AGE_SHORT, VALUES_ON_OFF),  #1=on, 0=off
+            HeatmiserFieldSingleReadOnly('floormaxlimitenable', 20, [0, 1], MAX_AGE_LONG),  #1 is enable, 0 is disable
+            HeatmiserFieldSingle('onoff', 21, [0, 1], MAX_AGE_SHORT, VALUES_ON_OFF),  #1 is on, 0 is off
+            HeatmiserFieldSingle('keylock', 22, [0, 1], MAX_AGE_SHORT, VALUES_ON_OFF),  #1 is on, 0 is off
             HeatmiserFieldSingle('runmode', 23, [0, 1], MAX_AGE_SHORT, {'HEAT': 0, 'FROST': 1}),   #0 = heating mode,  1 = frost protection mode
             HeatmiserFieldDouble('holidayhours', 24, [0, 720], MAX_AGE_SHORT, VALUES_OFF),  #range guessed and tested,  setting to 0 cancels hold and puts back to program 
             #HeatmiserFieldUnknown('unknown', 26, 1, [], MAX_AGE_LONG, 6),  # gap from 26 to 31
@@ -162,7 +162,7 @@ class ThermoStatWeek(HeatmiserDevice):
         """Returns the current temperature control state from off to following program"""
         self.read_fields(['mon_heat', 'tues_heat', 'wed_heat', 'thurs_heat', 'fri_heat', 'wday_heat', 'wend_heat'], -1)
         self.read_fields(['onoff', 'frostprotdisable', 'holidayhours', 'runmode', 'tempholdmins', 'setroomtemp'])
-        print "outer", self.tempholdmins.value
+
         return self.thermostat.state
         
     def read_air_sensor_type(self):
