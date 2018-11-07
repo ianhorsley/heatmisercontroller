@@ -22,7 +22,8 @@ setup(name='heatmisercontroller',
         'datetime',
         'logging',
         'pyserial',
-        'configobj'
+        'configobj',
+        'transitions'
       ],
       test_suite="tests",
       scripts=[
