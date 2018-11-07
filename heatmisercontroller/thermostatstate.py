@@ -10,10 +10,10 @@ from schedule_functions import SCH_ENT_TEMP
 
 class Thermostat(object):
     """Thermostat statemachine"""
-    states = [{'name': 'off', 'on_enter': 'thres_off' },
-            {'name': 'offfrost', 'on_enter': 'thres_frost' },
-            {'name': 'frost', 'on_enter': 'thres_frost' },
-            {'name': 'setpoint', 'on_enter': 'thres_setpoint' }
+    states = [{'name': 'off', 'on_enter': 'thres_off'},
+            {'name': 'offfrost', 'on_enter': 'thres_frost'},
+            {'name': 'frost', 'on_enter': 'thres_frost'},
+            {'name': 'setpoint', 'on_enter': 'thres_setpoint'}
             ]
     
     def thres_off(self, arg=None):
@@ -89,7 +89,7 @@ class Thermostat(object):
         #self.machine.add_transition('switch_on', ['off', 'offfrost'], 'setpoint', conditions='cond_frost')
         #self.machine.add_transition('switch_on', ['off', 'offfrost'], 'frost', unless='cond_frost')
         
-        self.machine.add_transition('switch_swap', '*', 'setpoint', conditions=['cond_frost','cond_on'])
+        self.machine.add_transition('switch_swap', '*', 'setpoint', conditions=['cond_frost', 'cond_on'])
         #self.machine.add_transition('switch_swap', ['off', 'offfrost', 'setpoint'], 'frost', conditions='cond_on', unless='cond_frost')
         self.machine.add_transition('switch_swap', '*', 'frost', conditions='cond_on', unless='cond_frost')
         
