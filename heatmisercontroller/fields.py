@@ -13,14 +13,15 @@ VALUES_OFF = {'OFF': 0}
 
 class HeatmiserFieldUnknown(Notifier):
     """Class for variable length unknown read only field"""
+    writeable = False
+    divisor = 1
+    
     def __init__(self, name, address, max_age, length):
-        Notifier.__init__(self)
+        super(HeatmiserFieldUnknown, self).__init__()
         self.name = name
         self.address = address
         self.dcbaddress = address
-        self.divisor = 1
         self.max_age = max_age
-        self.writeable = False
         self.fieldlength = length
         self._reset()
     
@@ -97,10 +98,11 @@ class HeatmiserFieldUnknown(Notifier):
 class HeatmiserField(HeatmiserFieldUnknown):
     """Base class for fields providing basic method calls"""
     #single value and hence single range
+    writeable = True
+    
     def __init__(self, name, address, validrange, max_age, readvalues=None):
         super(HeatmiserField, self).__init__(name, address, max_age, self.fieldlength)
         self.validrange = validrange
-        self.writeable = True
         self.value = None
         self.expectedvalue = None
         self.writevalues = self.readvalues = readvalues
@@ -165,10 +167,8 @@ class HeatmiserField(HeatmiserFieldUnknown):
 
 class HeatmiserFieldSingle(HeatmiserField):
     """Class for writable 1 byte field"""
-    def __init__(self, name, address, validrange, max_age, readvalues = None):
-        self.maxdatavalue = 255
-        self.fieldlength = 1
-        super(HeatmiserFieldSingle, self).__init__(name, address, validrange, max_age, readvalues)
+    maxdatavalue = 255
+    fieldlength = 1
 
     def _calculate_value(self, data):
         """Calculate value from payload bytes"""
@@ -180,15 +180,11 @@ class HeatmiserFieldSingle(HeatmiserField):
 
 class HeatmiserFieldSingleReadOnly(HeatmiserFieldSingle):
     """Class for read only 1 byte field"""
-    def __init__(self, name, address, validrange, max_age, readvalues = None):
-        super(HeatmiserFieldSingleReadOnly, self).__init__(name, address, validrange, max_age, readvalues)
-        self.writeable = False
+    writeable = False
 
 class HeatmiserFieldHotWaterVersion(HeatmiserFieldSingleReadOnly):
     """Class for version on hotwater models."""
-    def __init__(self, name, address, validrange, max_age):
-        super(HeatmiserFieldHotWaterVersion, self).__init__(name, address, validrange, max_age)
-        self.floorlimiting = None
+    floorlimiting = None
         
     def _calculate_value(self, data):
         """Calculate value from payload bytes"""
@@ -215,10 +211,8 @@ class HeatmiserFieldHotWaterDemand(HeatmiserFieldSingle):
         
 class HeatmiserFieldDouble(HeatmiserField):
     """Class for writable 2 byte field"""
-    def __init__(self, name, address, validrange, max_age, readvalues = None):
-        self.maxdatavalue = 65536
-        self.fieldlength = 2
-        super(HeatmiserFieldDouble, self).__init__(name, address, validrange, max_age, readvalues)
+    maxdatavalue = 65536
+    fieldlength = 2
         
     def _calculate_value(self, data):
         """Calculate value from payload bytes"""
@@ -234,21 +228,15 @@ class HeatmiserFieldDouble(HeatmiserField):
         
 class HeatmiserFieldDoubleReadOnly(HeatmiserFieldDouble):
     """Class for read only 2 byte field"""
-    def __init__(self, name, address, validrange, max_age):
-        super(HeatmiserFieldDoubleReadOnly, self).__init__(name, address, validrange, max_age)
-        self.writeable = False
+    writeable = False
 
 class HeatmiserFieldDoubleReadOnlyTenths(HeatmiserFieldDoubleReadOnly):
     """Class for read only 2 byte field"""
-    def __init__(self, name, address, validrange, max_age):
-        super(HeatmiserFieldDoubleReadOnlyTenths, self).__init__(name, address, validrange, max_age)
-        self.divisor = 10
+    divisor = 10
         
 class HeatmiserFieldMulti(HeatmiserField):
     """Base class for writable multi byte field"""
-    def __init__(self, name, address, validrange, max_age):
-        self.maxdatavalue = None
-        super(HeatmiserFieldMulti, self).__init__(name, address, validrange, max_age)
+    maxdatavalue = None
         
     def _validate_range(self, values, errortype=HeatmiserResponseError):
         """validate the value is within range."""
@@ -276,8 +264,9 @@ class HeatmiserFieldMulti(HeatmiserField):
 
 class HeatmiserFieldTime(HeatmiserFieldMulti):
     """Class for time field"""
+    fieldlength = 4
+    
     def __init__(self, name, address, validrange, max_age):
-        self.fieldlength = 4
         self.timeerr = None
         super(HeatmiserFieldTime, self).__init__(name, address, validrange, max_age)
         
@@ -325,12 +314,8 @@ class HeatmiserFieldTime(HeatmiserFieldMulti):
 
 class HeatmiserFieldHeat(HeatmiserFieldMulti):
     """Class for heating schedule field"""
-    def __init__(self, name, address, validrange, max_age):
-        self.fieldlength = 12
-        super(HeatmiserFieldHeat, self).__init__(name, address, validrange, max_age)
+    fieldlength = 12
 
 class HeatmiserFieldWater(HeatmiserFieldMulti):
     """Class for hotwater schedule field"""
-    def __init__(self, name, address, validrange, max_age):
-        self.fieldlength = 16
-        super(HeatmiserFieldWater, self).__init__(name, address, validrange, max_age)
+    fieldlength = 16
