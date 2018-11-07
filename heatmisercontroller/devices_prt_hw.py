@@ -4,7 +4,6 @@ PRT-HW Thermostat classes on the Heatmiser network
 
 Ian Horsley 2018
 """
-import logging
 
 from genericdevice import DEVICETYPES
 from devices_prt_e import ThermoStatWeek, ThermoStatDay
