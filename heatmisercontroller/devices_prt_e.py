@@ -18,11 +18,13 @@ from thermostatstate import Thermostat
 class ThermoStatWeek(HeatmiserDevice):
     """Device class for thermostats operating weekly programmode
     Heatmiser prt_e_model."""
+    is_hot_water = False #returns True if stat is a model with hotwater control, False otherwise
     
     def __init__(self, adaptor, devicesettings, generalsettings={}):
+        self.heat_schedule = None #placeholder for heating schedule object
+        self.thermostat = None #placeholder for thermostat object
         super(ThermoStatWeek, self).__init__(adaptor, devicesettings, generalsettings)
         #thermostat specific
-        self.is_hot_water = False #returns True if stat is a model with hotwater control, False otherwise
     
     def _buildfields(self):
         """add to list of fields"""
@@ -61,8 +63,7 @@ class ThermoStatWeek(HeatmiserDevice):
             HeatmiserFieldHeat('wday_heat', 47, [[0, 24], [0, 59], [5, 35]], MAX_AGE_MEDIUM),  #hour,  min,  temp  (should minutes be only 0 and 30?)
             HeatmiserFieldHeat('wend_heat', 59, [[0, 24], [0, 59], [5, 35]], MAX_AGE_MEDIUM)
             ])
-            
-        self.water_schedule = None
+
         self.heat_schedule = SchedulerWeekHeat()
         self.thermostat = Thermostat('Heating', self)
     

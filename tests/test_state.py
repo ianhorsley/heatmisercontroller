@@ -6,15 +6,17 @@ from heatmisercontroller.fields import *
 from heatmisercontroller.hm_constants import *
 from heatmisercontroller.thermostatstate import Thermostat
 
-class fieldsContainer(object):
+class FieldsContainer(object):
+    """Class to hold fields. Test replacement for full blown thermostat device."""
     def read_field(self, _a, _b):
+        """Method to mirror thermostat method."""
         pass
 
 class TestState(unittest.TestCase):
     """Unit tests for state class."""
     def setUp(self):
         logging.basicConfig(level=logging.ERROR)
-        self.fc = fieldsContainer()
+        self.fc = FieldsContainer()
         
         fc = self.fc
         fc.frostprotdisable = HeatmiserFieldSingleReadOnly('frostprotdisable', 7, [0, 1], MAX_AGE_LONG, VALUES_OFF_ON)  #0=enable frost prot when display off,  (opposite in protocol manual,  but tested and user guide is correct)  (default should be frost proc enabled)
@@ -24,7 +26,7 @@ class TestState(unittest.TestCase):
         fc.onoff = HeatmiserFieldSingle('onoff', 21, [0, 1], MAX_AGE_SHORT, VALUES_ON_OFF)  #1 = on
         fc.runmode = HeatmiserFieldSingle('runmode', 23, [0, 1], MAX_AGE_SHORT, {'HEAT': 0, 'FROST': 1})   #0 = heating mode,  1 = frost protection mode
         fc.holidayhours = HeatmiserFieldDouble('holidayhours', 24, [0, 720], MAX_AGE_SHORT, VALUES_OFF)  #range guessed and tested,  setting to 0 cancels hold and puts back to program 
-#HeatmiserFieldUnknown('unknown', 26, 1, [], MAX_AGE_LONG, 6),  # gap from 26 to 31
+        
         fc.tempholdmins = HeatmiserFieldDouble('tempholdmins', 32, [0, 5760], MAX_AGE_SHORT, VALUES_OFF)  #range guessed and tested,  setting to 0 cancels hold and puts setroomtemp back to program
         fc.currenttime = HeatmiserFieldTime('currenttime', 43, [[1, 7], [0, 23], [0, 59], [0, 59]], MAX_AGE_USHORT)  #day (Mon - Sun),  hour,  min,  sec.
         
@@ -105,6 +107,6 @@ class TestState(unittest.TestCase):
         self.assertEqual(self.t.get_state_text(), "controller in frost mode")
         
         #### Not finished testing
-        #fc.runmode.update_value(fc.runmode.readvalues['HEAT'], 0)
+        fc.runmode.update_value(fc.runmode.readvalues['HEAT'], 0)
         #self.assertEqual(self.t.get_state_text(), "controller in frost mode")
         

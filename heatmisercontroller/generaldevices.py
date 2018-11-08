@@ -17,6 +17,7 @@ from .logging_setup import csvlist
 
 class ThermoStatUnknown(HeatmiserDevice):
     """Device class for unknown thermostats operating unknown programmode"""
+
     def _configure_fields(self):
         """build dict to map field name to index, map fields tables to properties and set dcb addresses."""
         super(ThermoStatUnknown, self)._configure_fields()

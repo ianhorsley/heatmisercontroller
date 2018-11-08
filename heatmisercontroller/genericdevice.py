@@ -24,6 +24,7 @@ class HeatmiserDevice(object):
         self._adaptor = adaptor
 
         # initalise variables
+        self.dcb_length = None #set after building fields
         self.floorlimiting = None
         self.lastwritetime = None
         self.lastreadtime = None

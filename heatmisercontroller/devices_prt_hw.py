@@ -14,11 +14,12 @@ from schedule_functions import SchedulerDayWater, SchedulerWeekWater, SCH_ENT_TE
 class ThermoStatHotWaterWeek(ThermoStatWeek):
     """Device class for thermostats with hotwater operating weekly programmode
     Heatmiser prt_hw_model."""
+    is_hot_water = True
     
     def __init__(self, adaptor, devicesettings, generalsettings={}):
+        self.water_schedule = None #placeholder for hot water schedule
         super(ThermoStatHotWaterWeek, self).__init__(adaptor, devicesettings, generalsettings)
         #thermostat specific
-        self.is_hot_water = True
         self.version = HeatmiserFieldHotWaterVersion('version', 3, [], MAX_AGE_LONG) # override field after creation to add functitionality
     
     def _buildfields(self):

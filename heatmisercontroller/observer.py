@@ -62,7 +62,7 @@ class Notifier(object):
             self.previousvalue = None
             self.outer = outer
 
-        def notify(self, arg = None):
+        def notify(self, arg=None):
             """Notify if changed."""
             if not self.outer.value == self.outer.previousvalue:
                 self.set_changed()

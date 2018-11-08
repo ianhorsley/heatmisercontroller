@@ -30,7 +30,7 @@ class Thermostat(object):
         self.threshold = None
         self.text_function = lambda _: "controller off without frost protection"
         
-    def thres_setpoint(self, arg=None):
+    def thres_setpoint(self, _=None):
         """Entry to setpoint state, set threshold to setpoint and set text override, hold or program."""
         print("STATE to setpoint ", self.fieldscont.setroomtemp.value)
         self.threshold = self.fieldscont.setroomtemp.value
@@ -40,7 +40,7 @@ class Thermostat(object):
         else:
             self.text_function = self._text_function_over_prog
 
-    def thres_frost(self, arg=None):
+    def thres_frost(self, _=None):
         """Entry to frost state, set threshold to frost and set text off, frost or holiday."""
         print("STATE to", self.state)
         
@@ -72,15 +72,15 @@ class Thermostat(object):
         """Return text desription of current state."""
         return self.text_function(self.fieldscont)
     
-    def cond_frost(self, arg=None):
+    def cond_frost(self, _=None):
         """Check is no frost triggers set."""
         return self.fieldscont.holidayhours.is_value('OFF') and self.fieldscont.runmode.is_value('HEAT')
 
-    def cond_on(self, arg=None):
+    def cond_on(self, _=None):
         """Check switched on."""
         return self.fieldscont.onoff.is_value('ON')
         
-    def cond_frostprotdisable(self, arg=None):
+    def cond_frostprotdisable(self, _=None):
         """Check frost protection is disabled."""
         return self.fieldscont.frostprotdisable.is_value('ON')
        
