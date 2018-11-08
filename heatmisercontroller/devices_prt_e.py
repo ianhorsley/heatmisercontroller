@@ -109,7 +109,7 @@ class ThermoStatWeek(HeatmiserDevice):
         try:
             self.currenttime.comparecontrollertime()
         except HeatmiserControllerTimeError:
-            if self.autocorrectime is True:
+            if self.set_autocorrectime is True:
                 ### Add warning that attempting to fix.
                 self.set_time()
             else:
