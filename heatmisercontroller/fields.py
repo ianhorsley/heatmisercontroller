@@ -114,12 +114,19 @@ class HeatmiserField(HeatmiserFieldUnknown):
         """Returns true if value matches read value."""
         return self.value == self.readvalues[name]
     
-    def read_value(self):
+    def read_value_text(self):
         """returns value converting to label if known"""
         if self.readvalues is None:
             return self.value
         else:
             return self.readvalues.keys()[self.readvalues.values().index(self.value)]
+            
+    def write_value_from_text(self, value):
+        """maps text to value, otherwise returns input"""
+        if self.writevalues is None:
+            return value
+        else:
+            return self.writevalues.get(value, value)
     
     def update_data(self, data, readtime):
         """update stored data and readtime if data valid. Compute and store value from data."""

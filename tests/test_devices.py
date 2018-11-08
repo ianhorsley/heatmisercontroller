@@ -314,7 +314,18 @@ class TestSettingData(unittest.TestCase):
         self.func.set_fields(['mon_heat', 'tues_heat'], indata)
         self.assertEqual(self.tester.arguments, [(5, 3, 103, 24, flat_list)])
         self.assertEqual(self.func.mon_heat.value, indata[0])
-        self.assertEqual(self.func.tues_heat.value, indata[1])           
+        self.assertEqual(self.func.tues_heat.value, indata[1])
+
+    def test_seton(self):
+        #self.func.set_on()
+        self.func.set_field('onoff', 'ON')
+        self.assertEqual(self.tester.arguments, [(5, 3, 21, 1, [1])])
+        self.assertEqual(self.func.onoff.value, 1)
+        
+    def test_setoff(self):
+        self.func.set_field('onoff', 'OFF')
+        self.assertEqual(self.tester.arguments, [(5, 3, 21, 1, [0])])
+        self.assertEqual(self.func.onoff.value, 0)
     
 if __name__ == '__main__':
     unittest.main()

@@ -94,7 +94,7 @@ class HeatmiserDevice(object):
             self._fieldnametonum[field.name] = key
             #store field pointer as property
             setattr(self, field.name, field)
-            
+        #record maximum dcb length
         self.dcb_length = dcbaddress
     
     def _connect_observers(self):
@@ -273,12 +273,13 @@ class HeatmiserDevice(object):
         #values must not be list for field length 1 or 2
         fieldid = self._fieldnametonum[fieldname]
         field = self.fields[fieldid]
+        numericvalues = field.write_value_from_text(values) #convert to numbers if input was text
         
         field.is_writable()
-        field.check_values(values)
-        payloadbytes = field.format_data_from_value(values)
+        field.check_values(numericvalues)
+        payloadbytes = field.format_data_from_value(numericvalues)
         
-        printvalues = values if isinstance(values, list) else [values] #adjust for logging
+        printvalues = numericvalues if isinstance(numericvalues, list) else [numericvalues] #adjust for logging
             
         try:
             self._adaptor.write_to_device(self.set_address, self.set_protocol, field.address, field.fieldlength, payloadbytes)
@@ -288,7 +289,7 @@ class HeatmiserDevice(object):
         logging.info("C%i set field %s to %s"%(self.set_address, fieldname.ljust(FIELD_NAME_LENGTH), csvlist(printvalues)))
         
         self.lastwritetime = time.time()
-        self.data[fieldname] = field.update_value(values, self.lastwritetime)
+        self.data[fieldname] = field.update_value(numericvalues, self.lastwritetime)
     
     def set_fields(self, fieldnames, values):
         """Set multiple fields on a device to a state or payload."""

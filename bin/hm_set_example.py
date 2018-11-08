@@ -19,14 +19,14 @@ HMN = HeatmiserNetwork()
 #HMN.All.set_field('holidayhours', 96)
 HMN.All.release_holiday()
 
-HMN.Kit.set_field('hotwaterdemand', HMN.Kit.hotwaterdemand.writevalues['PROG'])
+HMN.Kit.set_field('hotwaterdemand', 'PROG')
 
 HMN.All.set_on()
 HMN.All.set_frost()
 #HMN.hmUpdateTime(2)
 
-HMN.All.set_field('runmode', HMN.Kit.runmode.writevalues['HEAT'])
-HMN.Cons.set_field('runmode', HMN.Kit.runmode.writevalues['FROST'])
+HMN.All.set_field('runmode', 'HEAT')
+HMN.Cons.set_field('runmode', 'FROST')
 
 #HMN.B2.set_temp(24)
 #HMN.Kit.set_temp(24)

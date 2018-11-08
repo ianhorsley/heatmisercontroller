@@ -87,8 +87,8 @@ class HeatmiserNetwork(object):
             except HeatmiserResponseError as err:
                 logging.info("C%i device not found, library error %s"%(address, err))
             else:
-                model = test_device.model.read_value()
-                prog_mode = test_device.programmode.read_value()
+                model = test_device.model.read_value_text()
+                prog_mode = test_device.programmode.read_value_text()
                 logging.info("C%i device %s found, with program %s"%(address, model, prog_mode))
                 controllersettings = {
                     'address': address,

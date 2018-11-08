@@ -217,29 +217,6 @@ class ThermoStatWeek(HeatmiserDevice):
         """cancels holiday mode"""
         return self.set_field('holidayhours', 0)
 
-    #onoffs
-
-    def set_on(self):
-        """Switch stat on"""
-        return self.set_field('onoff', self.onoff.writevalues['ON'])
-    def set_off(self):
-        """Switch stat off"""
-        return self.set_field('onoff', self.onoff.writevalues['OFF'])
-        
-    def set_heat(self):
-        """Switch stat to follow heat program"""
-        return self.set_field('runmode', self.runmode.writevalues['HEAT'])
-    def set_frost(self):
-        """Switch stat to frost only"""
-        return self.set_field('runmode', self.runmode.writevalues['FROST'])
-        
-    def set_lock(self):
-        """Lock keypad"""
-        return self.set_field('keylock', self.keylock.writevalues['ON'])
-    def set_unlock(self):
-        """Unlock keypad"""
-        return self.set_field('keylock', self.keylock.writevalues['ON'])
-
 class ThermoStatDay(ThermoStatWeek):
     """Device class for thermostats operating daily programmode
     Heatmiser prt_e_model."""
@@ -268,5 +245,3 @@ class ThermoStatDay(ThermoStatWeek):
 
 DEVICETYPES.setdefault('prt_e_model', {'week': ThermoStatWeek, 'day': ThermoStatDay})
            
-#other
-#set floor limit
