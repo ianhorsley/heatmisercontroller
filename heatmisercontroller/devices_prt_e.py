@@ -12,7 +12,7 @@ from fields import HeatmiserFieldSingle, HeatmiserFieldSingleReadOnly, Heatmiser
 from fields import VALUES_ON_OFF, VALUES_OFF_ON, VALUES_OFF
 from hm_constants import MAX_AGE_LONG, MAX_AGE_MEDIUM, MAX_AGE_SHORT, MAX_AGE_USHORT
 from .exceptions import HeatmiserControllerTimeError
-from schedule_functions import SchedulerDayHeat, SchedulerWeekHeat, SCH_ENT_TEMP
+from schedule_functions import SchedulerDayHeat, SchedulerWeekHeat
 from thermostatstate import Thermostat
 
 class ThermoStatWeek(HeatmiserDevice):
@@ -189,14 +189,14 @@ class ThermoStatWeek(HeatmiserDevice):
         if self.read_field('tempholdmins') == 0: #check hold temp not applied
             return self.set_field('setroomtemp', temp)
         else:
-            logging.warn("%i address, temp hold applied so won't set temp"%(self.address))
+            logging.warn("%i address, temp hold applied so won't set temp"%(self.set_address))
 
     def release_temp(self):
         """release setTemp back to the program, but only if temp isn't held for a time (holdTemp)."""
         if self.read_field('tempholdmins') == 0: #check hold temp not applied
             return self.set_field('tempholdmins', 0)
         else:
-            logging.warn("%i address, temp hold applied so won't remove set temp"%(self.address))
+            logging.warn("%i address, temp hold applied so won't remove set temp"%(self.set_address))
 
     def hold_temp(self, minutes, temp):
         """sets the temperature demand overrding the program for a set time."""

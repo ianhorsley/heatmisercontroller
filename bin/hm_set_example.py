@@ -13,7 +13,7 @@ initialize_logger_full('logs', logging.INFO)
 HMN = HeatmiserNetwork()
 
 #HMN.Kit.holdTemp(30,21) #mins, temp
-#HMN.Kit.releaseHoldTemp()
+HMN.All.release_hold_temp()
 
 #HMN.release_temp("Cons")
 #HMN.All.set_field('holidayhours', 96)
@@ -21,8 +21,8 @@ HMN.All.release_holiday()
 
 HMN.Kit.set_field('hotwaterdemand', 'PROG')
 
-HMN.All.set_on()
-HMN.All.set_frost()
+HMN.All.set_field('onoff', 'ON')
+HMN.All.set_field('runmode', 'FROST')
 #HMN.hmUpdateTime(2)
 
 HMN.All.set_field('runmode', 'HEAT')
@@ -57,9 +57,9 @@ HMN.Kit.set_heating_schedule('mon_heat', WKEND_ZOFF)
 HMN.Kit.set_heating_schedule('tues_heat', WKEND_ZOFF)
 HMN.Kit.set_heating_schedule('wed_heat', WKEND_ZOFF)
 HMN.Kit.set_heating_schedule('thurs_heat', WKDAY_ZLATE)
-HMN.Kit.set_heating_schedule('fri_heat', WKDAY_ZEARLY)
+HMN.Kit.set_heating_schedule('fri_heat', WKDAY_ZLATE)
 HMN.Kit.set_heating_schedule('sat_heat', WKEND_ZEARLY)
-HMN.Kit.set_heating_schedule('sun_heat', WKEND_ZLATE)
+HMN.Kit.set_heating_schedule('sun_heat', WKEND_ZOFF)
 
 EVENINGWATER = [17, 30, 18, 30]
 NOWATER = []
