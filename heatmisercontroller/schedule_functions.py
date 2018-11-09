@@ -214,20 +214,23 @@ class SchedulerWater(Scheduler):
     entriesperday = 8
     fieldbase = '_water'
     
+    entry_formats = {
+        0: lambda dataset: "On at %02d:%02d " %(dataset[0], dataset[1]), #used for on entries
+        1: lambda dataset: "Off at %02d:%02d, " %(dataset[0], dataset[1]) #used for off entries
+    }
+    group_formats = {
+        0: lambda count: "Time %i " %(count), #Group number for time entries
+        1: lambda _: ""
+    }
+    
     def entry_text(self, data):
         """Assembles string describing a water schdule entry"""
-        toggle = True
-        count = 1
-    
         tempstr = ''
-        for dataset in self._chunks(data, 2):
+        for entry, dataset in enumerate(self._chunks(data, 2)):
+            count = int(entry/2) + 1 #group number from entries
+            tempstr += self.group_formats[entry % 2](count)
             if dataset[0] != HOUR_UNUSED:
-                if toggle:
-                    tempstr += "Time %i On at %02d:%02d " %(count, dataset[0], dataset[1])
-                else:
-                    tempstr += "Off at %02d:%02d, " %(dataset[0], dataset[1])
-                    count = count + 1
-                toggle = not toggle
+                tempstr += self.entry_formats[entry % 2](dataset)
                 
         return tempstr
     
