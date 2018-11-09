@@ -21,7 +21,7 @@ class ThermoStatUnknown(HeatmiserDevice):
     def _configure_fields(self):
         """build dict to map field name to index, map fields tables to properties and set dcb addresses."""
         super(ThermoStatUnknown, self)._configure_fields()
-        self.dcb_length = 65536 #override dcb_length to prevent readall, given unknown full length
+        self.dcb_length = 65536 #override dcb_length to prevent readall, given unknown full length # initialised in base class.
     
     def _buildfields(self):
         """add to list of fields"""
