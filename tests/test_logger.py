@@ -3,7 +3,7 @@ import unittest
 import logging
 import os
 
-from heatmisercontroller.logging_setup import initialize_logger
+from heatmisercontroller.logging_setup import initialize_logger, initialize_logger_full
 
 class TestLogging(unittest.TestCase):
     """Unit tests for logging."""
@@ -25,8 +25,7 @@ class TestLogging(unittest.TestCase):
             os.remove(self.alllogfile)
         for handler in self.logger.handlers[:]:
             self.logger.removeHandler(handler)
-        
-    #@staticmethod
+
     def test_logging(self):
         initialize_logger('', logging.ERROR)
         
@@ -44,19 +43,19 @@ class TestLogging(unittest.TestCase):
         self.assertTrue(line.endswith('WARNING - Shown'))
         
     def test_logging_all(self):
-        initialize_logger('', logging.INFO, True)
+        initialize_logger_full('', logging.INFO)
         logging.debug('Not shown')
         logging.info('Shown')
         logging.warn('Shown')
         
         self.assertTrue(os.path.isfile(self.errorlogfile))
         self.assertTrue(os.path.isfile(self.alllogfile))
-        self.assertEqual(len(open(self.alllogfile).readlines()), 6)
+        self.assertEqual(len(open(self.alllogfile).readlines()), 4)
 
     def test_logging_double(self):
         initialize_logger('', logging.DEBUG)
         logging.warn('Shown')
-        initialize_logger('', logging.DEBUG, True)
+        initialize_logger_full('', logging.DEBUG)
         
         logging.debug('Not shown')
         logging.info('Shown')

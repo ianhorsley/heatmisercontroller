@@ -5,29 +5,44 @@ Ian Horsley 2018
 
 import logging
 
-from heatmisercontroller.logging_setup import initialize_logger
-from heatmisercontroller.hm_constants import *
+from heatmisercontroller.logging_setup import initialize_logger_full
 from heatmisercontroller.network import HeatmiserNetwork
 
-initialize_logger('logs', logging.INFO, True)
+initialize_logger_full('logs', logging.INFO)
 
 HMN = HeatmiserNetwork()
 
+### New observations
+# Setting holiday replaces overide and on exit returns to prog (not override)
+
 #HMN.Kit.holdTemp(30,21) #mins, temp
-#HMN.Kit.releaseHoldTemp()
+#HMN.All.release_hold_temp()
 
 #HMN.release_temp("Cons")
-#HMN.All.set_field('holidayhours', 96)
-HMN.All.release_holiday()
+#HMN.All.set_field('holidayhours', 115)
+#HMN.All.release_holiday()
 
-HMN.Kit.set_field('hotwaterdemand', WRITE_HOTWATERDEMAND_PROG)
+#HMN.Kit.set_field('hotwaterdemand', 'PROG')
 
-HMN.All.set_on()
-HMN.All.set_frost()
+#HMN.All.set_field('onoff', 'ON')
+#HMN.All.set_field('runmode', 'FROST')
 #HMN.hmUpdateTime(2)
 
-HMN.All.set_field('runmode', WRITE_RUNMODE_HEATING)
-HMN.Cons.set_field('runmode', WRITE_RUNMODE_FROST)
+HMN.B1.set_field('runmode', 'HEAT')
+HMN.B2.set_field('runmode', 'HEAT')
+HMN.Kit.set_field('runmode', 'HEAT')
+HMN.Cons.set_field('runmode', 'FROST')
+HMN.Sit.set_field('runmode', 'FROST')
+
+HMN.All.set_field('frosttemp', 10)
+HMN.Cons.set_field('frosttemp', 7)
+
+print HMN.Cons.read_field('frostprotdisable')
+HMN.Cons.set_field('onoff', 'OFF')
+
+#print HMN.All.read_field('holidayhours', 0)
+#exit()
+
 
 #HMN.B2.set_temp(24)
 #HMN.Kit.set_temp(24)
@@ -54,16 +69,16 @@ WKEND_ZLATE = [6, 30, DOWNINACTIVE, 21, 30, SLEEP]
 WKEND_ZOFF = [6, 30, DOWNINACTIVE, 21, 30, SLEEP]
 WKDAY_ZSTARTNIGHT = WKEND_ZOFF
 
-HMN.Kit.set_heating_schedule('mon_heat', WKEND_ZOFF)
-HMN.Kit.set_heating_schedule('tues_heat', WKEND_ZOFF)
-HMN.Kit.set_heating_schedule('wed_heat', WKEND_ZOFF)
-HMN.Kit.set_heating_schedule('thurs_heat', WKEND_ZOFF)
+HMN.Kit.set_heating_schedule('mon_heat', WKDAY_ZEARLY)
+HMN.Kit.set_heating_schedule('tues_heat', WKDAY_ZEARLY)
+HMN.Kit.set_heating_schedule('wed_heat', WKDAY_ZEARLY)
+HMN.Kit.set_heating_schedule('thurs_heat', WKDAY_ZTRAINING)
 HMN.Kit.set_heating_schedule('fri_heat', WKEND_ZOFF)
-HMN.Kit.set_heating_schedule('sat_heat', WKEND_ZOFF)
+HMN.Kit.set_heating_schedule('sat_heat', WKEND_ZEARLY)
 HMN.Kit.set_heating_schedule('sun_heat', WKEND_ZOFF)
 
 EVENINGWATER = [17, 30, 18, 30]
-NOWATER = []
+NOWATER = [24, 00, 21, 30]
 HMN.Kit.set_water_schedule('all', NOWATER)
 
 UPSLEEP = 16

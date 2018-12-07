@@ -3,3 +3,4 @@ pyserial
 configobj
 coverage
 codacy-coverage
+transitions

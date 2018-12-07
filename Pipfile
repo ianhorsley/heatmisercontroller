@@ -11,6 +11,7 @@ pyserial = "*"
 configobj = "*"
 "e1839a8" = {path = ".", editable = true}
 coverage = "*"
+transitions = "*"
 
 [requires]
 python_version = "2.7"

@@ -35,43 +35,45 @@ def _add_allfilehandler(output_dir, logger):
     
     allhandler = RotatingFileHandler(os.path.join(output_dir, "all.log"), mode='a', maxBytes=5*1024*1024,
                                  backupCount=2, encoding=None, delay=0)
-    #handler = logging.FileHandler(os.path.join(output_dir, "all.log"),"w", encoding=None, delay="true")
     allhandler.setLevel(logging.DEBUG)
     allformatter = logging.Formatter("%(asctime)-15s %(levelname)s - %(message)s")
     allhandler.setFormatter(allformatter)
     logger.addHandler(allhandler)
     logging.debug('Added all handler')
     
-def initialize_logger(output_dir, screenlevel, debug_log=None):
-    """Class to initialise loggers to screen and files"""
+def initialize_logger(output_dir, screenlevel):
+    """Class to initialise loggers to screen and files
+    Returns logger if new loggers added"""
+    
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
     
     if not logger.handlers: #only create if handlers haven't already been created.
-        if debug_log != None:
-            _add_allfilehandler(output_dir, logger)
         _add_streamhandler(screenlevel, logger)
         _add_filehandler(output_dir, logger)
     else:
-        #check for rotating filehandler
-        if debug_log != None:
-            for handler in logger.handlers:
-                if type(handler) is logging.handlers.RotatingFileHandler:
-                    break
-            else:
-                _add_allfilehandler(output_dir, logger)
         #check for stream and update if needed
         for handler in logger.handlers:
-            if type(handler) is logging.StreamHandler:
+            if isinstance(handler, logging.StreamHandler):
                 _update_streamhandler(screenlevel, handler)
                 break
         else:
             _add_streamhandler(screenlevel, logger)
         #check for filehandler
-        for handler in logger.handlers:
-            if type(handler) is logging.FileHandler:
-                break
-        else:
+        if not any(isinstance(handler, logging.FileHandler) for handler in logger.handlers):
             _add_filehandler(output_dir, logger)
-        
 
+    return logger
+        
+def initialize_logger_full(output_dir, screenlevel):
+    """Class to initialise loggers to screen and files"""
+    
+    logger = initialize_logger(output_dir, screenlevel)
+    
+    #check for rotating filehandler
+    if not any(isinstance(handler, logging.handlers.RotatingFileHandler) for handler in logger.handlers):
+        _add_allfilehandler(output_dir, logger)
+
+def csvlist(listitems):
+    """function to combine list items into csv string"""
+    return ', '.join(map(str, listitems))

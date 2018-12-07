@@ -1,7 +1,11 @@
 """Functions for creating and checking Heatmiser protocol frames"""
 import logging
 
-from hm_constants import *
+from hm_constants import BYTEMASK, MIN_FRAME_SEND_LENGTH, MIN_FRAME_RESP_LENGTH, MIN_FRAME_READ_RESP_LENGTH, FRAME_WRITE_RESP_LENGTH, MAX_PAYLOAD_SEND_LENGTH, RW_LENGTH_ALL, DONT_CARE_LENGTH
+from hm_constants import FUNC_WRITE, FUNC_READ
+from hm_constants import FR_LEN_LOW, FR_LEN_HIGH, FR_FUNC_CODE, FR_DEST_ADDR, FR_SOURCE_ADDR
+from hm_constants import MASTER_ADDR_MIN, MASTER_ADDR_MAX, SLAVE_ADDR_MIN, SLAVE_ADDR_MAX
+from hm_constants import HMV3_ID
 from .exceptions import HeatmiserResponseError, HeatmiserResponseErrorCRC
 
 ### low level framing functions
@@ -13,8 +17,8 @@ def form_read_frame(destination, protocol, source, start, length):
 # TODO check master address is in legal range
 def form_frame(destination, protocol, source, function, start, length, payload):
     """Forms a message payload, including CRC"""
-    if protocol != HMV3_ID:
-        raise ValueError("Protocol unknown")
+    _check_protocal(protocol)
+    
     start_low = start & BYTEMASK
     start_high = (start >> 8) & BYTEMASK
     length_low = length & BYTEMASK
@@ -35,12 +39,10 @@ def form_frame(destination, protocol, source, function, start, length, payload):
     msg = msg + crc.run(msg)
     return msg
 
-def _check_frame_crc(protocol, data):
+def _check_frame_crc(data):
     """Takes frame with CRC and checks it is valid"""
     datalength = len(data)
 
-    if protocol != HMV3_ID:
-        raise ValueError("Protocol unknown")
     if datalength < 2:
         raise HeatmiserResponseError("No CRC")
 
@@ -52,11 +54,8 @@ def _check_frame_crc(protocol, data):
     if expectedchecksum != checksum:
         raise HeatmiserResponseErrorCRC("CRC is incorrect")
 
-def _check_response_frame_length(protocol, data, expected_length):
+def _check_response_frame_length(data, expected_length):
     """Takes frame and checks length, must be a receive frame"""
-    if protocol != HMV3_ID:
-        raise ValueError("Protocol unknown")
-
     if len(data) < MIN_FRAME_RESP_LENGTH:
         raise HeatmiserResponseError("Response length too short: %s %s"%(len(data), MIN_FRAME_RESP_LENGTH))
 
@@ -75,11 +74,8 @@ def _check_response_frame_length(protocol, data, expected_length):
         # Reply to Write is always 7 long
         raise HeatmiserResponseError("Response length %s not EXPECTED value %s given write request" %(frame_len, FRAME_WRITE_RESP_LENGTH))
             
-def _check_response_frame_addresses(protocol, source, destination, data):
+def _check_response_frame_addresses(source, destination, data):
     """Takes frame and checks addresses are correct"""
-    if protocol != HMV3_ID:
-        raise ValueError("Protocol unknown")
-        
     dest_addr = data[FR_DEST_ADDR]
     source_addr = data[FR_SOURCE_ADDR]
 
@@ -92,17 +88,19 @@ def _check_response_frame_addresses(protocol, source, destination, data):
     if source_addr != source:
         raise HeatmiserResponseError("Source address does not match %i" % source_addr)
             
-def _check_response_frame_function(protocol, expected_function, data):
+def _check_response_frame_function(expected_function, data):
     """Takes frame and read or write bit is set correctly"""
-    if protocol != HMV3_ID:
-        raise ValueError("Protocol unknown")
-
     func_code = data[FR_FUNC_CODE]
 
     if func_code != FUNC_WRITE and func_code != FUNC_READ:
         raise HeatmiserResponseError("Unknown function    code: %i" %(func_code))
     if func_code != expected_function:
         raise HeatmiserResponseError("Function    code was not as expected: %i" %(func_code))
+
+def _check_protocal(protocol):
+    """Check protocal is known."""
+    if protocol != HMV3_ID:
+        raise ValueError("Protocol unknown")
         
 def verify_write_ack(protocol, source, destination, data):
     """Verifies message response to write is correct"""
@@ -111,14 +109,16 @@ def verify_write_ack(protocol, source, destination, data):
 def verify_response(protocol, source, destination, expected_function, expected_length, data):
     """Verifies response frame appears legal"""
     try:
+        # check protocal
+        _check_protocal(protocol)
         # check CRC
-        _check_frame_crc(protocol, data)
+        _check_frame_crc(data)
         # check length
-        _check_response_frame_length(protocol, data, expected_length)
+        _check_response_frame_length(data, expected_length)
         # check addresses
-        _check_response_frame_addresses(protocol, source, destination, data)
+        _check_response_frame_addresses(source, destination, data)
         # check function
-        _check_response_frame_function(protocol, expected_function, data)
+        _check_response_frame_function(expected_function, data)
     except HeatmiserResponseError as err:
         logging.warning("C%s Invalid Response: %s: %s" %(source, str(err), data))
         raise
@@ -145,13 +145,10 @@ class crc16:
 
     def _update_4_bits(self, val):
         # Step one, extract the Most significant 4 bits of the CRC register
-        #print "val is %d" %(val)
         t = self.high>>4
-        #print "t is %d" %(t)
 
         # XOR in the Message Data into the extracted bits
         t = t^val
-        #print "t is %d" %(t)
 
         # Shift the CRC Register left 4 bits
         self.high = (self.high << 4)|(self.low>>4)
@@ -160,12 +157,10 @@ class crc16:
         self.low = self.low & BYTEMASK # force char
 
         # Do the table lookups and XOR the result into the CRC tables
-        #print "t for lookup is %d" %(t)
         self.high = self.high ^ self.LookupHigh[t]
         self.high = self.high & BYTEMASK # force char
         self.low = self.low ^ self.LookupLow[t]
         self.low = self.low & BYTEMASK # force char
-        #print "high is %d Low is %d" %(self.high, self.low)
 
     def _crc16_update(self, val):
         self._update_4_bits(val>>4) # High nibble first
@@ -174,7 +169,5 @@ class crc16:
     def run(self, message):
         """Calculates a CRC"""
         for c in message:
-            #print c
             self._crc16_update(c)
-        #print "CRC is Low %d High    %d" %(self.low, self.high)
         return [self.low, self.high]

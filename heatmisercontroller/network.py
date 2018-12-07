@@ -7,10 +7,10 @@ Ian Horsley 2018
 
 import os
 import logging
-#import sys
 
 # Import our own stuff
-from devices import HeatmiserDevice, HeatmiserUnknownDevice, HeatmiserBroadcastDevice
+from genericdevice import DEVICETYPES
+from generaldevices import HeatmiserBroadcastDevice, ThermoStatUnknown
 from adaptor import HeatmiserAdaptor
 from hm_constants import SLAVE_ADDR_MIN, SLAVE_ADDR_MAX
 from .exceptions import HeatmiserResponseError
@@ -61,27 +61,43 @@ class HeatmiserNetwork(object):
             if hasattr(self, name):
                 logging.warn("error duplicate stat name")
             else:
-                setattr(self, name, HeatmiserDevice(self.adaptor, controllersettings, generalsettings))
-                setattr(getattr(self, name), 'name', name) #make name avaliable when accessing by id
-                self.controllers[controllersettings['display_order'] - 1] = getattr(self, name)
-                self._addresses_in_use.append(controllersettings['address'])
-
+                new_device = self.add_device(name, controllersettings, generalsettings)
+                self.controllers[controllersettings['display_order'] - 1] = new_device
         self._current = self.controllers[0]
+    
+    def add_device(self, name, controllersettings, generalsettings={}):
+        """Add device to network"""
+        expected_model = controllersettings['expected_model']
+        expected_prog_mode = controllersettings['expected_prog_mode']
+        new_device = DEVICETYPES[expected_model][expected_prog_mode](self.adaptor, controllersettings, generalsettings)
+        setattr(self, name, new_device)
+        setattr(new_device, 'name', name) #make name avaliable when accessing by id
+        self._addresses_in_use.append(controllersettings['address'])
+        return new_device
     
     def find_devices(self, max_address=SLAVE_ADDR_MAX):
         """Find devices on the network not in the configuration file"""
-        for address in range(SLAVE_ADDR_MIN, max_address + 1):
-            if not address in self._addresses_in_use:
-                try:
-                    settings = {'address': address}
-                    test_device = HeatmiserUnknownDevice(self.adaptor, settings, self._setup.settings['devicesgeneral'])
-                except HeatmiserResponseError as err:
-                    logging.info("C%i device not found, library error %s"%(address, err))
-                else:
-                    logging.info("C%i device %s found, with program %s"%(address, test_device.expected_model, test_device.expected_prog_mode))
-                    setattr(test_device, 'name', 'None') #make name avaliable when accessing by id
-                    self.controllers.append(test_device)
-                    self._addresses_in_use.append(address)
+        unused_addresses = [address for address in range(SLAVE_ADDR_MIN, max_address + 1) if address not in self._addresses_in_use]
+        for address in unused_addresses:
+            try:
+                controllersettings = {'address': address}
+                test_device = ThermoStatUnknown(self.adaptor, controllersettings, self._setup.settings['devicesgeneral'])
+                # use fields from device rather to set the expected mode and type
+                test_device.read_fields(['model', 'programmode'], 0)
+            except HeatmiserResponseError as err:
+                logging.info("C%i device not found, library error %s"%(address, err))
+            else:
+                model = test_device.model.read_value_text()
+                prog_mode = test_device.programmode.read_value_text()
+                logging.info("C%i device %s found, with program %s"%(address, model, prog_mode))
+                controllersettings = {
+                    'address': address,
+                    'expected_model': model,
+                    'expected_prog_mode': prog_mode
+                }
+                new_device = self.add_device("C%i"%address, controllersettings, self._setup.settings['devicesgeneral'])
+                self.controllers.append(new_device)
+                self._addresses_in_use.append(address)
     
     def get_stat_address(self, shortname):
         """Get network address from device name."""

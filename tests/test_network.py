@@ -5,7 +5,7 @@ import os
 
 from heatmisercontroller.network import HeatmiserNetwork
 from heatmisercontroller.exceptions import HeatmiserControllerSetupInitError
-from heatmisercontroller.devices import HeatmiserDevice
+from heatmisercontroller.genericdevice import HeatmiserDevice
 from mock_serial import SetupTestClass, MockHeatmiserAdaptor
 
 class TestNetwork(unittest.TestCase):
@@ -34,11 +34,11 @@ class TestNetwork(unittest.TestCase):
         adaptor.setresponse(responses)
         
         hmn.find_devices(3)
-
+        
         self.assertEqual(len(hmn.controllers), 2)
         self.assertIsInstance(hmn.controllers[0], HeatmiserDevice)
         self.assertIsInstance(hmn.controllers[1], HeatmiserDevice)
-        self.assertEqual(hmn.controllers[1].address, 2)
+        self.assertEqual(hmn.controllers[1].set_address, 2)
         
     def test_network_stat_add(self):
         module_path = os.path.abspath(os.path.dirname(__file__))

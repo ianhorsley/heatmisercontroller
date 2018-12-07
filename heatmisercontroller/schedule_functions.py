@@ -43,6 +43,10 @@ class Scheduler(object):
             raise ValueError('Schedule entry wrong length %i'%len(entry))
         self.entries[entry] = schedule
 
+    def set_raw_field(self, field):
+        """Set single field to schedule from field pointer"""
+        self.set_raw(field.name, field.value)
+        
     def pad_schedule(self, schedule):
         """Pads a partial schedule up to correct length"""
         if not len(schedule)%self.valuesperentry == 0:
@@ -53,14 +57,14 @@ class Scheduler(object):
 
     def display(self):
         """Prints schedule to stdout"""
-        print self.title + " Schedule"
+        print(self.title + " Schedule")
 
         for name, entry in itertools.izip(self.printnames, self.entrynames):
             if self.entries[entry] is None:
                 textstr = "None"
             else:
                 textstr = self.entry_text(self.entries[entry])
-            print name.ljust(10) + textstr
+            print(name.ljust(10) + textstr)
             logging.info(textstr)
 
     @staticmethod
@@ -89,7 +93,7 @@ class Scheduler(object):
             return [self._get_previous_day(timearray)] + scheduletarget
         else:
             return [timearray[CURRENT_TIME_DAY]] + scheduletarget
-            
+    
     def get_next_schedule_item(self, timearray):
         """Gets the next item from schedule"""
         todayschedule = self._get_schedule_entry(timearray[CURRENT_TIME_DAY])
@@ -210,20 +214,23 @@ class SchedulerWater(Scheduler):
     entriesperday = 8
     fieldbase = '_water'
     
+    entry_formats = {
+        0: lambda dataset: "On at %02d:%02d " %(dataset[0], dataset[1]), #used for on entries
+        1: lambda dataset: "Off at %02d:%02d, " %(dataset[0], dataset[1]) #used for off entries
+    }
+    group_formats = {
+        0: lambda count: "Time %i " %(count), #Group number for time entries
+        1: lambda _: ""
+    }
+    
     def entry_text(self, data):
         """Assembles string describing a water schdule entry"""
-        toggle = True
-        count = 1
-    
         tempstr = ''
-        for dataset in self._chunks(data, 2):
+        for entry, dataset in enumerate(self._chunks(data, 2)):
+            count = int(entry/2) + 1 #group number from entries
+            tempstr += self.group_formats[entry % 2](count)
             if dataset[0] != HOUR_UNUSED:
-                if toggle:
-                    tempstr += "Time %i On at %02d:%02d " %(count, dataset[0], dataset[1])
-                else:
-                    tempstr += "Off at %02d:%02d, " %(dataset[0], dataset[1])
-                    count = count + 1
-                toggle = not toggle
+                tempstr += self.entry_formats[entry % 2](dataset)
                 
         return tempstr
     
