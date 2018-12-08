@@ -153,7 +153,7 @@ class HeatmiserField(HeatmiserFieldUnknown):
     def _validate_range(self, values, errortype=HeatmiserResponseError):
         """validate the value is within range."""
         if values < self.validrange[0] or values > self.validrange[1]:
-            raise errortype("Value %i outside expected range for %s"%(values, self.name))
+            raise errortype("Value %i outside expected range (%i, %i) for %s"%(values, self.validrange[0], self.validrange[1], self.name))
 
     def _calculate_value(self, data):
         """Calculate value from payload bytes"""
@@ -218,7 +218,7 @@ class HeatmiserFieldHotWaterDemand(HeatmiserFieldSingle):
         
 class HeatmiserFieldDouble(HeatmiserField):
     """Class for writable 2 byte field"""
-    maxdatavalue = 65536
+    maxdatavalue = 65535
     fieldlength = 2
         
     def _calculate_value(self, data):

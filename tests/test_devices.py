@@ -77,6 +77,10 @@ class TestReadingData(unittest.TestCase):
         self.func.lastreadtime = basetime - get_offset(basetime)
         self.func._procpayload(goodmessage)
 
+    def test_procdefaultrange(self):
+        self.func._procpartpayload([255, 255], 'remoteairtemp', 'remoteairtemp')
+        self.assertEqual(6553.5, self.func.tempholdmins.value)
+        
     def test_procpartpayload(self):
         self.func._procpartpayload([0, 1], 'tempholdmins', 'tempholdmins')
         self.assertEqual(1, self.func.tempholdmins.value)
