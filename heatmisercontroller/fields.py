@@ -239,7 +239,7 @@ class HeatmiserFieldDoubleReadOnly(HeatmiserFieldDouble):
 
 class HeatmiserFieldDoubleReadOnlyTenths(HeatmiserFieldDoubleReadOnly):
     """Class for read only 2 byte field"""
-    divisor = 10
+    divisor = 10.0
         
 class HeatmiserFieldMulti(HeatmiserField):
     """Base class for writable multi byte field"""
