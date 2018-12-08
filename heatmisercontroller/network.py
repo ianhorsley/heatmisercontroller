@@ -117,7 +117,7 @@ class HeatmiserNetwork(object):
     def get_controller_by_name(self, name):
         """Get device if from name"""
         return getattr(self, name)
-        
+
     def run_method_on_all(self, method, *args, **kwargs):
         """Run a method on all devices"""
         results = []

@@ -314,7 +314,7 @@ class HeatmiserFieldTime(HeatmiserFieldMulti):
     DAYSECS = 86400
     HOURSECS = 3600
     MINSECS = 60
-    
+
     def _weeksecs(self, localtimearray):
         """calculates the time from the start of the week in seconds from a heatmiser time array"""
         return (localtimearray[CURRENT_TIME_DAY] - 1) * self.DAYSECS + localtimearray[CURRENT_TIME_HOUR] * self.HOURSECS + localtimearray[CURRENT_TIME_MIN] * self.MINSECS + localtimearray[CURRENT_TIME_SEC]

@@ -69,7 +69,7 @@ def initialize_logger_full(output_dir, screenlevel):
     """Class to initialise loggers to screen and files"""
     
     logger = initialize_logger(output_dir, screenlevel)
-    
+
     #check for rotating filehandler
     if not any(isinstance(handler, logging.handlers.RotatingFileHandler) for handler in logger.handlers):
         _add_allfilehandler(output_dir, logger)

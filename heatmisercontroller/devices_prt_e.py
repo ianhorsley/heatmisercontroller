@@ -37,7 +37,7 @@ class ThermoStatWeek(HeatmiserDevice):
             HeatmiserFieldSingleReadOnly('switchdiff', 6, [1, 3], MAX_AGE_LONG),
             HeatmiserFieldSingleReadOnly('frostprotdisable', 7, [0, 1], MAX_AGE_LONG, VALUES_OFF_ON),  #0=enable frost prot when display off,  (opposite in protocol manual,  but tested and user guide is correct)  (default should be enabled)
             HeatmiserFieldDoubleReadOnly('caloffset', 8, [], MAX_AGE_LONG),
-            HeatmiserFieldSingleReadOnly('outputdelay', 10, [0, 15], MAX_AGE_LONG),  # minutes (to prevent rapid switching)            
+            HeatmiserFieldSingleReadOnly('outputdelay', 10, [0, 15], MAX_AGE_LONG),  # minutes (to prevent rapid switching)
             HeatmiserFieldSingleReadOnly('updwnkeylimit', 12, [0, 10], MAX_AGE_LONG),   #limits use of up and down keys
             HeatmiserFieldSingleReadOnly('sensorsavaliable', 13, [0, 4], MAX_AGE_LONG, {'INT_ONLY': 0, 'EXT_ONLY': 1, 'FLOOR_ONLY': 2, 'INT_FLOOR': 3, 'EXT_FLOOR': 4}),  #00 built in only,  01 remote air only,  02 floor only,  03 built in + floor,  04 remote + floor
             HeatmiserFieldSingleReadOnly('optimstart', 14, [0, 3], MAX_AGE_LONG),  # 0 to 3 hours,  default 0
@@ -50,7 +50,7 @@ class ThermoStatWeek(HeatmiserDevice):
             HeatmiserFieldSingle('onoff', 21, [0, 1], MAX_AGE_SHORT, VALUES_ON_OFF),  #1 is on, 0 is off
             HeatmiserFieldSingle('keylock', 22, [0, 1], MAX_AGE_SHORT, VALUES_ON_OFF),  #1 is on, 0 is off
             HeatmiserFieldSingle('runmode', 23, [0, 1], MAX_AGE_SHORT, {'HEAT': 0, 'FROST': 1}),   #0 = heating mode,  1 = frost protection mode
-            HeatmiserFieldDouble('holidayhours', 24, [0, 720], MAX_AGE_SHORT, VALUES_OFF),  #range guessed and tested,  setting to 0 cancels hold and puts back to program 
+            HeatmiserFieldDouble('holidayhours', 24, [0, 720], MAX_AGE_SHORT, VALUES_OFF),  #range guessed and tested,  setting to 0 cancels hold and puts back to program
             #HeatmiserFieldUnknown('unknown', 26, 1, [], MAX_AGE_LONG, 6),  # gap from 26 to 31
             HeatmiserFieldDouble('tempholdmins', 32, [0, 5760], MAX_AGE_SHORT, VALUES_OFF),  #range guessed and tested,  setting to 0 cancels hold and puts setroomtemp back to program
             HeatmiserFieldDoubleReadOnlyTenths('remoteairtemp', 34, [], MAX_AGE_USHORT),  #ffff if no sensor
@@ -134,7 +134,7 @@ class ThermoStatWeek(HeatmiserDevice):
         return self.heat_schedule.get_next_schedule_item(self.currenttime.localtimearray())
 
     def print_target(self):
-        """Returns text describing current heating state"""    
+        """Returns text describing current heating state"""
         self.read_temp_state()
         return self.thermostat.get_state_text()
             
@@ -233,7 +233,7 @@ class ThermoStatDay(ThermoStatWeek):
             HeatmiserFieldHeat('sat_heat', 163, [[0, 24], [0, 59], [5, 35]], MAX_AGE_MEDIUM),
             HeatmiserFieldHeat('sun_heat', 175, [[0, 24], [0, 59], [5, 35]], MAX_AGE_MEDIUM)
         ])
-        
+
         self.heat_schedule = SchedulerDayHeat()
 
     def _connect_observers(self):

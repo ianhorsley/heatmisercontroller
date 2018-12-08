@@ -202,7 +202,7 @@ class HeatmiserAdaptor(object):
 
         logging.debug("C%i written to address %i length %i payload %s"%(network_address, unique_address, length, csvlist(payload)))
         if network_address == BROADCAST_ADDR: # if broadcasting force it to wait longer until next send
-            self.lastreceivetime = time.time() + self.serport.COM_SEND_MIN_TIME - self.serport.COM_BUS_RESET_TIME 
+            self.lastreceivetime = time.time() + self.serport.COM_SEND_MIN_TIME - self.serport.COM_BUS_RESET_TIME
         else: #else listen for acknowledgement
             response = self._receive_message(FRAME_WRITE_RESP_LENGTH)
             try:
@@ -240,7 +240,7 @@ class HeatmiserAdaptor(object):
             raise
 
         logging.debug("C%i read in %.2f s from address %i length %i response %s"%(network_address, time.time()-time1, unique_start_address, expected_length, csvlist(response)))
-    
+
         try: #processing response
             framing.verify_response(protocol, network_address, self.my_master_addr, FUNC_READ, expected_length, response)
         except HeatmiserResponseErrorCRC:

@@ -68,7 +68,7 @@ class Notifier(object):
                 self.set_changed()
                 Observable.notify_observers(self, arg)
                 self.outer.previousvalue = self.outer.value
-        
+
     def add_notifable_is(self, value, method):
         """Add notifable for value is."""
         self.nots_is.setdefault(value, self.GeneralNotifier(self)).add_observer(method)
