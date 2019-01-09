@@ -17,13 +17,13 @@ HMN = HeatmiserNetwork()
 
 def readanddisplay():
     """Read all data from all controllers and print current time"""
-    print("\r\nGetting time for %2d in %s *****************************" %(current_controller.address, current_controller.long_name))
+    print("\r\nGetting time for %2d in %s *****************************" %(current_controller.set_address, current_controller.set_long_name))
     try:
         current_time = current_controller.read_time()
     except HeatmiserError as err:
-        print("C%d in %s Failed to Read due to %s" %(current_controller.address, current_controller.name.ljust(4), str(err)))
+        print("C%d in %s Failed to Read due to %s" %(current_controller.set_address, current_controller.name.ljust(4), str(err)))
     else:
-        print("C%d in %s time is %s" %(current_controller.address, current_controller.name.ljust(4), str(current_time)))
+        print("C%d in %s time is %s" %(current_controller.set_address, current_controller.name.ljust(4), str(current_time)))
 
 # read and display, without any corrections
 for current_controller in HMN.controllers:
