@@ -1,5 +1,5 @@
 """Constants and """
-        
+
 # Protocols
 HMV2_ID = 2
 HMV3_ID = 3

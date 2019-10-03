@@ -83,7 +83,7 @@ class ThermoStatHotWaterWeek(ThermoStatWeek):
 class ThermoStatHotWaterDay(ThermoStatDay, ThermoStatHotWaterWeek):
     """Device class for thermostats with hotwater operating daily programmode
     Heatmiser prt_hw_model."""
-    
+
     def _buildfields(self):
         """add to list of fields"""
         super(ThermoStatHotWaterDay, self)._buildfields()

@@ -101,6 +101,7 @@ class HeatmiserField(HeatmiserFieldUnknown):
     writeable = True
     
     def __init__(self, name, address, validrange, max_age, readvalues=None):
+		###valid range list can be [], [min, max], [list of valid values]
         super(HeatmiserField, self).__init__(name, address, max_age, self.fieldlength)
         self.validrange = validrange
         self.value = None
@@ -150,10 +151,19 @@ class HeatmiserField(HeatmiserFieldUnknown):
         self.notify_value_change(value)
         return value
         
-    def _validate_range(self, values, errortype=HeatmiserResponseError):
-        """validate the value is within range."""
-        if values < self.validrange[0] or values > self.validrange[1]:
-            raise errortype("Value %.1f  outside expected range (%.1f, %.1f) for %s"%(values, self.validrange[0], self.validrange[1], self.name))
+    def _validate_range(self, values, errortype=HeatmiserResponseError, range=None):
+        """validate the value is within range or in list."""
+        if range is None:
+            range = self.validrange
+
+        if len(range) == 2:
+            if values < range[0] or values > range[1]:
+                raise errortype("Value %.1f  outside expected range (%.1f, %.1f) for %s"%(values, range[0], range[1], self.name))
+        elif len(range) > 2:
+            if values not in range:
+                raise errortype("Value %.1f  outside expected range %s for %s"%(values, ','.join(map(str, range)), self.name))
+        else:
+            raise errortype("Expected range not defined for %s"%(self.name))
 
     def _calculate_value(self, data):
         """Calculate value from payload bytes"""
@@ -246,12 +256,11 @@ class HeatmiserFieldMulti(HeatmiserField):
     maxdatavalue = None
         
     def _validate_range(self, values, errortype=HeatmiserResponseError):
-        """validate the value is within range."""
+        """validate the value is within range or in list. cyles through list of ranges"""
         for i, item in enumerate(values):
-            rangepair = self.validrange[i % len(self.validrange)]
-            if item < rangepair[0] or item > rangepair[1]:
-                raise errortype("Value %.1f  outside expected range (%.1f, %.1f) for %s"%(item, rangepair[0], rangepair[1], self.name))
-        
+            range = self.validrange[i % len(self.validrange)]
+            super(HeatmiserFieldMulti, self)._validate_range(item, errortype, range)
+
     def _calculate_value(self, data):
         """Calculate value from payload bytes"""
         return data
@@ -314,7 +323,7 @@ class HeatmiserFieldTime(HeatmiserFieldMulti):
     DAYSECS = 86400
     HOURSECS = 3600
     MINSECS = 60
-    
+
     def _weeksecs(self, localtimearray):
         """calculates the time from the start of the week in seconds from a heatmiser time array"""
         return (localtimearray[CURRENT_TIME_DAY] - 1) * self.DAYSECS + localtimearray[CURRENT_TIME_HOUR] * self.HOURSECS + localtimearray[CURRENT_TIME_MIN] * self.MINSECS + localtimearray[CURRENT_TIME_SEC]

@@ -89,7 +89,7 @@ class HeatmiserBroadcastDevice(ThermoStatHotWaterDay):
     @run_function_on_all(_controllerlist)
     def set_temp(self, temp):
         pass
-    
+
     @run_function_on_all(_controllerlist)
     def release_temp(self):
         pass

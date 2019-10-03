@@ -156,9 +156,3 @@ class HeatmiserControllerFileSetup(HeatmiserControllerSetup):
         except (ValueError, KeyError) as err:
             logging.warning("Configuration parse failed : " + str(err))
             raise
-
-
-            
-
-
-

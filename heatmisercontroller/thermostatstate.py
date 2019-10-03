@@ -100,7 +100,7 @@ class Thermostat(object):
         self.machine.add_transition('switch_off', ['frost', 'setpoint'], 'offfrost', unless='cond_frostprotdisable')
         self.machine.add_transition('switch_off', 'offfrost', 'off', conditions='cond_frostprotdisable')
         self.machine.add_transition('switch_off', 'off', 'offfrost', unless='cond_frostprotdisable')
-        
+
         self.machine.add_transition('switch_swap', '*', 'setpoint', conditions=['cond_frost', 'cond_on'])
         self.machine.add_transition('switch_swap', '*', 'frost', conditions='cond_on', unless='cond_frost')
         

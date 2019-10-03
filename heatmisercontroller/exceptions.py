@@ -12,6 +12,10 @@ class HeatmiserResponseErrorCRC(HeatmiserResponseError):
     """Specifically when CRC fails check. This is the most common response error."""
     pass
 
+class HeatmiserControllerSensorError(HeatmiserResponseError):
+    """Raise this when controller reports sensor error."""
+    pass
+
 class HeatmiserControllerTimeError(HeatmiserError):
     """Raise this when controller time is outside of acceptable limits."""
     pass

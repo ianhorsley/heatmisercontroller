@@ -32,7 +32,7 @@ HMN.B1.set_field('runmode', 'HEAT')
 HMN.B2.set_field('runmode', 'HEAT')
 HMN.Kit.set_field('runmode', 'HEAT')
 HMN.Cons.set_field('runmode', 'FROST')
-HMN.Sit.set_field('runmode', 'FROST')
+HMN.Sit.set_field('runmode', 'HEAT')
 
 HMN.All.set_field('frosttemp', 10)
 HMN.Cons.set_field('frosttemp', 7)
@@ -62,48 +62,57 @@ SLEEP = 16
 DAYFROST = [7, 0, FROST]
 
 WKDAY_ZEARLY = [5, 00, DOWNACTIVE, 8, 30, FROST, 15, 00, DOWNINACTIVE, 21, 00, SLEEP]
-WKDAY_ZLATE = [6, 30, DOWNINACTIVE, 12, 00, FROST, 17, 00, DOWNINACTIVE, 21, 30, SLEEP]
+WKDAY_ZLATE = [7, 00, DOWNINACTIVE, 12, 00, FROST, 17, 00, DOWNINACTIVE, 21, 30, SLEEP]
 WKDAY_ZTRAINING = [6, 30, DOWNACTIVE, 8, 30, FROST, 16, 30, DOWNINACTIVE, 21, 00, SLEEP]
 WKEND_ZEARLY = [5, 00, DOWNINACTIVE, 21, 30, SLEEP]
-WKEND_ZLATE = [6, 30, DOWNINACTIVE, 21, 30, SLEEP]
-WKEND_ZOFF = [6, 30, DOWNINACTIVE, 21, 30, SLEEP]
+WKEND_ZLATE = [7, 00, DOWNINACTIVE, 21, 30, SLEEP]
+WKEND_ZOFF = [7, 00, DOWNINACTIVE, 21, 30, SLEEP]
+WKDAY_ZAWAY = [7, 00, DOWNACTIVE, 8, 30, FROST, 17, 30, DOWNINACTIVE, 21, 00, SLEEP]
 WKDAY_ZSTARTNIGHT = WKEND_ZOFF
 
-HMN.Kit.set_heating_schedule('mon_heat', WKDAY_ZEARLY)
-HMN.Kit.set_heating_schedule('tues_heat', WKDAY_ZEARLY)
-HMN.Kit.set_heating_schedule('wed_heat', WKDAY_ZEARLY)
-HMN.Kit.set_heating_schedule('thurs_heat', WKDAY_ZTRAINING)
-HMN.Kit.set_heating_schedule('fri_heat', WKEND_ZOFF)
-HMN.Kit.set_heating_schedule('sat_heat', WKEND_ZEARLY)
+HMN.Kit.set_heating_schedule('mon_heat', WKDAY_ZAWAY)
+HMN.Kit.set_heating_schedule('tues_heat', WKDAY_ZAWAY)
+HMN.Kit.set_heating_schedule('wed_heat', WKDAY_ZAWAY)
+HMN.Kit.set_heating_schedule('thurs_heat', WKDAY_ZAWAY)
+HMN.Kit.set_heating_schedule('fri_heat', WKDAY_ZAWAY)
+HMN.Kit.set_heating_schedule('sat_heat', WKEND_ZOFF)
 HMN.Kit.set_heating_schedule('sun_heat', WKEND_ZOFF)
+
+HMN.Sit.set_heating_schedule('mon_heat', WKDAY_ZAWAY)
+HMN.Sit.set_heating_schedule('tues_heat', WKDAY_ZAWAY)
+HMN.Sit.set_heating_schedule('wed_heat', WKDAY_ZAWAY)
+HMN.Sit.set_heating_schedule('thurs_heat', WKDAY_ZAWAY)
+HMN.Sit.set_heating_schedule('fri_heat', WKDAY_ZAWAY)
+HMN.Sit.set_heating_schedule('sat_heat', WKEND_ZOFF)
+HMN.Sit.set_heating_schedule('sun_heat', WKEND_ZOFF)
 
 EVENINGWATER = [17, 30, 18, 30]
 NOWATER = [24, 00, 21, 30]
 HMN.Kit.set_water_schedule('all', NOWATER)
 
-UPSLEEP = 16
-UPAWAKE = 18
-UPWKDAY_ZEARLY = [5, 0, UPAWAKE, 7, 00, FROST, 20, 30, UPAWAKE, 21, 30, UPSLEEP]
-UPWKDAY_ZLATE = [7, 0, UPAWAKE, 8, 00, FROST, 21, 30, UPAWAKE, 22, 30, UPSLEEP]
+UPSLEEP = 12
+UPAWAKE = 15
+UPWKDAY_ZEARLY = [5, 0, UPAWAKE, 7, 00, FROST, 15, 00, UPAWAKE, 19, 30, UPSLEEP]
+UPWKDAY_ZLATE = [7, 0, UPAWAKE, 8, 00, FROST, 17, 00, UPAWAKE, 20, 30, UPSLEEP]
 UPWKDAY = [7, 0, UPAWAKE, 8, 30, FROST, 21, 00, UPAWAKE, 21, 30, UPSLEEP]
-UPWKEND_ZEARLY = [5, 0, UPAWAKE, 8, 00, FROST, 20, 30, UPAWAKE, 21, 30, UPSLEEP]
-UPWKEND_ZLATE = [7, 0, UPAWAKE, 9, 30, FROST, 21, 30, UPAWAKE, 22, 30, UPSLEEP]
-UPWKEND = [7, 0, UPAWAKE, 9, 30, FROST, 21, 00, UPAWAKE, 22, 00, UPSLEEP]
+UPWKEND_ZEARLY = [5, 0, UPAWAKE, 8, 00, FROST, 15, 00, UPAWAKE, 19, 30, UPSLEEP]
+UPWKEND_ZLATE = [7, 0, UPAWAKE, 9, 30, FROST, 17, 00, UPAWAKE, 20, 30, UPSLEEP]
+UPWKEND = [7, 0, UPAWAKE, 9, 30, FROST, 17, 00, UPAWAKE, 19, 00, UPSLEEP]
 DAYFROST = [7, 0, FROST]
 
-HMN.B1.set_heating_schedule('mon_heat', DAYFROST)
-HMN.B1.set_heating_schedule('tues_heat', DAYFROST)
-HMN.B1.set_heating_schedule('wed_heat', DAYFROST)
-HMN.B1.set_heating_schedule('thurs_heat', DAYFROST)
-HMN.B1.set_heating_schedule('fri_heat', DAYFROST)
+HMN.B1.set_heating_schedule('mon_heat', UPWKDAY_ZLATE)
+HMN.B1.set_heating_schedule('tues_heat', UPWKDAY_ZLATE)
+HMN.B1.set_heating_schedule('wed_heat', UPWKDAY_ZLATE)
+HMN.B1.set_heating_schedule('thurs_heat', UPWKDAY_ZEARLY)
+HMN.B1.set_heating_schedule('fri_heat', UPWKDAY_ZEARLY)
 HMN.B1.set_heating_schedule('sat_heat', DAYFROST)
 HMN.B1.set_heating_schedule('sun_heat', DAYFROST)
 
-HMN.B2.set_heating_schedule('mon_heat', DAYFROST)
-HMN.B2.set_heating_schedule('tues_heat', DAYFROST)
-HMN.B2.set_heating_schedule('wed_heat', DAYFROST)
-HMN.B2.set_heating_schedule('thurs_heat', DAYFROST)
-HMN.B2.set_heating_schedule('fri_heat', DAYFROST)
+HMN.B2.set_heating_schedule('mon_heat', UPWKDAY_ZLATE)
+HMN.B2.set_heating_schedule('tues_heat', UPWKDAY_ZLATE)
+HMN.B2.set_heating_schedule('wed_heat', UPWKDAY_ZLATE)
+HMN.B2.set_heating_schedule('thurs_heat', UPWKDAY_ZEARLY)
+HMN.B2.set_heating_schedule('fri_heat', UPWKDAY_ZEARLY)
 HMN.B2.set_heating_schedule('sat_heat', DAYFROST)
 HMN.B2.set_heating_schedule('sun_heat', DAYFROST)
 

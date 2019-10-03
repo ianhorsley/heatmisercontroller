@@ -38,7 +38,7 @@ def run_function_on_all(liststore):
                 try:
                     results[index] = getattr(obj, func.__name__)(*args, **kwargs)
                 except (HeatmiserResponseError, serial.SerialException, HeatmiserControllerTimeError) as err:
-                    logging.warn("C%i %s failed due to %s"%(obj.address, func.__name__, str(lasterror)))
+                    logging.warn("C%i %s failed due to %s"%(obj.set_address, func.__name__, str(lasterror)))
                     lasterror = err
                     continue
 

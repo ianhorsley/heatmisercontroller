@@ -17,7 +17,7 @@ from .exceptions import HeatmiserResponseError
 from .logging_setup import csvlist
 
 class HeatmiserDevice(object):
-    """General device class"""    
+    """General device class"""
 
     ## Initialisation functions and low level functions
     def __init__(self, adaptor, devicesettings, generalsettings={}):
@@ -335,7 +335,7 @@ class HeatmiserDevice(object):
                 outputdata[-1][1] += field.fieldlength
                 outputdata[-1][2].extend(field.format_data_from_value(valuescopy[orginalindex]))
                 outputdata[-1][3].append(valuescopy[orginalindex])
-                
+
             else:
                 outputdata.append([[field], field.fieldlength, field.format_data_from_value(valuescopy[orginalindex]), [valuescopy[orginalindex]]])
             previousfield = field
