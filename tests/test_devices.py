@@ -103,7 +103,7 @@ class TestReadingData(unittest.TestCase):
         adaptor.setresponse(responses)
         self.func.read_all()
         self.assertEqual([(1, 3, 0, 293, True)], adaptor.arguments)
-        
+
     def test_readvariables(self):
         setup = SetupTestClass()
         adaptor = MockHeatmiserAdaptor(setup)
@@ -118,6 +118,20 @@ class TestReadingData(unittest.TestCase):
         self.assertEqual(17, self.func.setroomtemp.value)
         self.assertEqual(0, self.func.hotwaterdemand.value)
 
+    def test_get_temps_and_demand(self):
+        setup = SetupTestClass()
+        adaptor = MockHeatmiserAdaptor(setup)
+        self.func = ThermoStatHotWaterDay(adaptor, self.settings)
+        
+        #queue some data to recieve
+        responses = [[1, 1, 17, 0, 17, 0, 0, 0, 1]]
+        adaptor.setresponse(responses)
+        #run command
+        self.func.get_temps_and_demand()
+        self.assertEqual([(1, 3, 34, 9, False)], adaptor.arguments)
+        self.assertEqual(25.7, self.func.remoteairtemp.value)
+        self.assertEqual(1, self.func.hotwaterdemand.value)
+        
     def test_read_field(self):
         setup = SetupTestClass()
         adaptor = MockHeatmiserAdaptor(setup)
