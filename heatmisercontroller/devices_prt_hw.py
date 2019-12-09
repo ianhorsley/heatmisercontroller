@@ -71,7 +71,7 @@ class ThermoStatHotWaterWeek(ThermoStatWeek):
         padschedule = self.water_schedule.pad_schedule(schedule)
         for fieldname in self.water_schedule.get_entry_names(day):
             self.set_field(fieldname, padschedule)
-    
+
 class ThermoStatHotWaterDay(ThermoStatDay, ThermoStatHotWaterWeek):
     """Device class for thermostats with hotwater operating daily programmode
     Heatmiser prt_hw_model."""
