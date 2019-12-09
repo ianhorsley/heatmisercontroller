@@ -180,7 +180,8 @@ class ThermoStatWeek(HeatmiserDevice):
     def set_heating_schedule(self, day, schedule):
         """Set heating schedule for a single day"""
         padschedule = self.heat_schedule.pad_schedule(schedule)
-        self.set_field(day, padschedule)
+        for fieldname in self.heat_schedule.get_entry_names(day):
+            self.set_field(fieldname, padschedule)
 
     def set_time(self):
         """set time on device to match current localtime on server"""

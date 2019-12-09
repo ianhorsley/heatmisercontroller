@@ -25,7 +25,7 @@ class Scheduler(object):
     fieldnames = ['mon', 'tues', 'wed', 'thurs', 'fri', 'sat', 'sun', 'wday', 'wend']
 
     def __init__(self):
-        if not self.fieldbase is None:
+        if self.fieldbase is not None:
             self.entrynames = [x + self.fieldbase for x in self.entrynames]
             self.fieldnames = [x + self.fieldbase for x in self.fieldnames]
         self.entries = dict.fromkeys(self.fieldnames, None)
@@ -46,6 +46,18 @@ class Scheduler(object):
     def set_raw_field(self, field):
         """Set single field to schedule from field pointer"""
         self.set_raw(field.name, field.value)
+        
+    def get_entry_names(self, entryname):
+        """Get list of field names. If single returns full field name from short."""
+        """Expects short name input or 'all'."""
+        if entryname == 'all':
+            return self.entrynames
+        else:
+            if self.fieldbase is not None:
+                entryname = entryname + self.fieldbase
+            if not entryname in self.entrynames:
+                raise ValueError('Schedule entry not setable or does not exist %s'%entryname)
+            return [entryname]
         
     def pad_schedule(self, schedule):
         """Pads a partial schedule up to correct length"""
@@ -176,6 +188,16 @@ class SchedulerDay(Scheduler):
     def _get_schedule_entry(self, day):
         """Determines the schedule for a day"""
         return self.entries[self.entrynames[day - 1]]
+    
+    def get_entry_names(self, entryname):
+        """Get list of field names. If single returns full field name from short."""
+        """Expects short name input or 'all' or 'wday' or 'wend'."""
+        if entryname == 'wday':
+            return self.entrynames[0:5]
+        elif entryname == 'wend':
+            return self.entrynames[5:6]
+        else:
+            return super(SchedulerDay, self).get_entry_names(entryname)
 
 class SchedulerWeek(Scheduler):
     """Inherited class with week variables and methods"""

@@ -69,16 +69,8 @@ class ThermoStatHotWaterWeek(ThermoStatWeek):
     def set_water_schedule(self, day, schedule):
         """Set water schedule for a single day"""
         padschedule = self.water_schedule.pad_schedule(schedule)
-        if day == 'all':
-            self.set_field('mon_water', padschedule)
-            self.set_field('tues_water', padschedule)
-            self.set_field('wed_water', padschedule)
-            self.set_field('thurs_water', padschedule)
-            self.set_field('fri_water', padschedule)
-            self.set_field('sat_water', padschedule)
-            self.set_field('sun_water', padschedule)
-        else:
-            self.set_field(day, padschedule)
+        for fieldname in self.water_schedule.get_entry_names(day):
+            self.set_field(fieldname, padschedule)
 
 class ThermoStatHotWaterDay(ThermoStatDay, ThermoStatHotWaterWeek):
     """Device class for thermostats with hotwater operating daily programmode
