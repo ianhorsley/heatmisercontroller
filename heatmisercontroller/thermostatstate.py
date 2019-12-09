@@ -66,7 +66,7 @@ class Thermostat(object):
             basetext = "temp overridden"
         else:
             basetext = "temp set"
-        return basetext + "temp overridden to %0.1f until %02d:%02d" % (infields.setroomtemp.value, infields.nexttarget()[1], infields.nexttarget()[2])
+        return basetext + " to %0.1f until %02d:%02d" % (infields.setroomtemp.value, infields.nexttarget()[1], infields.nexttarget()[2])
     
     def get_state_text(self):
         """Return text desription of current state."""
