@@ -27,7 +27,7 @@ def readanddisplay():
 
 # read and display, without any corrections
 for current_controller in HMN.controllers:
-    current_controller.autocorrectime = False
+    current_controller.set_autocorrectime = False
     readanddisplay()
 
 print("waiting for 30 seconds before fixing any errors")
@@ -35,6 +35,6 @@ time.sleep(30) # sleep before next cycle, which will fix any errors
 
 # read and display, and try to correct if wrong
 for current_controller in HMN.controllers:
-    current_controller.autocorrectime = True
+    current_controller.set_autocorrectime = True
     readanddisplay()
         
