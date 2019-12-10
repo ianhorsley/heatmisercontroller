@@ -109,9 +109,9 @@ class ThermoStatWeek(HeatmiserDevice):
         """run check of device time against local read time, and try to fix if _autocorrectime"""
         try:
             self.currenttime.comparecontrollertime()
-        except HeatmiserControllerTimeError:
+        except HeatmiserControllerTimeError as errstr:
             if self.set_autocorrectime is True:
-                ### Add warning that attempting to fix.
+                logging.warn("C%i %s"%(self.set_address, errstr))
                 self.set_time()
             else:
                 raise

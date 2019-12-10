@@ -305,10 +305,10 @@ class HeatmiserFieldTime(HeatmiserFieldMulti):
         logging.debug("Local time %i, remote time %i, error %i"%(localweeksecs, remoteweeksecs, self.timeerr))
 
         if self.timeerr > self.DAYSECS:
-            raise HeatmiserControllerTimeError("C%2d Incorrect day : local is %s, sensor is %s" % (self.address, localtimearray[CURRENT_TIME_DAY], self.value[CURRENT_TIME_DAY]))
+            raise HeatmiserControllerTimeError("Incorrect day : local is %s, sensor is %s" % (localtimearray[CURRENT_TIME_DAY], self.value[CURRENT_TIME_DAY]))
 
         if self.timeerr > TIME_ERR_LIMIT:
-            raise HeatmiserControllerTimeError("C%2d Time Error %d greater than %d: local is %s, sensor is %s" % (self.address, self.timeerr, TIME_ERR_LIMIT, localweeksecs, remoteweeksecs))
+            raise HeatmiserControllerTimeError("Time Error %d greater than %d: local is %s, sensor is %s" % (self.timeerr, TIME_ERR_LIMIT, localweeksecs, remoteweeksecs))
 
     @staticmethod
     def localtimearray(timenow=time.time()):
