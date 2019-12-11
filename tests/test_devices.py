@@ -46,7 +46,7 @@ class TestReadingData(unittest.TestCase):
         logging.basicConfig(level=logging.DEBUG)
         #network, address, protocol, short_name, long_name, model, mode
         #self.func = ThermoStat(None, 1, HMV3_ID, 'test', 'test controller', 'prt_hw_model', PROG_MODE_DAY)
-        self.settings = {'address':1, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_hw_model', 'expected_prog_mode':PROG_MODE_DAY}
+        self.settings = {'address':1, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_hw_model', 'expected_prog_mode':PROG_MODE_DAY, 'autocorrectime': False}
         self.settings2 = {'address':1, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_e_model', 'expected_prog_mode':PROG_MODE_DAY}
         self.func = ThermoStatHotWaterDay(None, self.settings)
             
@@ -67,6 +67,14 @@ class TestReadingData(unittest.TestCase):
         field.expectedvalue = 4
         with self.assertRaises(HeatmiserResponseError):
             self.func._procfield([3], field)
+    
+    def test_procfield_timewrong(self):
+        #field = HeatmiserFieldTime('currenttime', 0, [], None)
+        basetime = (1 + 1) * 86400 + 9 * 3600 + 33 * 60 + 0 + YEAR2000
+        self.func.lastreadtime = basetime - get_offset(basetime) #has been read
+        self.func.data['currenttime'] = self.func.currenttime.value = [1, 0, 0, 0]
+        with self.assertRaises(HeatmiserControllerTimeError):
+            self.func._procfield([2, 12, 12, 12], self.func.currenttime)
         
     def test_procpayload(self):
         print "tz %i alt tz %i"%(time.timezone, time.altzone)

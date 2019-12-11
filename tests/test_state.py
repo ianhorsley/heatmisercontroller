@@ -5,6 +5,7 @@ import logging
 from heatmisercontroller.fields import *
 from heatmisercontroller.hm_constants import *
 from heatmisercontroller.thermostatstate import Thermostat
+from heatmisercontroller.schedule_functions import SchedulerDayHeat, SchedulerWeekHeat
 
 class FieldsContainer(object):
     """Class to hold fields. Test replacement for full blown thermostat device."""
@@ -30,6 +31,10 @@ class TestState(unittest.TestCase):
         fc.tempholdmins = HeatmiserFieldDouble('tempholdmins', 32, [0, 5760], MAX_AGE_SHORT, VALUES_OFF)  #range guessed and tested,  setting to 0 cancels hold and puts setroomtemp back to program
         fc.currenttime = HeatmiserFieldTime('currenttime', 43, [[1, 7], [0, 23], [0, 59], [0, 59]], MAX_AGE_USHORT)  #day (Mon - Sun),  hour,  min,  sec.
         
+        fc.heat_schedule = SchedulerWeekHeat()
+        padschedule = fc.heat_schedule.pad_schedule([1, 0, 16])
+        for fieldname in fc.heat_schedule.get_entry_names('all'):
+            fc.heat_schedule.set_raw(fieldname, padschedule)
         #create stat
         self.t = Thermostat('room', self.fc)
         
@@ -106,7 +111,10 @@ class TestState(unittest.TestCase):
         fc.onoff.update_value(fc.onoff.readvalues['ON'], 0)
         self.assertEqual(self.t.get_state_text(), "controller in frost mode")
         
-        #### Not finished testing
         fc.runmode.update_value(fc.runmode.readvalues['HEAT'], 0)
+        self.assertEqual(self.t.get_state_text(), "temp unknown")
+        
+        #### Not finished testing
+        fc.setroomtemp.update_value(16, 0)
         #self.assertEqual(self.t.get_state_text(), "controller in frost mode")
         
