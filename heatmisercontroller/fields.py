@@ -115,6 +115,10 @@ class HeatmiserField(HeatmiserFieldUnknown):
         """Returns true if value matches read value."""
         return self.value == self.readvalues[name]
     
+    def is_unknown(self):
+        """Returns true if value isn't set."""
+        return self.value is None
+    
     def read_value_text(self):
         """returns value converting to label if known"""
         if self.readvalues is None:

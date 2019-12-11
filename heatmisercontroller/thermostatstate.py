@@ -28,14 +28,14 @@ class Thermostat(object):
         """Entry to off state, set threshold to None and set text."""
         print("STATE off")
         self.threshold = None
-        self.text_function = lambda _: "controller off without frost protection"
+        self.text_function = lambda _: "controller off, without frost protection"
         
     def thres_setpoint(self, _=None):
         """Entry to setpoint state, set threshold to setpoint and set text override, hold or program."""
         print("STATE to setpoint ", self.fieldscont.setroomtemp.value)
         self.threshold = self.fieldscont.setroomtemp.value
         
-        if self.fieldscont.tempholdmins.value != 0:
+        if not self.fieldscont.tempholdmins.is_unknown() and self.fieldscont.tempholdmins.value != 0:
             self.text_function = lambda infields: "temp held for %i mins at %i"%(infields.tempholdmins.value, infields.setroomtemp.value)
         else:
             self.text_function = self._text_function_over_prog
@@ -46,11 +46,11 @@ class Thermostat(object):
         
         self.threshold = self.fieldscont.frosttemp.value
         
-        if self.fieldscont.onoff.is_value('OFF'):
-            self.text_function = lambda _: "controller off"
-        elif self.fieldscont.holidayhours.value != 0:
+        if self.fieldscont.onoff.is_unknown() or self.fieldscont.onoff.is_value('OFF'):
+            self.text_function = lambda _: "controller off, with frost protection"
+        elif not self.fieldscont.holidayhours.is_unknown() and not self.fieldscont.holidayhours.is_value('OFF'):
             self.text_function = lambda infields: "controller on holiday for %s hours" % (infields.holidayhours.value)
-        elif self.fieldscont.runmode.is_value('FROST'):
+        elif self.fieldscont.runmode.is_unknown() or self.fieldscont.runmode.is_value('FROST'):
             self.text_function = lambda _: "controller in frost mode"
         else:
             self.text_function = None
@@ -62,6 +62,8 @@ class Thermostat(object):
         locatimenow = infields.currenttime.localtimearray()
         scheduletarget = infields.heat_schedule.get_current_schedule_item(locatimenow)
 
+        if infields.setroomtemp.is_unknown():
+            return "temp unknown"
         if infields.setroomtemp.value != scheduletarget[SCH_ENT_TEMP]:
             basetext = "temp overridden"
         else:

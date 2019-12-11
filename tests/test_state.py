@@ -96,11 +96,11 @@ class TestState(unittest.TestCase):
         fc.onoff.update_value(fc.onoff.readvalues['OFF'], 0)
         fc.frostprotdisable.update_value(fc.frostprotdisable.readvalues['ON'], 0)
         print(self.t.get_state_text())
-        self.assertEqual(self.t.get_state_text(), "controller off without frost protection")
+        self.assertEqual(self.t.get_state_text(), "controller off, without frost protection")
         
         fc.frostprotdisable.update_value(fc.frostprotdisable.readvalues['OFF'], 0)
         print(self.t.get_state_text())
-        self.assertEqual(self.t.get_state_text(), "controller off")
+        self.assertEqual(self.t.get_state_text(), "controller off, with frost protection")
         
         fc.runmode.update_value(fc.runmode.readvalues['FROST'], 0)
         fc.onoff.update_value(fc.onoff.readvalues['ON'], 0)
