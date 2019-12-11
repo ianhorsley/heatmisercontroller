@@ -37,7 +37,7 @@ HMN.Sit.set_field('runmode', 'HEAT')
 HMN.All.set_field('frosttemp', 10)
 HMN.Cons.set_field('frosttemp', 7)
 
-print HMN.Cons.read_field('frostprotdisable')
+print(HMN.Cons.read_field('frostprotdisable'))
 HMN.Cons.set_field('onoff', 'OFF')
 
 #print HMN.All.read_field('holidayhours', 0)
