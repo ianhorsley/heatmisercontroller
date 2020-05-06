@@ -8,7 +8,8 @@ import logging
 import time
 
 from genericdevice import HeatmiserDevice, DEVICETYPES
-from fields import HeatmiserFieldSingle, HeatmiserFieldSingleReadOnly, HeatmiserFieldDouble, HeatmiserFieldDoubleReadOnly, HeatmiserFieldTime, HeatmiserFieldHeat, HeatmiserFieldDoubleReadOnlyTenths
+from fields import HeatmiserFieldSingle, HeatmiserFieldSingleReadOnly, HeatmiserFieldDouble, HeatmiserFieldDoubleReadOnly, HeatmiserFieldDoubleReadOnlyTenths
+from fields_special import HeatmiserFieldTime, HeatmiserFieldHeat
 from fields import VALUES_ON_OFF, VALUES_OFF_ON, VALUES_OFF
 from hm_constants import MAX_AGE_LONG, MAX_AGE_MEDIUM, MAX_AGE_SHORT, MAX_AGE_USHORT
 from .exceptions import HeatmiserControllerTimeError, HeatmiserControllerSensorError

@@ -7,7 +7,7 @@ Ian Horsley 2018
 
 from genericdevice import DEVICETYPES
 from devices_prt_e import ThermoStatWeek, ThermoStatDay
-from fields import HeatmiserFieldWater, HeatmiserFieldHotWaterDemand, HeatmiserFieldHotWaterVersion
+from fields_special import HeatmiserFieldWater, HeatmiserFieldHotWaterDemand, HeatmiserFieldHotWaterVersion
 from hm_constants import MAX_AGE_LONG, MAX_AGE_MEDIUM, MAX_AGE_USHORT
 from schedule_functions import SchedulerDayWater, SchedulerWeekWater, SCH_ENT_TEMP
 

@@ -1,10 +1,9 @@
-"""field definitions for Heatmiser protocol"""
+"""generic field definitions for Heatmiser protocol"""
 import logging
 import time
 
-from hm_constants import CURRENT_TIME_DAY, CURRENT_TIME_HOUR, CURRENT_TIME_MIN, CURRENT_TIME_SEC, TIME_ERR_LIMIT
 from hm_constants import BYTEMASK
-from .exceptions import HeatmiserResponseError, HeatmiserControllerTimeError
+from .exceptions import HeatmiserResponseError
 from .observer import Notifier
 
 VALUES_ON_OFF = {'ON': 1, 'OFF': 0} #assusme that default comes first, need to swtich to ordered dictionary to make it possible to get default value
@@ -31,7 +30,7 @@ class HeatmiserFieldUnknown(Notifier):
     def __int__(self):
         return self.value
 
-    def __str__(self):
+    def __repr__(self):
         return str(self.value)
 
     def __cmp__(self, value):
@@ -99,6 +98,7 @@ class HeatmiserField(HeatmiserFieldUnknown):
     """Base class for fields providing basic method calls"""
     #single value and hence single range
     writeable = True
+    fieldlength = 0
 
     def __init__(self, name, address, validrange, max_age, readvalues=None):
         ###valid range list can be [], [min, max], [list of valid values]
@@ -136,7 +136,7 @@ class HeatmiserField(HeatmiserFieldUnknown):
     def update_data(self, data, readtime):
         """update stored data and readtime if data valid. Compute and store value from data."""
         value = self._calculate_value(data)
-        if not self.expectedvalue is None and value != self.expectedvalue:
+        if self.expectedvalue is not None and value != self.expectedvalue:
             raise HeatmiserResponseError('Value %i is unexpected for %s, expected %i'%(value, self.name, self.expectedvalue))
         self._validate_range(value)
         self.data = data
@@ -203,33 +203,6 @@ class HeatmiserFieldSingleReadOnly(HeatmiserFieldSingle):
     """Class for read only 1 byte field"""
     writeable = False
 
-class HeatmiserFieldHotWaterVersion(HeatmiserFieldSingleReadOnly):
-    """Class for version on hotwater models."""
-    floorlimiting = None
-
-    def _calculate_value(self, data):
-        """Calculate value from payload bytes"""
-        self.floorlimiting = data[0] >> 7
-        return data[0] & 0x7f
-
-class HeatmiserFieldHotWaterDemand(HeatmiserFieldSingle):
-    """Class to impliment read and write differences for hotwater demand field."""
-    def __init__(self, name, address, validrange, max_age):
-        super(HeatmiserFieldHotWaterDemand, self).__init__(name, address, validrange, max_age, VALUES_ON_OFF)
-        self.writevalues = {'PROG': 0, 'OVER_ON': 1, 'OVER_OFF': 2}
-
-    def update_value(self, value, writetime):
-        """Update the field value once successfully written to network if known. Otherwise reset"""
-        #handle odd effect on WRITE_hotwaterdemand_PROG
-
-        if value == self.writevalues['PROG']: #returned to program so outcome is unknown
-            self._reset()
-            return None
-        elif value == self.writevalues['OVER_OFF']: #if overridden off store the off read value
-            return super(HeatmiserFieldHotWaterDemand, self).update_value(self.readvalues['OFF'], writetime)
-        else:
-            return super(HeatmiserFieldHotWaterDemand, self).update_value(value, writetime)
-
 class HeatmiserFieldDouble(HeatmiserField):
     """Class for writable 2 byte field"""
     maxdatavalue = 65535
@@ -259,7 +232,7 @@ class HeatmiserFieldMulti(HeatmiserField):
     """Base class for writable multi byte field"""
     maxdatavalue = None
 
-    def _validate_range(self, values, errortype=HeatmiserResponseError):
+    def _validate_range(self, values, errortype=HeatmiserResponseError, unused=None):
         """validate the value is within range or in list. cyles through list of ranges"""
         for i, item in enumerate(values):
             expectedrange = self.validrange[i % len(self.validrange)]
@@ -281,61 +254,3 @@ class HeatmiserFieldMulti(HeatmiserField):
 
         #checks the values matches the ranges if ranges are defined
         self._validate_range(values, ValueError)
-
-class HeatmiserFieldTime(HeatmiserFieldMulti):
-    """Class for time field"""
-    fieldlength = 4
-
-    def __init__(self, name, address, validrange, max_age):
-        self.timeerr = None
-        super(HeatmiserFieldTime, self).__init__(name, address, validrange, max_age)
-
-    def comparecontrollertime(self):
-        """Compare device and local time difference against threshold"""
-        # Now do same sanity checking
-        # Check the time is within range
-        # currentday is numbered 1-7 for M-S
-        # localday (python) is numbered 0-6 for Sun-Sat
-
-        if not self.check_data_valid():
-            raise HeatmiserResponseError("Time not read before check")
-
-        localtimearray = self.localtimearray(self.lastreadtime) #time that time field was read
-        localweeksecs = self._weeksecs(localtimearray)
-        remoteweeksecs = self._weeksecs(self.value)
-        directdifference = abs(localweeksecs - remoteweeksecs)
-        wrappeddifference = abs(self.DAYSECS * 7 - directdifference) #compute the difference on rollover
-        self.timeerr = min(directdifference, wrappeddifference)
-        logging.debug("Local time %i, remote time %i, error %i"%(localweeksecs, remoteweeksecs, self.timeerr))
-
-        if self.timeerr > self.DAYSECS:
-            raise HeatmiserControllerTimeError("Incorrect day : local is %s, sensor is %s" % (localtimearray[CURRENT_TIME_DAY], self.value[CURRENT_TIME_DAY]))
-
-        if self.timeerr > TIME_ERR_LIMIT:
-            raise HeatmiserControllerTimeError("Time Error %d greater than %d: local is %s, sensor is %s" % (self.timeerr, TIME_ERR_LIMIT, localweeksecs, remoteweeksecs))
-
-    @staticmethod
-    def localtimearray(timenow=time.time()):
-        """creates an array in heatmiser format for local time. Day 1-7, 1=Monday"""
-        #input time.time() (not local)
-        localtimenow = time.localtime(timenow)
-        nowday = localtimenow.tm_wday + 1 #python tm_wday, range [0, 6], Monday is 0
-        nowsecs = min(localtimenow.tm_sec, 59) #python tm_sec range[0, 61]
-
-        return [nowday, localtimenow.tm_hour, localtimenow.tm_min, nowsecs]
-
-    DAYSECS = 86400
-    HOURSECS = 3600
-    MINSECS = 60
-
-    def _weeksecs(self, localtimearray):
-        """calculates the time from the start of the week in seconds from a heatmiser time array"""
-        return (localtimearray[CURRENT_TIME_DAY] - 1) * self.DAYSECS + localtimearray[CURRENT_TIME_HOUR] * self.HOURSECS + localtimearray[CURRENT_TIME_MIN] * self.MINSECS + localtimearray[CURRENT_TIME_SEC]
-
-class HeatmiserFieldHeat(HeatmiserFieldMulti):
-    """Class for heating schedule field"""
-    fieldlength = 12
-
-class HeatmiserFieldWater(HeatmiserFieldMulti):
-    """Class for hotwater schedule field"""
-    fieldlength = 16
