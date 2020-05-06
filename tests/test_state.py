@@ -2,7 +2,7 @@
 import unittest
 import logging
 
-from heatmisercontroller.fields import *
+from heatmisercontroller.fields import HeatmiserFieldSingleReadOnly, HeatmiserFieldSingle, HeatmiserFieldDouble, HeatmiserFieldTime, VALUES_OFF_ON, VALUES_ON_OFF, VALUES_OFF
 from heatmisercontroller.hm_constants import *
 from heatmisercontroller.thermostatstate import Thermostat
 from heatmisercontroller.schedule_functions import SchedulerDayHeat, SchedulerWeekHeat

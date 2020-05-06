@@ -192,7 +192,7 @@ class HeatmiserDevice(object):
         previousfield = None
 
         for field in self.fields[firstfieldid:lastfieldid + 1]:
-            if not previousfield is None and field.address - previousfield.address - previousfield.fieldlength == 0: #if follows previousfield:
+            if previousfield is not None and field.address - previousfield.address - previousfield.fieldlength == 0: #if follows previousfield:
                 blocks[-1][1] = field
                 blocks[-1][2] = field.last_dcb_byte_address() - blocks[-1][0].dcbaddress + 1
             else:

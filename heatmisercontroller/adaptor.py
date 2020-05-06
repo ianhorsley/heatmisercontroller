@@ -224,13 +224,12 @@ class HeatmiserAdaptor(object):
         else:
             msg = framing.form_read_frame(network_address, protocol, self.my_master_addr, unique_start_address, expected_length)
             logging.debug("C %i read request to address %i length %i"%(network_address, unique_start_address, expected_length))
-        
         try: #sending request
             self._send_message(msg)
         except:
             logging.warn("C%i address, read message not sent"%(network_address))
             raise
-        
+
         time1 = time.time()
 
         try: #listening for response

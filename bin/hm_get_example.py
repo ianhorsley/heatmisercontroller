@@ -31,7 +31,6 @@ for current_controller in HMN.controllers:
         else:
             print(disptext)
         current_controller.display_heating_schedule()
-        
 
 time.sleep(5) # sleep before next cycle
 

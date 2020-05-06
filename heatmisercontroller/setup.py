@@ -10,20 +10,20 @@ from .exceptions import HeatmiserControllerSetupInitError
 # The settings attribute stores the settings of the hub. It is a
 # dictionary with the following keys:
 
-        # 'controller': a dictionary containing general settings
-        # 'serial': a dictionary containing the serial port settings
-        # 'devices': a dictionary containing the configuration of each remote device
-        # 'setup':
+#     'controller': a dictionary containing general settings
+#     'serial': a dictionary containing the serial port settings
+#     'devices': a dictionary containing the configuration of each remote device
+#     'setup':
 
-        # The controller settings are:
-        # 'loglevel': the logging level
+#     The controller settings are:
+#     'loglevel': the logging level
 
-        # ###interfacers and reporters are dictionaries with the following keys:
-        # ###'Type': class name
-        # ###'init_settings': dictionary with initialization settings
-        # ###'runtimesettings': dictionary with runtime settings
-        # ###Initialization and runtime settings depend on the interfacer and
-        # ###reporter type.
+#     ###interfacers and reporters are dictionaries with the following keys:
+#     ###'Type': class name
+#     ###'init_settings': dictionary with initialization settings
+#     ###'runtimesettings': dictionary with runtime settings
+#     ###Initialization and runtime settings depend on the interfacer and
+#     ###reporter type.
 
 # The run() method is supposed to be run regularly by the instantiator, to
 # perform regular communication tasks.

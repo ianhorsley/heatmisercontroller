@@ -211,7 +211,7 @@ class ThermoStatWeek(HeatmiserDevice):
         self.set_field('setroomtemp', temp)
         return self.set_field('tempholdmins', minutes)
         #didn't stay on if did minutes followed by temp.
-        
+
     def release_hold_temp(self):
         """release setTemp or holdTemp back to the program."""
         return self.set_field('tempholdmins', 0)
@@ -219,7 +219,7 @@ class ThermoStatWeek(HeatmiserDevice):
     def set_holiday(self, hours):
         """sets holiday up for a defined number of hours."""
         return self.set_field('holidayhours', hours)
-    
+
     def release_holiday(self):
         """cancels holiday mode"""
         return self.set_field('holidayhours', 0)
@@ -227,7 +227,7 @@ class ThermoStatWeek(HeatmiserDevice):
 class ThermoStatDay(ThermoStatWeek):
     """Device class for thermostats operating daily programmode
     Heatmiser prt_e_model."""
-    
+
     def _buildfields(self):
         """add to list of fields"""
         super(ThermoStatDay, self)._buildfields()

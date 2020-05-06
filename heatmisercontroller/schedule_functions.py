@@ -99,7 +99,7 @@ class Scheduler(object):
             
         scheduletarget = self._get_current_item_from_an_entry(todayschedule, timearray)
             
-        if scheduletarget == None:
+        if scheduletarget is None:
             yestschedule = self._get_previous_schedule_entry(timearray)
             scheduletarget = self._get_last_item_from_an_entry(yestschedule)
             return [self._get_previous_day(timearray)] + scheduletarget
@@ -112,7 +112,7 @@ class Scheduler(object):
         
         scheduletarget = self._get_next_item_from_an_entry(todayschedule, timearray)
             
-        if scheduletarget == None:
+        if scheduletarget is None:
             tomschedule = self._get_next_schedule_entry(timearray)
             scheduletarget = self._get_first_item_from_an_entry(tomschedule)
             return [self._get_next_day(timearray)] + scheduletarget
@@ -190,8 +190,8 @@ class SchedulerDay(Scheduler):
         return self.entries[self.entrynames[day - 1]]
     
     def get_entry_names(self, entryname):
-        """Get list of field names. If single returns full field name from short."""
-        """Expects short name input or 'all' or 'wday' or 'wend'."""
+        """Get list of field names. If single returns full field name from short.
+        Expects short name input or 'all' or 'wday' or 'wend'."""
         if entryname == 'wday':
             return self.entrynames[0:5]
         elif entryname == 'wend':

@@ -15,13 +15,13 @@ class ThermoStatHotWaterWeek(ThermoStatWeek):
     """Device class for thermostats with hotwater operating weekly programmode
     Heatmiser prt_hw_model."""
     is_hot_water = True
-    
+
     def __init__(self, adaptor, devicesettings, generalsettings={}):
         self.water_schedule = None #placeholder for hot water schedule
         super(ThermoStatHotWaterWeek, self).__init__(adaptor, devicesettings, generalsettings)
         #thermostat specific
         self.version = HeatmiserFieldHotWaterVersion('version', 3, [], MAX_AGE_LONG) # override field after creation to add functitionality
-    
+
     def _buildfields(self):
         """add to list of fields"""
         super(ThermoStatHotWaterWeek, self)._buildfields()
@@ -39,12 +39,12 @@ class ThermoStatHotWaterWeek(ThermoStatWeek):
         super(ThermoStatHotWaterWeek, self)._connect_observers()
         self.wday_water.add_notifable_changed(self.water_schedule.set_raw_field)
         self.wend_water.add_notifable_changed(self.water_schedule.set_raw_field)
-    
+
     def display_water_schedule(self):
         """Prints water schedule to stdout"""
-        if not self.water_schedule is None:
+        if self.water_schedule is not None:
             self.water_schedule.display()
-            
+
     ### UNTESTED # last part about scheduletarget doesn't work
     def read_water_state(self):
         """Returns the current hot water control state from off to following program"""
