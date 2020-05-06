@@ -3,7 +3,6 @@
 ## Imported crc16 function not tested"""
 
 import unittest
-import logging
 
 from heatmisercontroller.fields import HeatmiserFieldUnknown, HeatmiserField
 from heatmisercontroller.fields_special import HeatmiserFieldTime
@@ -41,4 +40,8 @@ class TestFields(unittest.TestCase):
             self.field3.update_data(12, 12)
             
     def test_time(self):
-        self.field1 = HeatmiserFieldUnknown('test1', 5, [0, 12], MAX_AGE_LONG)
+        self.field1 = HeatmiserFieldTime('test1', 5, MAX_AGE_LONG)
+        
+        self.assertEqual(self.field1.localtimearray(1588782127.06), [3, 17, 22, 7])
+        
+        
