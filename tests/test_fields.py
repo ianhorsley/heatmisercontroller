@@ -6,6 +6,7 @@ import unittest
 import logging
 
 from heatmisercontroller.fields import HeatmiserFieldUnknown, HeatmiserField
+from heatmisercontroller.fields_special import HeatmiserFieldTime
 from heatmisercontroller.hm_constants import MAX_AGE_LONG
 
 class TestFields(unittest.TestCase):
@@ -38,3 +39,6 @@ class TestFields(unittest.TestCase):
             self.field3.format_data_from_value(12)
         with self.assertRaises(NotImplementedError):
             self.field3.update_data(12, 12)
+            
+    def test_time(self):
+        self.field1 = HeatmiserFieldUnknown('test1', 5, [0, 12], MAX_AGE_LONG)

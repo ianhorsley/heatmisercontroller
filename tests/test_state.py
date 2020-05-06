@@ -30,7 +30,7 @@ class TestState(unittest.TestCase):
         fc.holidayhours = HeatmiserFieldDouble('holidayhours', 24, [0, 720], MAX_AGE_SHORT, VALUES_OFF)  #range guessed and tested,  setting to 0 cancels hold and puts back to program 
         
         fc.tempholdmins = HeatmiserFieldDouble('tempholdmins', 32, [0, 5760], MAX_AGE_SHORT, VALUES_OFF)  #range guessed and tested,  setting to 0 cancels hold and puts setroomtemp back to program
-        fc.currenttime = HeatmiserFieldTime('currenttime', 43, [[1, 7], [0, 23], [0, 59], [0, 59]], MAX_AGE_USHORT)  #day (Mon - Sun),  hour,  min,  sec.
+        fc.currenttime = HeatmiserFieldTime('currenttime', 43, MAX_AGE_USHORT)  #day (Mon - Sun),  hour,  min,  sec.
         
         fc.heat_schedule = SchedulerWeekHeat()
         padschedule = fc.heat_schedule.pad_schedule([1, 0, 16])

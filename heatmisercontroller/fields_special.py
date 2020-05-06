@@ -38,8 +38,9 @@ class HeatmiserFieldTime(HeatmiserFieldMulti):
     """Class for time field"""
     fieldlength = 4
 
-    def __init__(self, name, address, validrange, max_age):
+    def __init__(self, name, address, max_age):
         self.timeerr = None
+        validrange = [[1, 7], [0, 23], [0, 59], [0, 59]]
         super(HeatmiserFieldTime, self).__init__(name, address, validrange, max_age)
 
     def comparecontrollertime(self):
