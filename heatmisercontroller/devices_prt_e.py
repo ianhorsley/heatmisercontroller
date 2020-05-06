@@ -26,7 +26,7 @@ class ThermoStatWeek(HeatmiserDevice):
         self.thermostat = None #placeholder for thermostat object
         super(ThermoStatWeek, self).__init__(adaptor, devicesettings, generalsettings)
         #thermostat specific
-    
+
     def _buildfields(self):
         """add to list of fields"""
         super(ThermoStatWeek, self)._buildfields()
@@ -67,7 +67,7 @@ class ThermoStatWeek(HeatmiserDevice):
 
         self.heat_schedule = SchedulerWeekHeat()
         self.thermostat = Thermostat('Heating', self)
-    
+
     def _connect_observers(self):
         """connect obersers to fields"""
         super(ThermoStatWeek, self)._connect_observers()
@@ -95,7 +95,7 @@ class ThermoStatWeek(HeatmiserDevice):
         """set the expected values for fields that should be fixed"""
         super(ThermoStatWeek, self)._set_expected_field_values()
         self.programmode.expectedvalue = self.programmode.readvalues[self.set_expected_prog_mode]
-    
+
     def _procfield(self, data, fieldinfo):
         """Process data for a single field storing in relevant."""
         super(ThermoStatWeek, self)._procfield(data, fieldinfo)
@@ -105,7 +105,7 @@ class ThermoStatWeek(HeatmiserDevice):
             
         if fieldinfo.name == 'currenttime':
             self._checkcontrollertime()
-    
+
     def _checkcontrollertime(self):
         """run check of device time against local read time, and try to fix if _autocorrectime"""
         try:
@@ -116,15 +116,15 @@ class ThermoStatWeek(HeatmiserDevice):
                 self.set_time()
             else:
                 raise
-    
+
     def get_variables(self):
         """Gets setroomtemp to hotwaterdemand fields from device"""
         self.get_field_range('setroomtemp', 'hotwaterdemand')
-        
+
     def get_temps_and_demand(self):
         """Gets remoteairtemp to hotwaterdemand fields from device"""
         self.get_field_range('remoteairtemp', 'hotwaterdemand')
-    
+
     ## External functions for printing data
     def display_heating_schedule(self):
         """Prints heating schedule to stdout"""
@@ -140,14 +140,14 @@ class ThermoStatWeek(HeatmiserDevice):
         return self.thermostat.get_state_text()
             
     ## External functions for reading data
-    
+
     def read_temp_state(self):
         """Returns the current temperature control state from off to following program"""
         self.read_fields(['mon_heat', 'tues_heat', 'wed_heat', 'thurs_heat', 'fri_heat', 'wday_heat', 'wend_heat'], -1)
         self.read_fields(['onoff', 'frostprotdisable', 'holidayhours', 'runmode', 'tempholdmins', 'setroomtemp'])
 
         return self.thermostat.state
-        
+
     def read_air_sensor_type(self):
         """Reports airsensor type"""
         #1 local, 2 remote
@@ -158,7 +158,7 @@ class ThermoStatWeek(HeatmiserDevice):
         elif self.sensorsavaliable.is_value('EXT_ONLY') or self.sensorsavaliable.is_value('EXT_FLOOR'):
             return 2
         raise ValueError("sensorsavaliable field invalid")
-            
+
     def read_air_temp(self):
         """Read the air temperature getting data from device if too old"""
         if self.read_air_sensor_type() == 1:
@@ -171,11 +171,11 @@ class ThermoStatWeek(HeatmiserDevice):
             if self.errorcode == 226:
                 raise HeatmiserControllerSensorError("remote airtemp sensor error")
             return self.remoteairtemp.value
-        
+
     def read_time(self, maxage=0):
         """Readtime, getting from device if required"""
         return self.read_field('currenttime', maxage)
-        
+
     ## External functions for setting data
 
     def set_heating_schedule(self, day, schedule):
@@ -216,7 +216,7 @@ class ThermoStatWeek(HeatmiserDevice):
     def release_hold_temp(self):
         """release setTemp or holdTemp back to the program."""
         return self.set_field('tempholdmins', 0)
-        
+
     def set_holiday(self, hours):
         """sets holiday up for a defined number of hours."""
         return self.set_field('holidayhours', hours)
@@ -252,4 +252,3 @@ class ThermoStatDay(ThermoStatWeek):
             getattr(self, fieldname).add_notifable_changed(self.heat_schedule.set_raw_field)
 
 DEVICETYPES.setdefault('prt_e_model', {'week': ThermoStatWeek, 'day': ThermoStatDay})
-           

@@ -65,7 +65,7 @@ class ThermoStatHotWaterWeek(ThermoStatWeek):
             if scheduletarget[SCH_ENT_TEMP] != self.hotwaterdemand:
                 return self.TEMP_STATE_OVERRIDDEN
         return self.TEMP_STATE_PROGRAM
-                
+
     def set_water_schedule(self, day, schedule):
         """Set water schedule for a single day"""
         padschedule = self.water_schedule.pad_schedule(schedule)

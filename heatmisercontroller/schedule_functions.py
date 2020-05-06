@@ -48,8 +48,8 @@ class Scheduler(object):
         self.set_raw(field.name, field.value)
         
     def get_entry_names(self, entryname):
-        """Get list of field names. If single returns full field name from short."""
-        """Expects short name input or 'all'."""
+        """Get list of field names. If single returns full field name from short.
+        Expects short name input or 'all'."""
         if entryname == 'all':
             return self.entrynames
         else:
