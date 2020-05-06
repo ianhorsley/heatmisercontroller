@@ -40,7 +40,7 @@ class HeatmiserFieldTime(HeatmiserFieldMulti):
 
     def __init__(self, name, address, max_age):
         self.timeerr = None
-        validrange = [[1, 7], [0, 23], [0, 59], [0, 59]]
+        validrange = [[1, 7], [0, 23], [0, 59], [0, 59]] #fixed because functions depend on this range.
         super(HeatmiserFieldTime, self).__init__(name, address, validrange, max_age)
 
     def comparecontrollertime(self):
