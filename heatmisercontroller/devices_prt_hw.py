@@ -16,7 +16,7 @@ class ThermoStatHotWaterWeek(ThermoStatWeek):
     Heatmiser prt_hw_model."""
     is_hot_water = True
 
-    def __init__(self, adaptor, devicesettings, generalsettings={}):
+    def __init__(self, adaptor, devicesettings, generalsettings=None):
         self.water_schedule = None #placeholder for hot water schedule
         super(ThermoStatHotWaterWeek, self).__init__(adaptor, devicesettings, generalsettings)
         #thermostat specific

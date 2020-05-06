@@ -20,7 +20,7 @@ class HeatmiserDevice(object):
     """General device class"""
 
     ## Initialisation functions and low level functions
-    def __init__(self, adaptor, devicesettings, generalsettings={}):
+    def __init__(self, adaptor, devicesettings, generalsettings=None):
         self._adaptor = adaptor
 
         # initalise variables
@@ -48,8 +48,9 @@ class HeatmiserDevice(object):
     
     def _load_settings(self, settings, generalsettings):
         """Loading settings from dictionary into properties"""
-        for name, value in generalsettings.iteritems():
-            setattr(self, "set_" + name, value)
+        if generalsettings is not None:
+            for name, value in generalsettings.iteritems():
+                setattr(self, "set_" + name, value)
 
         for name, value in settings.iteritems():
             setattr(self, "set_" + name, value)

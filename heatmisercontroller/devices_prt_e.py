@@ -21,7 +21,7 @@ class ThermoStatWeek(HeatmiserDevice):
     Heatmiser prt_e_model."""
     is_hot_water = False #returns True if stat is a model with hotwater control, False otherwise
     
-    def __init__(self, adaptor, devicesettings, generalsettings={}):
+    def __init__(self, adaptor, devicesettings, generalsettings=None):
         self.heat_schedule = None #placeholder for heating schedule object
         self.thermostat = None #placeholder for thermostat object
         super(ThermoStatWeek, self).__init__(adaptor, devicesettings, generalsettings)

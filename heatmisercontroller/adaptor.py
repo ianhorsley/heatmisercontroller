@@ -210,7 +210,7 @@ class HeatmiserAdaptor(object):
             except HeatmiserResponseErrorCRC:
                 self._clear_input_buffer()
                 raise
-                    
+
     def min_time_between_reads(self):
         """Computes the minimum time that adaptor leaves between read commands"""
         return self.serport.COM_BUS_RESET_TIME

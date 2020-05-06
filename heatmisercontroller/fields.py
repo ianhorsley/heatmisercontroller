@@ -232,7 +232,7 @@ class HeatmiserFieldMulti(HeatmiserField):
     """Base class for writable multi byte field"""
     maxdatavalue = None
 
-    def _validate_range(self, values, errortype=HeatmiserResponseError, unused=None):
+    def _validate_range(self, values, errortype=HeatmiserResponseError, expectedrange=None):
         """validate the value is within range or in list. cyles through list of ranges"""
         for i, item in enumerate(values):
             expectedrange = self.validrange[i % len(self.validrange)]

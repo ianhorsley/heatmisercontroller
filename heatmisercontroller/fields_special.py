@@ -3,7 +3,7 @@ import logging
 import time
 
 from fields import HeatmiserFieldSingle, HeatmiserFieldSingleReadOnly, HeatmiserFieldMulti
-from fields import VALUES_ON_OFF, VALUES_OFF_ON, VALUES_OFF
+from fields import VALUES_ON_OFF
 from hm_constants import CURRENT_TIME_DAY, CURRENT_TIME_HOUR, CURRENT_TIME_MIN, CURRENT_TIME_SEC, TIME_ERR_LIMIT
 from .exceptions import HeatmiserResponseError, HeatmiserControllerTimeError
 
@@ -32,7 +32,7 @@ class HeatmiserFieldHotWaterDemand(HeatmiserFieldSingle):
         elif value == self.writevalues['OVER_OFF']: #if overridden off store the off read value
             return super(HeatmiserFieldHotWaterDemand, self).update_value(self.readvalues['OFF'], writetime)
         else:
-            return super(HeatmiserFieldHotWaterDemand, self).update_value(value, writetime) 
+            return super(HeatmiserFieldHotWaterDemand, self).update_value(value, writetime)
 
 class HeatmiserFieldTime(HeatmiserFieldMulti):
     """Class for time field"""

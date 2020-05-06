@@ -65,7 +65,7 @@ class HeatmiserNetwork(object):
                 self.controllers[controllersettings['display_order'] - 1] = new_device
         self._current = self.controllers[0]
     
-    def add_device(self, name, controllersettings, generalsettings={}):
+    def add_device(self, name, controllersettings, generalsettings=None):
         """Add device to network"""
         expected_model = controllersettings['expected_model']
         expected_prog_mode = controllersettings['expected_prog_mode']
