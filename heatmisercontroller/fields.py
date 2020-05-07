@@ -27,9 +27,6 @@ class HeatmiserFieldUnknown(Notifier):
     def __eq__(self, other):
         return self.value == other
 
-    def __int__(self):
-        return self.value
-
     def __repr__(self):
         return str(self.value)
 
