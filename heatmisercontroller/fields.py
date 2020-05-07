@@ -47,12 +47,15 @@ class HeatmiserFieldUnknown(Notifier):
         """update stored data and readtime. Don't compute value because don't know how to map"""
         self.data = data
         self.lastreadtime = readtime
-        return data
 
     def update_value(self, value, writetime):
         """Don't update because don't know how to map to data."""
         raise NotImplementedError
 
+    def get_value(self):
+        """Return value."""
+        return self.value
+        
     def is_writable(self):
         """Checks if field is writable"""
         if not self.writeable:
@@ -140,7 +143,6 @@ class HeatmiserField(HeatmiserFieldUnknown):
         self.value = value
         self.lastreadtime = readtime
         self.notify_value_change(value)
-        return value
 
     def update_value(self, value, writetime):
         """Update the field value once successfully written to network"""
@@ -150,7 +152,6 @@ class HeatmiserField(HeatmiserFieldUnknown):
         self.value = value
         self.lastreadtime = writetime
         self.notify_value_change(value)
-        return value
 
     def _validate_range(self, values, errortype=HeatmiserResponseError, expectedrange=None):
         """validate the value is within range or in list."""

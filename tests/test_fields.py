@@ -6,10 +6,10 @@ import unittest
 import datetime
 import time
 
-from heatmisercontroller.fields import HeatmiserFieldUnknown, HeatmiserField
+from heatmisercontroller.fields import HeatmiserFieldUnknown, HeatmiserField, HeatmiserFieldSingleReadOnly, HeatmiserFieldDoubleReadOnly
 from heatmisercontroller.fields_special import HeatmiserFieldTime
 from heatmisercontroller.hm_constants import MAX_AGE_LONG, CURRENT_TIME_DAY, CURRENT_TIME_HOUR, CURRENT_TIME_MIN, CURRENT_TIME_SEC
-from heatmisercontroller.exceptions import HeatmiserControllerTimeError
+from heatmisercontroller.exceptions import HeatmiserResponseError, HeatmiserControllerTimeError
 
 class TestFields(unittest.TestCase):
     """Unitests for framing"""
@@ -107,4 +107,31 @@ class TestFields(unittest.TestCase):
         print self.field1.value
         print self.field1
         print valuetemp
+
+def get_offset(timenum):
+    #gettime zone offset for that date
+    is_dst = time.daylight and time.localtime(timenum).tm_isdst > 0
+    utc_offset = - (time.altzone if is_dst else time.timezone)
+    return utc_offset
+YEAR2000 = (30 * 365 + 7) * 86400 #get some funny effects if you use times from 1970
+
+class TestFields(unittest.TestCase):
+    def test_updatedata(self):
+        #unique_address, length, divisor, valid range
+        HeatmiserFieldSingleReadOnly('test', 0, [], None).update_data([1], None)
+        HeatmiserFieldSingleReadOnly('test', 0, [0, 1], None).update_data([1], None)
+        HeatmiserFieldDoubleReadOnly('test', 0, [0, 257], None).update_data([1, 1], None)
+        HeatmiserFieldSingleReadOnly('model', 0, [], None).update_data([4], None)
+        #self.func._procfield([PROG_MODES[PROG_MODE_DAY]], HeatmiserFieldSingleReadOnly('programmode', 0, [], None))
         
+    def test_updatedata_range(self):
+        field = HeatmiserFieldSingleReadOnly('test', 0, [0, 1], None)
+        with self.assertRaises(HeatmiserResponseError):
+            field.update_data([3], None)
+            
+    def test_updatedata_model(self):
+        field = HeatmiserFieldSingleReadOnly('model', 0, [], None)
+        field.expectedvalue = 4
+        with self.assertRaises(HeatmiserResponseError):
+            field.update_data([3], None)
+

@@ -28,11 +28,10 @@ class HeatmiserFieldHotWaterDemand(HeatmiserFieldSingle):
 
         if value == self.writevalues['PROG']: #returned to program so outcome is unknown
             self._reset()
-            return None
         elif value == self.writevalues['OVER_OFF']: #if overridden off store the off read value
-            return super(HeatmiserFieldHotWaterDemand, self).update_value(self.readvalues['OFF'], writetime)
+            super(HeatmiserFieldHotWaterDemand, self).update_value(self.readvalues['OFF'], writetime)
         else:
-            return super(HeatmiserFieldHotWaterDemand, self).update_value(value, writetime)
+            super(HeatmiserFieldHotWaterDemand, self).update_value(value, writetime)
 
 class HeatmiserFieldTime(HeatmiserFieldMulti):
     """Class for time field"""
