@@ -20,7 +20,7 @@ class HeatmiserDevice(object):
     """General device class"""
 
     ## Initialisation functions and low level functions
-    def __init__(self, adaptor, devicesettings, generalsettings={}):
+    def __init__(self, adaptor, devicesettings, generalsettings=None):
         self._adaptor = adaptor
 
         # initalise variables
@@ -39,8 +39,6 @@ class HeatmiserDevice(object):
         self._configure_fields() #build fieldname to number dictionary and attached fields to attributes add dcb address to fields and add set dcb_length  (extended in unknown to change length)
         # estimated read time for read_all method
         self.fullreadtime = self._estimate_read_time(self.dcb_length)
-        # initialise data structure
-        self.data = dict.fromkeys(self._fieldnametonum.keys(), None)
         
         self._set_expected_field_values() #set some fields expected values (extended in week)
         self._connect_observers() #connect various observers methods (extended regularly)
@@ -48,8 +46,9 @@ class HeatmiserDevice(object):
     
     def _load_settings(self, settings, generalsettings):
         """Loading settings from dictionary into properties"""
-        for name, value in generalsettings.iteritems():
-            setattr(self, "set_" + name, value)
+        if generalsettings is not None:
+            for name, value in generalsettings.iteritems():
+                setattr(self, "set_" + name, value)
 
         for name, value in settings.iteritems():
             setattr(self, "set_" + name, value)
@@ -85,6 +84,7 @@ class HeatmiserDevice(object):
         self.fields.sort(key=lambda field: field.address)
         
         dcbaddress = 0
+        self.fieldsbyname = {}
         self._fieldnametonum = {}
         for key, field in enumerate(self.fields):
             #set dcbaddress
@@ -94,6 +94,8 @@ class HeatmiserDevice(object):
             self._fieldnametonum[field.name] = key
             #store field pointer as property
             setattr(self, field.name, field)
+            #store field pointer in dictionary
+            self.fieldsbyname[field.name] = field
         #record maximum dcb length
         self.dcb_length = dcbaddress
     
@@ -139,7 +141,7 @@ class HeatmiserDevice(object):
         if len(fieldids) > 0:
             self._get_fields(fieldids)
 
-        return [self.data[fieldname] if hasattr(self, fieldname) else None for fieldname in fieldnames]
+        return [self.fieldsbyname[fieldname].get_value() if hasattr(self, fieldname) else None for fieldname in fieldnames]
     
     def get_field_range(self, firstfieldname, lastfieldname=None):
         """gets fieldrange from device
@@ -192,7 +194,7 @@ class HeatmiserDevice(object):
         previousfield = None
 
         for field in self.fields[firstfieldid:lastfieldid + 1]:
-            if not previousfield is None and field.address - previousfield.address - previousfield.fieldlength == 0: #if follows previousfield:
+            if previousfield is not None and field.address - previousfield.address - previousfield.fieldlength == 0: #if follows previousfield:
                 blocks[-1][1] = field
                 blocks[-1][2] = field.last_dcb_byte_address() - blocks[-1][0].dcbaddress + 1
             else:
@@ -231,12 +233,11 @@ class HeatmiserDevice(object):
         """"estimates the read time for a call to read_from_device without COM_BUS_RESET_TIME
         based on empirical measurements of one prt_hw_model and 5 prt_e_model"""
         return length * 0.002075 + 0.070727
-    
+
     def _procfield(self, data, fieldinfo):
         """Process data for a single field storing in relevant."""
         #logging.debug("Processing %s data %s"%(fieldinfo.name, csvlist(data)))
         value = fieldinfo.update_data(data, self.lastreadtime)
-        self.data[fieldinfo.name] = value
 
     def _procpartpayload(self, rawdata, firstfieldname, lastfieldname):
         """Wraps procpayload by converting fieldnames to fieldids"""
@@ -289,7 +290,7 @@ class HeatmiserDevice(object):
         logging.info("C%i set field %s to %s"%(self.set_address, fieldname.ljust(FIELD_NAME_LENGTH), csvlist(printvalues)))
         
         self.lastwritetime = time.time()
-        self.data[fieldname] = field.update_value(numericvalues, self.lastwritetime)
+        field.update_value(numericvalues, self.lastwritetime)
     
     def set_fields(self, fieldnames, values):
         """Set multiple fields on a device to a state or payload."""
@@ -312,7 +313,7 @@ class HeatmiserDevice(object):
     def _update_fields_values(self, values, fields):
         """update the field values once data successfully written"""
         for field, value in zip(fields, values):
-            self.data[field.name] = field.update_value(value, self.lastwritetime)
+            field.update_value(value, self.lastwritetime)
     
     @staticmethod
     def _get_payload_blocks_from_list(fields, values):

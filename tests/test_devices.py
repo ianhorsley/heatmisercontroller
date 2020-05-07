@@ -46,10 +46,10 @@ class TestReadingData(unittest.TestCase):
         logging.basicConfig(level=logging.DEBUG)
         #network, address, protocol, short_name, long_name, model, mode
         #self.func = ThermoStat(None, 1, HMV3_ID, 'test', 'test controller', 'prt_hw_model', PROG_MODE_DAY)
-        self.settings = {'address':1, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_hw_model', 'expected_prog_mode':PROG_MODE_DAY}
+        self.settings = {'address':1, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_hw_model', 'expected_prog_mode':PROG_MODE_DAY, 'autocorrectime': False}
         self.settings2 = {'address':1, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_e_model', 'expected_prog_mode':PROG_MODE_DAY}
         self.func = ThermoStatHotWaterDay(None, self.settings)
-            
+
     def test_procfield(self):
         #unique_address, length, divisor, valid range
         self.func._procfield([1], HeatmiserFieldSingleReadOnly('test', 0, [], None))
@@ -67,6 +67,14 @@ class TestReadingData(unittest.TestCase):
         field.expectedvalue = 4
         with self.assertRaises(HeatmiserResponseError):
             self.func._procfield([3], field)
+    
+    def test_procfield_timewrong(self):
+        #field = HeatmiserFieldTime('currenttime', 0, [], None)
+        basetime = (1 + 1) * 86400 + 9 * 3600 + 33 * 60 + 0 + YEAR2000
+        self.func.lastreadtime = basetime - get_offset(basetime) #has been read
+        self.func.currenttime.value = [1, 0, 0, 0]
+        with self.assertRaises(HeatmiserControllerTimeError):
+            self.func._procfield([2, 12, 12, 12], self.func.currenttime)
         
     def test_procpayload(self):
         print "tz %i alt tz %i"%(time.timezone, time.altzone)
@@ -171,7 +179,23 @@ class TestReadingData(unittest.TestCase):
         responses = [[0, 3, 0, 1, 0, 0, 0, 0, 4, 0, 0, 0], [0, 3, 0, 1, 0, 0, 0, 0, 4, 0, 0, 0]]
         adaptor.setresponse(responses)
         print self.func.read_fields(['mon_heat', 'sun_heat'], 0)
-        
+
+class TestHWfloorlimit(unittest.TestCase):
+    """Unittests for other functions"""
+    def setUp(self):
+        logging.basicConfig(level=logging.ERROR)
+        self.settings = {'address':1, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_e_model', 'expected_prog_mode':PROG_MODE_DAY}
+        self.func = ThermoStatHotWaterDay(None, self.settings)
+
+    def test_getfieldblocks(self):
+        self.assertEqual(None, self.func.floorlimiting.get_value())
+        self.func._procfield([2],self.func.version)
+        self.assertEqual(2, self.func.version.get_value())
+        self.assertEqual(0, self.func.floorlimiting.get_value())
+        self.func._procfield([129],self.func.version)
+        self.assertEqual(1, self.func.version.get_value())
+        self.assertEqual(1, self.func.floorlimiting.get_value())
+
 class TestOtherFunctions(unittest.TestCase):
     """Unittests for other functions"""
     def setUp(self):
@@ -232,23 +256,23 @@ class TestTimeFunctions(unittest.TestCase):
     def test_comparecontrollertime_bad(self):
         basetime = (1 + 1) * 86400 + 9 * 3600 + 33 * 60 + 0 + YEAR2000
         self.func.currenttime.lastreadtime = basetime - get_offset(basetime) #has been read
-        self.func.data['currenttime'] = self.func.currenttime.value = [1, 0, 0, 0]
+        self.func.currenttime.value = [1, 0, 0, 0]
         with self.assertRaises(HeatmiserControllerTimeError):
             self.func.currenttime.comparecontrollertime()
         
     def test_comparecontrollertime_1(self):
         basetime = (4 + 1) * 86400 + 9 * 3600 + 33 * 60 + 5 + YEAR2000
         self.func.currenttime.lastreadtime = basetime - get_offset(basetime) #has been read
-        self.func.data['currenttime'] = self.func.currenttime.value = [4, 9, 33, 0]
+        self.func.currenttime.value = [4, 9, 33, 0]
         #print "s ", self.func._localtimearray(self.func.datareadtime['currenttime']), self.func.data['currenttime'], self.func.datareadtime['currenttime'], time.localtime(self.func.datareadtime['currenttime']).tm_hour, time.localtime(self.func.datareadtime['currenttime']), "e"
         self.func.currenttime.comparecontrollertime()
-        self.assertEqual(5, self.func.currenttime.timeerr)
+        self.assertEqual(-5, self.func.currenttime.timeerr)
         
     def test_comparecontrollertime_2(self):
         #self.func.datareadtime['currenttime'] = ( 7 + 3) * 86400 + 23 * 3600 + 59 * 60 + 55 - self.utc_offset #has been read
         basetime = (7 + 1) * 86400 + 23 * 3600 + 59 * 60 + 55 + YEAR2000
         self.func.currenttime.lastreadtime = basetime - get_offset(basetime) #has been read
-        self.func.data['currenttime'] = self.func.currenttime.value = [1, 0, 0, 0]
+        self.func.currenttime.value = [1, 0, 0, 0]
         self.func.currenttime.comparecontrollertime()
         self.assertEqual(5, self.func.currenttime.timeerr)
 
@@ -294,7 +318,7 @@ class TestSettingData(unittest.TestCase):
         #make sure read time is set and check value
         self.func.set_field('hotwaterdemand', self.func.hotwaterdemand.writevalues['OVER_OFF'])
         self.assertNotEqual(getattr(self.func, 'hotwaterdemand').lastreadtime, None)
-        self.assertEqual(self.func.data['hotwaterdemand'], self.func.hotwaterdemand.readvalues['OFF'])
+        self.assertEqual(self.func.hotwaterdemand.get_value(), self.func.hotwaterdemand.readvalues['OFF'])
         self.func._adaptor.reset()
         #check releasing works
         self.func.set_field('hotwaterdemand', self.func.hotwaterdemand.writevalues['PROG'])

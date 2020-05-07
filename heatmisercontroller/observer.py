@@ -27,11 +27,16 @@ class Observable(object):
             #observer.update(self, arg)
             observer(arg)
 
-    def delete_observers(self): self.obs = []
-    def set_changed(self): self.changed = 1
-    def clear_changed(self): self.changed = 0
-    def has_changed(self): return self.changed
-    def count_observers(self): return len(self.obs)
+    def delete_observers(self):
+        self.obs = []
+    def set_changed(self):
+        self.changed = 1
+    def clear_changed(self):
+        self.changed = 0
+    def has_changed(self):
+        return self.changed
+    def count_observers(self):
+        return len(self.obs)
 
 class Notifier(object):
     """Object that notfies observers when value changes.

@@ -210,7 +210,7 @@ class HeatmiserAdaptor(object):
             except HeatmiserResponseErrorCRC:
                 self._clear_input_buffer()
                 raise
-                    
+
     def min_time_between_reads(self):
         """Computes the minimum time that adaptor leaves between read commands"""
         return self.serport.COM_BUS_RESET_TIME
@@ -224,13 +224,12 @@ class HeatmiserAdaptor(object):
         else:
             msg = framing.form_read_frame(network_address, protocol, self.my_master_addr, unique_start_address, expected_length)
             logging.debug("C %i read request to address %i length %i"%(network_address, unique_start_address, expected_length))
-        
         try: #sending request
             self._send_message(msg)
         except:
             logging.warn("C%i address, read message not sent"%(network_address))
             raise
-        
+
         time1 = time.time()
 
         try: #listening for response

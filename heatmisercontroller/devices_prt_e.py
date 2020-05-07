@@ -8,7 +8,8 @@ import logging
 import time
 
 from genericdevice import HeatmiserDevice, DEVICETYPES
-from fields import HeatmiserFieldSingle, HeatmiserFieldSingleReadOnly, HeatmiserFieldDouble, HeatmiserFieldDoubleReadOnly, HeatmiserFieldTime, HeatmiserFieldHeat, HeatmiserFieldDoubleReadOnlyTenths
+from fields import HeatmiserFieldSingle, HeatmiserFieldSingleReadOnly, HeatmiserFieldDouble, HeatmiserFieldDoubleReadOnly, HeatmiserFieldDoubleReadOnlyTenths
+from fields_special import HeatmiserFieldTime, HeatmiserFieldHeat
 from fields import VALUES_ON_OFF, VALUES_OFF_ON, VALUES_OFF
 from hm_constants import MAX_AGE_LONG, MAX_AGE_MEDIUM, MAX_AGE_SHORT, MAX_AGE_USHORT
 from .exceptions import HeatmiserControllerTimeError, HeatmiserControllerSensorError
@@ -20,12 +21,12 @@ class ThermoStatWeek(HeatmiserDevice):
     Heatmiser prt_e_model."""
     is_hot_water = False #returns True if stat is a model with hotwater control, False otherwise
     
-    def __init__(self, adaptor, devicesettings, generalsettings={}):
+    def __init__(self, adaptor, devicesettings, generalsettings=None):
         self.heat_schedule = None #placeholder for heating schedule object
         self.thermostat = None #placeholder for thermostat object
         super(ThermoStatWeek, self).__init__(adaptor, devicesettings, generalsettings)
         #thermostat specific
-    
+
     def _buildfields(self):
         """add to list of fields"""
         super(ThermoStatWeek, self)._buildfields()
@@ -58,7 +59,7 @@ class ThermoStatWeek(HeatmiserDevice):
             HeatmiserFieldDoubleReadOnlyTenths('airtemp', 38, [], MAX_AGE_USHORT),  #ffff if no sensor
             HeatmiserFieldSingleReadOnly('errorcode', 40, [0, 224, 225, 226], MAX_AGE_SHORT),  # 0 is no error # errors,  0 built in,  1,  floor,  2 remote
             HeatmiserFieldSingleReadOnly('heatingdemand', 41, [0, 1], MAX_AGE_USHORT),  #0 none,  1 heating currently
-            HeatmiserFieldTime('currenttime', 43, [[1, 7], [0, 23], [0, 59], [0, 59]], MAX_AGE_USHORT),  #day (Mon - Sun),  hour,  min,  sec.
+            HeatmiserFieldTime('currenttime', 43, MAX_AGE_LONG),  #day (Mon - Sun),  hour,  min,  sec. # local estimate should be good, so update once a day
             #5/2 progamming #if hour = 24 entry not used
             HeatmiserFieldHeat('wday_heat', 47, [[0, 24], [0, 59], [5, 35]], MAX_AGE_MEDIUM),  #hour,  min,  temp  (should minutes be only 0 and 30?)
             HeatmiserFieldHeat('wend_heat', 59, [[0, 24], [0, 59], [5, 35]], MAX_AGE_MEDIUM)
@@ -66,7 +67,7 @@ class ThermoStatWeek(HeatmiserDevice):
 
         self.heat_schedule = SchedulerWeekHeat()
         self.thermostat = Thermostat('Heating', self)
-    
+
     def _connect_observers(self):
         """connect obersers to fields"""
         super(ThermoStatWeek, self)._connect_observers()
@@ -94,36 +95,33 @@ class ThermoStatWeek(HeatmiserDevice):
         """set the expected values for fields that should be fixed"""
         super(ThermoStatWeek, self)._set_expected_field_values()
         self.programmode.expectedvalue = self.programmode.readvalues[self.set_expected_prog_mode]
-    
+
     def _procfield(self, data, fieldinfo):
         """Process data for a single field storing in relevant."""
         super(ThermoStatWeek, self)._procfield(data, fieldinfo)
-        
-        if fieldinfo.name == 'version' and hasattr(fieldinfo, 'floorlimiting'):
-            self.data['floorlimiting'] = self.floorlimiting
-            
+
         if fieldinfo.name == 'currenttime':
             self._checkcontrollertime()
-    
+
     def _checkcontrollertime(self):
         """run check of device time against local read time, and try to fix if _autocorrectime"""
         try:
             self.currenttime.comparecontrollertime()
-        except HeatmiserControllerTimeError:
+        except HeatmiserControllerTimeError as errstr:
             if self.set_autocorrectime is True:
-                ### Add warning that attempting to fix.
+                logging.warn("C%i %s"%(self.set_address, errstr))
                 self.set_time()
             else:
                 raise
-    
+
     def get_variables(self):
         """Gets setroomtemp to hotwaterdemand fields from device"""
         self.get_field_range('setroomtemp', 'hotwaterdemand')
-        
+
     def get_temps_and_demand(self):
         """Gets remoteairtemp to hotwaterdemand fields from device"""
         self.get_field_range('remoteairtemp', 'hotwaterdemand')
-    
+
     ## External functions for printing data
     def display_heating_schedule(self):
         """Prints heating schedule to stdout"""
@@ -139,14 +137,14 @@ class ThermoStatWeek(HeatmiserDevice):
         return self.thermostat.get_state_text()
             
     ## External functions for reading data
-    
+
     def read_temp_state(self):
         """Returns the current temperature control state from off to following program"""
         self.read_fields(['mon_heat', 'tues_heat', 'wed_heat', 'thurs_heat', 'fri_heat', 'wday_heat', 'wend_heat'], -1)
         self.read_fields(['onoff', 'frostprotdisable', 'holidayhours', 'runmode', 'tempholdmins', 'setroomtemp'])
 
         return self.thermostat.state
-        
+
     def read_air_sensor_type(self):
         """Reports airsensor type"""
         #1 local, 2 remote
@@ -157,7 +155,7 @@ class ThermoStatWeek(HeatmiserDevice):
         elif self.sensorsavaliable.is_value('EXT_ONLY') or self.sensorsavaliable.is_value('EXT_FLOOR'):
             return 2
         raise ValueError("sensorsavaliable field invalid")
-            
+
     def read_air_temp(self):
         """Read the air temperature getting data from device if too old"""
         if self.read_air_sensor_type() == 1:
@@ -170,11 +168,11 @@ class ThermoStatWeek(HeatmiserDevice):
             if self.errorcode == 226:
                 raise HeatmiserControllerSensorError("remote airtemp sensor error")
             return self.remoteairtemp.value
-        
+
     def read_time(self, maxage=0):
         """Readtime, getting from device if required"""
         return self.read_field('currenttime', maxage)
-        
+
     ## External functions for setting data
 
     def set_heating_schedule(self, day, schedule):
@@ -211,15 +209,15 @@ class ThermoStatWeek(HeatmiserDevice):
         self.set_field('setroomtemp', temp)
         return self.set_field('tempholdmins', minutes)
         #didn't stay on if did minutes followed by temp.
-        
+
     def release_hold_temp(self):
         """release setTemp or holdTemp back to the program."""
         return self.set_field('tempholdmins', 0)
-        
+
     def set_holiday(self, hours):
         """sets holiday up for a defined number of hours."""
         return self.set_field('holidayhours', hours)
-    
+
     def release_holiday(self):
         """cancels holiday mode"""
         return self.set_field('holidayhours', 0)
@@ -227,7 +225,7 @@ class ThermoStatWeek(HeatmiserDevice):
 class ThermoStatDay(ThermoStatWeek):
     """Device class for thermostats operating daily programmode
     Heatmiser prt_e_model."""
-    
+
     def _buildfields(self):
         """add to list of fields"""
         super(ThermoStatDay, self)._buildfields()
@@ -251,4 +249,3 @@ class ThermoStatDay(ThermoStatWeek):
             getattr(self, fieldname).add_notifable_changed(self.heat_schedule.set_raw_field)
 
 DEVICETYPES.setdefault('prt_e_model', {'week': ThermoStatWeek, 'day': ThermoStatDay})
-           
