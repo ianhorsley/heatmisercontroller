@@ -250,7 +250,7 @@ class TestTimeFunctions(unittest.TestCase):
         self.func.data['currenttime'] = self.func.currenttime.value = [4, 9, 33, 0]
         #print "s ", self.func._localtimearray(self.func.datareadtime['currenttime']), self.func.data['currenttime'], self.func.datareadtime['currenttime'], time.localtime(self.func.datareadtime['currenttime']).tm_hour, time.localtime(self.func.datareadtime['currenttime']), "e"
         self.func.currenttime.comparecontrollertime()
-        self.assertEqual(5, self.func.currenttime.timeerr)
+        self.assertEqual(-5, self.func.currenttime.timeerr)
         
     def test_comparecontrollertime_2(self):
         #self.func.datareadtime['currenttime'] = ( 7 + 3) * 86400 + 23 * 3600 + 59 * 60 + 55 - self.utc_offset #has been read
