@@ -99,10 +99,7 @@ class ThermoStatWeek(HeatmiserDevice):
     def _procfield(self, data, fieldinfo):
         """Process data for a single field storing in relevant."""
         super(ThermoStatWeek, self)._procfield(data, fieldinfo)
-        
-        if fieldinfo.name == 'version' and hasattr(fieldinfo, 'floorlimiting'):
-            self.data['floorlimiting'] = self.floorlimiting
-            
+
         if fieldinfo.name == 'currenttime':
             self._checkcontrollertime()
 

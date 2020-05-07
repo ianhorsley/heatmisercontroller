@@ -179,7 +179,23 @@ class TestReadingData(unittest.TestCase):
         responses = [[0, 3, 0, 1, 0, 0, 0, 0, 4, 0, 0, 0], [0, 3, 0, 1, 0, 0, 0, 0, 4, 0, 0, 0]]
         adaptor.setresponse(responses)
         print self.func.read_fields(['mon_heat', 'sun_heat'], 0)
-        
+
+class TestHWfloorlimit(unittest.TestCase):
+    """Unittests for other functions"""
+    def setUp(self):
+        logging.basicConfig(level=logging.ERROR)
+        self.settings = {'address':1, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_e_model', 'expected_prog_mode':PROG_MODE_DAY}
+        self.func = ThermoStatHotWaterDay(None, self.settings)
+
+    def test_getfieldblocks(self):
+        self.assertEqual(None, self.func.floorlimiting.get_value())
+        self.func._procfield([2],self.func.version)
+        self.assertEqual(2, self.func.version.get_value())
+        self.assertEqual(0, self.func.floorlimiting.get_value())
+        self.func._procfield([129],self.func.version)
+        self.assertEqual(1, self.func.version.get_value())
+        self.assertEqual(1, self.func.floorlimiting.get_value())
+
 class TestOtherFunctions(unittest.TestCase):
     """Unittests for other functions"""
     def setUp(self):

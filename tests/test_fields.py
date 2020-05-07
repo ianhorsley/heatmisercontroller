@@ -98,16 +98,6 @@ class TestFields(unittest.TestCase):
         with self.assertRaises(HeatmiserControllerTimeError):
             fieldtime = self.create_time_field([1, 17, 22, 30], [1, 17, 22, 41])
 
-    def test_field_assignment(self):
-        print self.field1.value
-        fieldtemp = self.field1
-        valuetemp = self.field1.value
-        print fieldtemp.value
-        fieldtemp.value = 1
-        print self.field1.value
-        print self.field1
-        print valuetemp
-
 def get_offset(timenum):
     #gettime zone offset for that date
     is_dst = time.daylight and time.localtime(timenum).tm_isdst > 0
