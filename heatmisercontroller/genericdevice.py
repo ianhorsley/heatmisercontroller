@@ -237,7 +237,7 @@ class HeatmiserDevice(object):
     def _procfield(self, data, fieldinfo):
         """Process data for a single field storing in relevant."""
         #logging.debug("Processing %s data %s"%(fieldinfo.name, csvlist(data)))
-        value = fieldinfo.update_data(data, self.lastreadtime)
+        fieldinfo.update_data(data, self.lastreadtime)
 
     def _procpartpayload(self, rawdata, firstfieldname, lastfieldname):
         """Wraps procpayload by converting fieldnames to fieldids"""
