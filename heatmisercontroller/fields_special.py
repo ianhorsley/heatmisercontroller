@@ -42,6 +42,11 @@ class HeatmiserFieldTime(HeatmiserFieldMulti):
         validrange = [[1, 7], [0, 23], [0, 59], [0, 59]] #fixed because functions depend on this range.
         super(HeatmiserFieldTime, self).__init__(name, address, validrange, max_age)
 
+    def get_value(self):
+        """Return estimated remote time."""
+        estimate = time.time() + self.timeerr
+        return self.localtimearray(estimate)
+
     def comparecontrollertime(self):
         """Compare device and local time difference against threshold"""
         # Now do same sanity checking

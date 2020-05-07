@@ -59,7 +59,7 @@ class ThermoStatWeek(HeatmiserDevice):
             HeatmiserFieldDoubleReadOnlyTenths('airtemp', 38, [], MAX_AGE_USHORT),  #ffff if no sensor
             HeatmiserFieldSingleReadOnly('errorcode', 40, [0, 224, 225, 226], MAX_AGE_SHORT),  # 0 is no error # errors,  0 built in,  1,  floor,  2 remote
             HeatmiserFieldSingleReadOnly('heatingdemand', 41, [0, 1], MAX_AGE_USHORT),  #0 none,  1 heating currently
-            HeatmiserFieldTime('currenttime', 43, MAX_AGE_USHORT),  #day (Mon - Sun),  hour,  min,  sec.
+            HeatmiserFieldTime('currenttime', 43, MAX_AGE_LONG),  #day (Mon - Sun),  hour,  min,  sec. # local estimate should be good, so update once a day
             #5/2 progamming #if hour = 24 entry not used
             HeatmiserFieldHeat('wday_heat', 47, [[0, 24], [0, 59], [5, 35]], MAX_AGE_MEDIUM),  #hour,  min,  temp  (should minutes be only 0 and 30?)
             HeatmiserFieldHeat('wend_heat', 59, [[0, 24], [0, 59], [5, 35]], MAX_AGE_MEDIUM)

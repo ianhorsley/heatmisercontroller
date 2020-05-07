@@ -98,6 +98,19 @@ class TestFields(unittest.TestCase):
         with self.assertRaises(HeatmiserControllerTimeError):
             fieldtime = self.create_time_field([1, 17, 22, 30], [1, 17, 22, 41])
 
+    def test_get_value(self):
+        func = HeatmiserFieldTime('test1', 5, MAX_AGE_LONG)
+    
+        readtime = time.time()
+        remotetime = readtime + 5
+        time.sleep(1)
+        fieldtime = self.create_time_field(func.localtimearray(readtime), func.localtimearray(remotetime))
+        print fieldtime.timeerr
+        print func.localtimearray(readtime)
+        print func.localtimearray(remotetime)
+        print func.localtimearray(time.time())
+        print fieldtime.get_value()
+        
 def get_offset(timenum):
     #gettime zone offset for that date
     is_dst = time.daylight and time.localtime(timenum).tm_isdst > 0
@@ -105,7 +118,7 @@ def get_offset(timenum):
     return utc_offset
 YEAR2000 = (30 * 365 + 7) * 86400 #get some funny effects if you use times from 1970
 
-class TestFields(unittest.TestCase):
+class TestUpdates(unittest.TestCase):
     def test_updatedata(self):
         #unique_address, length, divisor, valid range
         HeatmiserFieldSingleReadOnly('test', 0, [], None).update_data([1], None)
