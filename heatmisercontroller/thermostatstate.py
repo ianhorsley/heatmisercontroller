@@ -5,8 +5,8 @@ Ian Horsley 2018
 
 from transitions import Machine
 
-from hm_constants import MAX_AGE_MEDIUM
-from schedule_functions import SCH_ENT_TEMP
+from .hm_constants import MAX_AGE_MEDIUM
+from .schedule_functions import SCH_ENT_TEMP
 
 class Thermostat(object):
     """Thermostat statemachine"""

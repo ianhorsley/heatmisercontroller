@@ -2,7 +2,7 @@
 import logging
 import time
 
-from hm_constants import BYTEMASK
+from .hm_constants import BYTEMASK
 from .exceptions import HeatmiserResponseError
 from .observer import Notifier
 

@@ -1,11 +1,11 @@
 """Functions for creating and checking Heatmiser protocol frames"""
 import logging
 
-from hm_constants import BYTEMASK, MIN_FRAME_SEND_LENGTH, MIN_FRAME_RESP_LENGTH, MIN_FRAME_READ_RESP_LENGTH, FRAME_WRITE_RESP_LENGTH, MAX_PAYLOAD_SEND_LENGTH, RW_LENGTH_ALL, DONT_CARE_LENGTH
-from hm_constants import FUNC_WRITE, FUNC_READ
-from hm_constants import FR_LEN_LOW, FR_LEN_HIGH, FR_FUNC_CODE, FR_DEST_ADDR, FR_SOURCE_ADDR
-from hm_constants import MASTER_ADDR_MIN, MASTER_ADDR_MAX, SLAVE_ADDR_MIN, SLAVE_ADDR_MAX
-from hm_constants import HMV3_ID
+from .hm_constants import BYTEMASK, MIN_FRAME_SEND_LENGTH, MIN_FRAME_RESP_LENGTH, MIN_FRAME_READ_RESP_LENGTH, FRAME_WRITE_RESP_LENGTH, MAX_PAYLOAD_SEND_LENGTH, RW_LENGTH_ALL, DONT_CARE_LENGTH
+from .hm_constants import FUNC_WRITE, FUNC_READ
+from .hm_constants import FR_LEN_LOW, FR_LEN_HIGH, FR_FUNC_CODE, FR_DEST_ADDR, FR_SOURCE_ADDR
+from .hm_constants import MASTER_ADDR_MIN, MASTER_ADDR_MAX, SLAVE_ADDR_MIN, SLAVE_ADDR_MAX
+from .hm_constants import HMV3_ID
 from .exceptions import HeatmiserResponseError, HeatmiserResponseErrorCRC
 
 ### low level framing functions

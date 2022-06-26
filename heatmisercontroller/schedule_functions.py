@@ -2,7 +2,7 @@
 import logging
 import itertools
 
-from hm_constants import CURRENT_TIME_DAY, CURRENT_TIME_HOUR, CURRENT_TIME_MIN
+from .hm_constants import CURRENT_TIME_DAY, CURRENT_TIME_HOUR, CURRENT_TIME_MIN
 
 #mapping for chunks of heating schedule for a day
 MAP_HOUR = 0

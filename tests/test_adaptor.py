@@ -4,7 +4,7 @@ import logging
 
 from heatmisercontroller.adaptor import HeatmiserAdaptor
 from heatmisercontroller.exceptions import HeatmiserResponseError
-from mock_serial import SerialTestClass, SetupTestClass
+from .mock_serial import SerialTestClass, SetupTestClass
 from heatmisercontroller.hm_constants import HMV3_ID
 from heatmisercontroller.framing import crc16
 

@@ -9,10 +9,10 @@ import os
 import logging
 
 # Import our own stuff
-from genericdevice import DEVICETYPES
-from generaldevices import HeatmiserBroadcastDevice, ThermoStatUnknown
-from adaptor import HeatmiserAdaptor
-from hm_constants import SLAVE_ADDR_MIN, SLAVE_ADDR_MAX
+from .genericdevice import DEVICETYPES
+from .generaldevices import HeatmiserBroadcastDevice, ThermoStatUnknown
+from .adaptor import HeatmiserAdaptor
+from .hm_constants import SLAVE_ADDR_MIN, SLAVE_ADDR_MAX
 from .exceptions import HeatmiserResponseError
 import setup as hms
 
