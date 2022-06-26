@@ -5,7 +5,7 @@ import logging
 import serial
 
 from .hm_constants import MAX_FRAME_RESP_LENGTH, MIN_FRAME_READ_RESP_LENGTH, DCB_START, FUNC_WRITE, FUNC_READ, BROADCAST_ADDR, FRAME_WRITE_RESP_LENGTH, FR_CONTENTS, RW_LENGTH_ALL, CRC_LENGTH
-from .framing import *
+from . import framing
 from .exceptions import HeatmiserResponseError, HeatmiserResponseErrorCRC
 from .logging_setup import csvlist
 
@@ -18,7 +18,7 @@ def retryer(max_retries=3):
             lasterror = None
             for i in range(max_retries):
                 if i is not 0:
-                    logging.warn("Gen retrying due to %s"%str(lasterror))
+                    logging.warning("Gen retrying due to %s"%str(lasterror))
                 try:
                     result = func(*args, **kwargs)
                 except HeatmiserResponseError as err:
@@ -58,7 +58,7 @@ class HeatmiserAdaptor(object):
 
     def _update_settings(self, settings):
         """Check settings and update if needed."""
-        for name, value in settings['controller'].iteritems():
+        for name, value in settings['controller'].items():
             setattr(self, name, value)
 
         # Configure serial settings after closing if required
@@ -67,7 +67,7 @@ class HeatmiserAdaptor(object):
             wasopen = True
             self.serport.close() # close port
 
-        for name, value in settings['serial'].iteritems():
+        for name, value in settings['serial'].items():
             setattr(self.serport, name, value)
 
         if not self.serport.isOpen() and wasopen:
@@ -83,7 +83,7 @@ class HeatmiserAdaptor(object):
             logging.info("Gen %s port opened"% (self.serport.portstr))
             logging.debug("Gen %s baud, %s bit, %s parity, with %s stopbits, timeout %s seconds" % (self.serport.baudrate, self.serport.bytesize, self.serport.parity, self.serport.stopbits, self.serport.timeout))
         else:
-            logging.warn("Gen serial port was already open")
+            logging.warning("Gen serial port was already open")
     
     def _open_port(self):
         """open serial port and logging errors"""
@@ -100,7 +100,7 @@ class HeatmiserAdaptor(object):
             self.serport.close() # close port
             logging.info("Gen serial port closed")
         else:
-            logging.warn("Gen serial port was already closed")
+            logging.warning("Gen serial port was already closed")
     
     def _send_message(self, message):
         """Send message to serial port and log errors"""
@@ -113,11 +113,8 @@ class HeatmiserAdaptor(object):
             logging.debug("Gen waiting before sending %.2f"% (waittime))
             time.sleep(waittime)
         
-        # http://stackoverflow.com/questions/180606/how-do-i-convert-a-list-of-ascii-values-to-a-string-in-python
-        string = ''.join(map(chr, message))
-
         try:
-            self.serport.write(string)    # Write a string
+            self.serport.write(bytes(message))
         except serial.SerialTimeoutException as err:
             self.serport.close() #need to close so that isOpen works correctly.
             logging.warning("Write timeout error: %s, sending %s" % (err, csvlist(message)))
@@ -182,7 +179,7 @@ class HeatmiserAdaptor(object):
         byteread = self._read_bytes(length - 1)
 
         #Convert back to array
-        data = map(ord, firstbyteread) + map(ord, byteread)
+        data = list(bytearray(firstbyteread)) + list(bytearray(byteread))
 
         return data
 
@@ -197,7 +194,7 @@ class HeatmiserAdaptor(object):
         try:
             self._send_message(msg)
         except Exception:
-            logging.warn("C%i writing to address, no message sent"%(network_address))
+            logging.warning("C%i writing to address, no message sent"%(network_address))
             raise
 
         logging.debug("C%i written to address %i length %i payload %s"%(network_address, unique_address, length, csvlist(payload)))
@@ -227,7 +224,7 @@ class HeatmiserAdaptor(object):
         try: #sending request
             self._send_message(msg)
         except:
-            logging.warn("C%i address, read message not sent"%(network_address))
+            logging.warning("C%i address, read message not sent"%(network_address))
             raise
 
         time1 = time.time()
@@ -235,7 +232,7 @@ class HeatmiserAdaptor(object):
         try: #listening for response
             response = self._receive_message(MIN_FRAME_READ_RESP_LENGTH + expected_length)
         except Exception as err:
-            logging.warn("C%i read failed from address %i length %i due to %s"%(network_address, unique_start_address, expected_length, str(err)))
+            logging.warning("C%i read failed from address %i length %i due to %s"%(network_address, unique_start_address, expected_length, str(err)))
             raise
 
         logging.debug("C%i read in %.2f s from address %i length %i response %s"%(network_address, time.time()-time1, unique_start_address, expected_length, csvlist(response)))

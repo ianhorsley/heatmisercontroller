@@ -26,7 +26,7 @@ class TestSerial(unittest.TestCase):
         self.func._send_message(self.goodmessage)
         # Use serial to receive raw transmission
         ret = self.serialport.serialPort.read(len(self.goodmessage))
-        retasarray = map(ord, ret)
+        retasarray = list(bytearray(ret))
 
         # Check that the returned data from the serial port == goodmessage
         self.assertEqual(retasarray, self.goodmessage)
@@ -97,7 +97,7 @@ class TestReadWrite(unittest.TestCase):
         self.func.write_to_device(5, HMV3_ID, 12, 1, [1])
         # Use serial to receive raw transmission
         ret = self.serialport.serialPort.read(len(goodrequest))
-        retasarray = map(ord, ret)
+        retasarray = list(bytearray(ret))
         # Check that the returned data from the serial port == goodmessage
         self.assertEqual(retasarray, goodrequest)
         
@@ -125,7 +125,7 @@ class TestReadWrite(unittest.TestCase):
         self.func.read_from_device(5, HMV3_ID, 34, 4)
         # Use serial to receive raw transmission
         ret = self.serialport.serialPort.read(len(goodrequest))
-        retasarray = map(ord, ret)
+        retasarray = list(bytearray(ret))
         # Check that the returned data from the serial port == goodmessage
         self.assertEqual(retasarray, goodrequest)
         
@@ -139,7 +139,7 @@ class TestReadWrite(unittest.TestCase):
         self.func.read_all_from_device(5, HMV3_ID, 10)
         # Use serial to receive raw transmission
         ret = self.serialport.serialPort.read(len(goodrequest))
-        retasarray = map(ord, ret)
+        retasarray = list(bytearray(ret))
         # Check that the returned data from the serial port == goodmessage
         self.assertEqual(retasarray, goodrequest)
         
