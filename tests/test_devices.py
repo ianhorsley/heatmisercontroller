@@ -10,7 +10,7 @@ from heatmisercontroller.generaldevices import HeatmiserBroadcastDevice
 from heatmisercontroller.hm_constants import HMV3_ID, PROG_MODE_DAY
 from heatmisercontroller.exceptions import HeatmiserResponseError, HeatmiserControllerTimeError
 
-from mock_serial import SetupTestClass, MockHeatmiserAdaptor
+from .mock_serial import SetupTestClass, MockHeatmiserAdaptor
 
 class ArgumentStore(object):
     """Class used to replace class method allowing arguments to be captured"""
@@ -77,7 +77,7 @@ class TestReadingData(unittest.TestCase):
             self.func._procfield([2, 12, 12, 12], self.func.currenttime)
         
     def test_procpayload(self):
-        print "tz %i alt tz %i"%(time.timezone, time.altzone)
+        print("tz %i alt tz %i"%(time.timezone, time.altzone))
         goodmessage = [1, 37, 0, 22, 4, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 38, 1, 9, 12, 28, 1, 1, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 220, 0, 0, 0, 3, 14, 49, 36, 7, 0, 19, 9, 30, 10, 17, 0, 19, 21, 30, 10, 7, 0, 19, 21, 30, 10, 24, 0, 5, 24, 0, 5, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 8, 0, 9, 0, 18, 0, 19, 0, 24, 0, 24, 0, 24, 0, 24, 0, 7, 0, 20, 21, 30, 12, 24, 0, 12, 24, 0, 12, 7, 0, 20, 21, 30, 12, 24, 0, 12, 24, 0, 12, 7, 0, 19, 8, 30, 12, 16, 30, 20, 21, 0, 12, 7, 0, 20, 12, 0, 12, 17, 0, 20, 21, 30, 12, 5, 0, 20, 21, 30, 12, 24, 0, 12, 24, 0, 12, 7, 0, 20, 12, 0, 12, 17, 0, 20, 21, 30, 12, 7, 0, 12, 24, 0, 12, 24, 0, 12, 24, 0, 12, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 17, 30, 18, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0, 24, 0]
 
         self.func.autocorrectime = False
@@ -166,19 +166,19 @@ class TestReadingData(unittest.TestCase):
         self.assertEqual([3, 10], self.func.read_fields(['model', 'airtemp'], 0))
         responses = [[3], [0, 100, 0, 1]]
         adaptor.setresponse(responses)
-        print self.func.read_fields(['model', 'airtemp', 'heatingdemand'], 0)
+        print(self.func.read_fields(['model', 'airtemp', 'heatingdemand'], 0))
         responses = [[3], [0, 100, 0, 1]]
         adaptor.setresponse(responses)
-        print self.func.read_fields(['model', 'airtemp', 'hotwaterdemand'], 0)
+        print(self.func.read_fields(['model', 'airtemp', 'hotwaterdemand'], 0))
         responses = [[3, 0, 1, 0, 0, 0, 0, 4, 0, 0, 0, 0, 1, 7, 5, 20, 0, 0, 0], [0, 100, 0, 1]]
         adaptor.setresponse(responses)
-        print self.func.read_fields(['model', 'airtemp', 'hotwaterdemand', 'keylock'], 0)
+        print(self.func.read_fields(['model', 'airtemp', 'hotwaterdemand', 'keylock'], 0))
         responses = [[0, 3, 0, 1, 0, 0, 0, 0, 4, 0, 0, 0, 0, 1, 7, 5, 20, 0, 0, 0, 0, 0, 0, 0]]
         adaptor.setresponse(responses)
-        print self.func.read_fields(['holidayhours', 'version'], 0)
+        print(self.func.read_fields(['holidayhours', 'version'], 0))
         responses = [[0, 3, 0, 1, 0, 0, 0, 0, 4, 0, 0, 0], [0, 3, 0, 1, 0, 0, 0, 0, 4, 0, 0, 0]]
         adaptor.setresponse(responses)
-        print self.func.read_fields(['mon_heat', 'sun_heat'], 0)
+        print(self.func.read_fields(['mon_heat', 'sun_heat'], 0))
 
 class TestHWfloorlimit(unittest.TestCase):
     """Unittests for other functions"""
