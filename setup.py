@@ -7,7 +7,7 @@ def readme():
         return fhandle.read()
 
 setup(name='heatmisercontroller',
-      version='0.45',
+      version='0.46',
       description='Python implementation of Heatmiser protocol for serial connected thermostats ',
       long_description=readme(),
       classifiers=[
@@ -20,7 +20,6 @@ setup(name='heatmisercontroller',
       packages=['heatmisercontroller'],
       install_requires=[
         'datetime',
-        'logging',
         'pyserial',
         'configobj',
         'transitions'
