@@ -136,7 +136,7 @@ class HeatmiserField(HeatmiserFieldUnknown):
         if self.readvalues is None:
             return self.value
         else:
-            return self.readvalues.keys()[self.readvalues.values().index(self.value)]
+            return list(self.readvalues.keys())[list(self.readvalues.values()).index(self.value)]
 
     def write_value_from_text(self, value):
         """maps text to value, otherwise returns input"""

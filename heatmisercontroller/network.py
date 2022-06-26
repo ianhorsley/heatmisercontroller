@@ -14,7 +14,7 @@ from .generaldevices import HeatmiserBroadcastDevice, ThermoStatUnknown
 from .adaptor import HeatmiserAdaptor
 from .hm_constants import SLAVE_ADDR_MIN, SLAVE_ADDR_MAX
 from .exceptions import HeatmiserResponseError
-import setup as hms
+from . import setup as hms
 
 class HeatmiserNetwork(object):
     """Class that connects a set of devices (from configuration) and an adpator."""
@@ -56,7 +56,7 @@ class HeatmiserNetwork(object):
         self._statlist = statlist
         self._statnum = len(self._statlist)
 
-        self.controllers = range(self._statnum)
+        self.controllers = list(range(self._statnum))
         for name, controllersettings in statlist.iteritems():
             if hasattr(self, name):
                 logging.warn("error duplicate stat name")
@@ -101,7 +101,7 @@ class HeatmiserNetwork(object):
     
     def get_stat_address(self, shortname):
         """Get network address from device name."""
-        if isinstance(shortname, basestring):
+        if isinstance(shortname, str):
             return self._statlist[shortname]['address']
         else:
             return shortname
