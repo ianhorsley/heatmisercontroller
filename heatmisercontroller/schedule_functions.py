@@ -1,6 +1,5 @@
 """Classes for holding and processing Heatmier heating and hot water schedule fields"""
 import logging
-import itertools
 
 from .hm_constants import CURRENT_TIME_DAY, CURRENT_TIME_HOUR, CURRENT_TIME_MIN
 
@@ -71,7 +70,7 @@ class Scheduler(object):
         """Prints schedule to stdout"""
         print(self.title + " Schedule")
 
-        for name, entry in itertools.izip(self.printnames, self.entrynames):
+        for name, entry in zip(self.printnames, self.entrynames):
             if self.entries[entry] is None:
                 textstr = "None"
             else:
