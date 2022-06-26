@@ -1,4 +1,3 @@
-logging
 pyserial
 configobj
 coverage
