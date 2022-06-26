@@ -15,7 +15,7 @@ class TestFraming(unittest.TestCase):
         logging.basicConfig(level=logging.ERROR)
         self.goodwritemessage = [5, 11, 129, 1, 34, 0, 1, 0, 255, 222, 138] #sent message
         self.goodreadmessage = [5, 10, 129, 0, 34, 0, 8, 0, 193, 72] #sent message
-        self.goodresponsemessage = [129, 12, 0, 5, 0, 10, 0, 01, 00, 255, 145, 201]
+        self.goodresponsemessage = [129, 12, 0, 5, 0, 10, 0, 1, 00, 255, 145, 201]
         self.goodackmessage = [129, 7, 0, 5, 1, 116, 39]
         self.badackmessage = [129, 8, 0, 5, 1, 116, 39] # length doesn't match header and crc wrong
 
