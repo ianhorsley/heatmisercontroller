@@ -180,7 +180,7 @@ class HeatmiserField(HeatmiserFieldUnknown):
 
     def check_values(self, values):
         """check a single or double byte field value matches field spec"""
-        if not isinstance(values, (int, long)):
+        if not isinstance(values, int):
             #one or two byte field, not single length values
             raise TypeError("set_field: invalid requested value")
 
