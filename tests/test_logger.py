@@ -37,11 +37,13 @@ class TestLogging(unittest.TestCase):
 
         self.assertTrue(os.path.isfile(self.errorlogfile))
         self.assertFalse(os.path.isfile(self.alllogfile))
-        self.assertEqual(len(open(self.errorlogfile).readlines()), 1)
+        with open(self.errorlogfile) as fpointer:
+            self.assertEqual(len(fpointer.readlines()), 1)
         
         with open(self.errorlogfile) as fpointer:
             line = fpointer.readline().strip()
-            self.assertTrue(line.endswith('WARNING - Shown'))
+        
+        self.assertTrue(line.endswith('WARNING - Shown'))
         
     def test_logging_all(self):
         initialize_logger_full('', logging.INFO)
@@ -69,7 +71,8 @@ class TestLogging(unittest.TestCase):
         
         with open(self.errorlogfile) as fpointer:
             line = fpointer.readline().strip()
-            self.assertTrue(line.endswith('WARNING - Shown'))        
+        
+        self.assertTrue(line.endswith('WARNING - Shown'))        
         
 if __name__ == '__main__':
     unittest.main()
