@@ -31,7 +31,7 @@ class TestLogging(unittest.TestCase):
         
         logging.debug('Not shown')
         logging.info('Shown')
-        logging.warn('Shown')
+        logging.warning('Shown')
 
         self.assertTrue(os.path.isfile(self.errorlogfile))
         self.assertFalse(os.path.isfile(self.alllogfile))
@@ -46,7 +46,7 @@ class TestLogging(unittest.TestCase):
         initialize_logger_full('', logging.INFO)
         logging.debug('Not shown')
         logging.info('Shown')
-        logging.warn('Shown')
+        logging.warning('Shown')
         
         self.assertTrue(os.path.isfile(self.errorlogfile))
         self.assertTrue(os.path.isfile(self.alllogfile))
@@ -54,12 +54,12 @@ class TestLogging(unittest.TestCase):
 
     def test_logging_double(self):
         initialize_logger('', logging.DEBUG)
-        logging.warn('Shown')
+        logging.warning('Shown')
         initialize_logger_full('', logging.DEBUG)
         
         logging.debug('Not shown')
         logging.info('Shown')
-        logging.warn('Shown')
+        logging.warning('Shown')
 
         self.assertTrue(os.path.isfile(self.errorlogfile))
         self.assertTrue(os.path.isfile(self.alllogfile))

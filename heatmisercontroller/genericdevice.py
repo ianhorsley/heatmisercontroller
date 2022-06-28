@@ -114,7 +114,7 @@ class HeatmiserDevice(object):
         try:
             self.rawdata = self._adaptor.read_all_from_device(self.set_address, self.set_protocol, self.dcb_length)
         except serial.SerialException as err:
-            logging.warn("C%i Read all failed, Serial Port error %s"%(self.set_address, str(err)))
+            logging.warning("C%i Read all failed, Serial Port error %s"%(self.set_address, str(err)))
             raise
 
         logging.info("C%i Read all"%(self.set_address))
@@ -176,7 +176,7 @@ class HeatmiserDevice(object):
                     self.lastreadtime = time.time()
                     self._procpartpayload(rawdata, firstfield.name, lastfield.name)
             except serial.SerialException as err:
-                logging.warn("C%i Read failed of fields %s, Serial Port error %s"%(self.set_address, fieldstring, str(err)))
+                logging.warning("C%i Read failed of fields %s, Serial Port error %s"%(self.set_address, fieldstring, str(err)))
                 raise
             logging.info("C%i Read fields %s, in %i blocks"%(self.set_address, fieldstring, len(blockstoread)))
         else:
@@ -263,7 +263,7 @@ class HeatmiserDevice(object):
             try:
                 self._procfield(rawdata[dcbadd:dcbadd+length], field)
             except HeatmiserResponseError as err:
-                logging.warn("C%i Field %s process failed due to %s"%(self.set_address, field.name, str(err)))
+                logging.warning("C%i Field %s process failed due to %s"%(self.set_address, field.name, str(err)))
 
         self.rawdata[fullfirstdcbadd:fullfirstdcbadd+len(rawdata)] = rawdata
     
@@ -285,7 +285,7 @@ class HeatmiserDevice(object):
         try:
             self._adaptor.write_to_device(self.set_address, self.set_protocol, field.address, field.fieldlength, payloadbytes)
         except serial.SerialException as err:
-            logging.warn("C%i failed to set field %s to %s, due to %s"%(self.set_address, fieldname.ljust(FIELD_NAME_LENGTH), csvlist(printvalues), str(err)))
+            logging.warning("C%i failed to set field %s to %s, due to %s"%(self.set_address, fieldname.ljust(FIELD_NAME_LENGTH), csvlist(printvalues), str(err)))
             raise
         logging.info("C%i set field %s to %s"%(self.set_address, fieldname.ljust(FIELD_NAME_LENGTH), csvlist(printvalues)))
         
@@ -306,7 +306,7 @@ class HeatmiserDevice(object):
                 self.lastwritetime = time.time()
                 self._update_fields_values(writtenvalues, fields)
         except serial.SerialException as err:
-            logging.warn("C%i settings failed of fields %s, Serial Port error %s"%(self.set_address, self._csvlist_field_names_from(fields), str(err)))
+            logging.warning("C%i settings failed of fields %s, Serial Port error %s"%(self.set_address, self._csvlist_field_names_from(fields), str(err)))
             raise
         logging.info("C%i set fields %s in %i blocks"%(self.set_address, self._csvlist_field_names_from(fields), len(outputdata)))
 
