@@ -9,10 +9,10 @@ import time
 import copy
 import serial
 
-from fields import HeatmiserFieldSingleReadOnly, HeatmiserFieldDoubleReadOnly
-from hm_constants import DEFAULT_PROTOCOL, SLAVE_ADDR_MIN, SLAVE_ADDR_MAX
-from hm_constants import MAX_AGE_LONG
-from hm_constants import FIELD_NAME_LENGTH
+from .fields import HeatmiserFieldSingleReadOnly, HeatmiserFieldDoubleReadOnly
+from .hm_constants import DEFAULT_PROTOCOL, SLAVE_ADDR_MIN, SLAVE_ADDR_MAX
+from .hm_constants import MAX_AGE_LONG
+from .hm_constants import FIELD_NAME_LENGTH
 from .exceptions import HeatmiserResponseError
 from .logging_setup import csvlist
 
@@ -47,10 +47,10 @@ class HeatmiserDevice(object):
     def _load_settings(self, settings, generalsettings):
         """Loading settings from dictionary into properties"""
         if generalsettings is not None:
-            for name, value in generalsettings.iteritems():
+            for name, value in generalsettings.items():
                 setattr(self, "set_" + name, value)
 
-        for name, value in settings.iteritems():
+        for name, value in settings.items():
             setattr(self, "set_" + name, value)
 
     def _buildfields(self):

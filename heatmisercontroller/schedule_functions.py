@@ -1,8 +1,7 @@
 """Classes for holding and processing Heatmier heating and hot water schedule fields"""
 import logging
-import itertools
 
-from hm_constants import CURRENT_TIME_DAY, CURRENT_TIME_HOUR, CURRENT_TIME_MIN
+from .hm_constants import CURRENT_TIME_DAY, CURRENT_TIME_HOUR, CURRENT_TIME_MIN
 
 #mapping for chunks of heating schedule for a day
 MAP_HOUR = 0
@@ -65,13 +64,13 @@ class Scheduler(object):
             raise IndexError("Schedule length not multiple of %d"%self.valuesperentry)
         pad_item = [HOUR_UNUSED, 0, 12][0:self.valuesperentry]
 
-        return schedule + pad_item * ((self.valuesperentry * self.entriesperday - len(schedule))/self.valuesperentry)
+        return schedule + pad_item * int((self.valuesperentry * self.entriesperday - len(schedule))/self.valuesperentry)
 
     def display(self):
         """Prints schedule to stdout"""
         print(self.title + " Schedule")
 
-        for name, entry in itertools.izip(self.printnames, self.entrynames):
+        for name, entry in zip(self.printnames, self.entrynames):
             if self.entries[entry] is None:
                 textstr = "None"
             else:

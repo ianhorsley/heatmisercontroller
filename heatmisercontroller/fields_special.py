@@ -2,9 +2,9 @@
 import logging
 import time
 
-from fields import HeatmiserFieldSingle, HeatmiserFieldSingleReadOnly, HeatmiserFieldMulti
-from fields import VALUES_ON_OFF
-from hm_constants import CURRENT_TIME_DAY, CURRENT_TIME_HOUR, CURRENT_TIME_MIN, CURRENT_TIME_SEC, TIME_ERR_LIMIT
+from .fields import HeatmiserFieldSingle, HeatmiserFieldSingleReadOnly, HeatmiserFieldMulti
+from .fields import VALUES_ON_OFF
+from .hm_constants import CURRENT_TIME_DAY, CURRENT_TIME_HOUR, CURRENT_TIME_MIN, CURRENT_TIME_SEC, TIME_ERR_LIMIT
 from .exceptions import HeatmiserResponseError, HeatmiserControllerTimeError
 
 class HeatmiserFieldHotWaterVersion(HeatmiserFieldSingleReadOnly):

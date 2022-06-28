@@ -105,11 +105,11 @@ class TestFields(unittest.TestCase):
         remotetime = readtime + 5
         time.sleep(1)
         fieldtime = self.create_time_field(func.localtimearray(readtime), func.localtimearray(remotetime))
-        print fieldtime.timeerr
-        print func.localtimearray(readtime)
-        print func.localtimearray(remotetime)
-        print func.localtimearray(time.time())
-        print fieldtime.get_value()
+        print(fieldtime.timeerr)
+        print(func.localtimearray(readtime))
+        print(func.localtimearray(remotetime))
+        print(func.localtimearray(time.time()))
+        print(fieldtime.get_value())
         
 def get_offset(timenum):
     #gettime zone offset for that date

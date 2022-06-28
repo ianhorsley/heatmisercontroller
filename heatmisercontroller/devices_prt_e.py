@@ -7,14 +7,14 @@ Ian Horsley 2018
 import logging
 import time
 
-from genericdevice import HeatmiserDevice, DEVICETYPES
-from fields import HeatmiserFieldSingle, HeatmiserFieldSingleReadOnly, HeatmiserFieldDouble, HeatmiserFieldDoubleReadOnly, HeatmiserFieldDoubleReadOnlyTenths
-from fields_special import HeatmiserFieldTime, HeatmiserFieldHeat
-from fields import VALUES_ON_OFF, VALUES_OFF_ON, VALUES_OFF
-from hm_constants import MAX_AGE_LONG, MAX_AGE_MEDIUM, MAX_AGE_SHORT, MAX_AGE_USHORT
+from .genericdevice import HeatmiserDevice, DEVICETYPES
+from .fields import HeatmiserFieldSingle, HeatmiserFieldSingleReadOnly, HeatmiserFieldDouble, HeatmiserFieldDoubleReadOnly, HeatmiserFieldDoubleReadOnlyTenths
+from .fields_special import HeatmiserFieldTime, HeatmiserFieldHeat
+from .fields import VALUES_ON_OFF, VALUES_OFF_ON, VALUES_OFF
+from .hm_constants import MAX_AGE_LONG, MAX_AGE_MEDIUM, MAX_AGE_SHORT, MAX_AGE_USHORT
 from .exceptions import HeatmiserControllerTimeError, HeatmiserControllerSensorError
-from schedule_functions import SchedulerDayHeat, SchedulerWeekHeat
-from thermostatstate import Thermostat
+from .schedule_functions import SchedulerDayHeat, SchedulerWeekHeat
+from .thermostatstate import Thermostat
 
 class ThermoStatWeek(HeatmiserDevice):
     """Device class for thermostats operating weekly programmode

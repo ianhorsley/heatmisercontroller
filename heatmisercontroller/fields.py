@@ -2,7 +2,7 @@
 import logging
 import time
 
-from hm_constants import BYTEMASK
+from .hm_constants import BYTEMASK
 from .exceptions import HeatmiserResponseError
 from .observer import Notifier
 
@@ -33,8 +33,17 @@ class HeatmiserFieldUnknown(Notifier):
     def __repr__(self):
         return str(self.value)
 
-    def __cmp__(self, value):
-        return cmp(self.value, value)
+    def __lt__(self, value):
+        return self.value < value
+
+    def __le__(self, value):
+        return self.value <= value
+
+    def __gt__(self, value):
+        return self.value > value
+
+    def __ge__(self, value):
+        return self.value >= value
 
     def _reset(self):
         """Reset data and values to unknown."""
@@ -127,7 +136,7 @@ class HeatmiserField(HeatmiserFieldUnknown):
         if self.readvalues is None:
             return self.value
         else:
-            return self.readvalues.keys()[self.readvalues.values().index(self.value)]
+            return list(self.readvalues.keys())[list(self.readvalues.values()).index(self.value)]
 
     def write_value_from_text(self, value):
         """maps text to value, otherwise returns input"""
@@ -180,7 +189,7 @@ class HeatmiserField(HeatmiserFieldUnknown):
 
     def check_values(self, values):
         """check a single or double byte field value matches field spec"""
-        if not isinstance(values, (int, long)):
+        if not isinstance(values, int):
             #one or two byte field, not single length values
             raise TypeError("set_field: invalid requested value")
 

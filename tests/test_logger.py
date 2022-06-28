@@ -15,10 +15,10 @@ class TestLogging(unittest.TestCase):
         self.alllogfile = "all.log"
         self.assertFalse(os.path.isfile(self.errorlogfile))
         self.assertFalse(os.path.isfile(self.alllogfile))
-        print "test logging setup"
+        print("test logging setup")
 
     def tearDown(self):
-        print "test logging teardown"
+        print("test logging teardown")
         if os.path.isfile(self.errorlogfile):
             os.remove(self.errorlogfile)
         if os.path.isfile(self.alllogfile):

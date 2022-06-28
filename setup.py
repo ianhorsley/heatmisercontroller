@@ -7,11 +7,11 @@ def readme():
         return fhandle.read()
 
 setup(name='heatmisercontroller',
-      version='0.46',
+      version='0.50',
       description='Python implementation of Heatmiser protocol for serial connected thermostats ',
       long_description=readme(),
       classifiers=[
-        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3.7',
       ],
       url='https://github.com/ianhorsley/heatmisercontroller',
       author='Ian Horsley',

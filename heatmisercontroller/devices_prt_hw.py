@@ -5,12 +5,12 @@ PRT-HW Thermostat classes on the Heatmiser network
 Ian Horsley 2018
 """
 
-from genericdevice import DEVICETYPES
-from devices_prt_e import ThermoStatWeek, ThermoStatDay
-from fields import HeatmiserFieldSingleReadOnly
-from fields_special import HeatmiserFieldWater, HeatmiserFieldHotWaterDemand, HeatmiserFieldHotWaterVersion
-from hm_constants import MAX_AGE_LONG, MAX_AGE_MEDIUM, MAX_AGE_USHORT
-from schedule_functions import SchedulerDayWater, SchedulerWeekWater, SCH_ENT_TEMP
+from .genericdevice import DEVICETYPES
+from .devices_prt_e import ThermoStatWeek, ThermoStatDay
+from .fields import HeatmiserFieldSingleReadOnly
+from .fields_special import HeatmiserFieldWater, HeatmiserFieldHotWaterDemand, HeatmiserFieldHotWaterVersion
+from .hm_constants import MAX_AGE_LONG, MAX_AGE_MEDIUM, MAX_AGE_USHORT
+from .schedule_functions import SchedulerDayWater, SchedulerWeekWater, SCH_ENT_TEMP
 
 class ThermoStatHotWaterWeek(ThermoStatWeek):
     """Device class for thermostats with hotwater operating weekly programmode

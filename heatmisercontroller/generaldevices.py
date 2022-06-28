@@ -7,12 +7,12 @@ Ian Horsley 2018
 """
 import logging
 
-from genericdevice import HeatmiserDevice
-from devices_prt_hw import ThermoStatHotWaterDay
-from fields import HeatmiserFieldUnknown, HeatmiserFieldSingleReadOnly
-from decorators import ListWrapperClass, run_function_on_all
-from hm_constants import DEFAULT_PROTOCOL, DEFAULT_PROG_MODE, BROADCAST_ADDR
-from hm_constants import MAX_AGE_LONG
+from .genericdevice import HeatmiserDevice
+from .devices_prt_hw import ThermoStatHotWaterDay
+from .fields import HeatmiserFieldUnknown, HeatmiserFieldSingleReadOnly
+from .decorators import ListWrapperClass, run_function_on_all
+from .hm_constants import DEFAULT_PROTOCOL, DEFAULT_PROG_MODE, BROADCAST_ADDR
+from .hm_constants import MAX_AGE_LONG
 from .logging_setup import csvlist
 
 class ThermoStatUnknown(HeatmiserDevice):
