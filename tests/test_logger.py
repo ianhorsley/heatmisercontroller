@@ -11,6 +11,7 @@ class TestLogging(unittest.TestCase):
         self.logger = logging.getLogger()
         for handler in self.logger.handlers[:]:
             self.logger.removeHandler(handler)
+            handler.close()
         self.errorlogfile = "error.log"
         self.alllogfile = "all.log"
         self.assertFalse(os.path.isfile(self.errorlogfile))
@@ -25,6 +26,7 @@ class TestLogging(unittest.TestCase):
             os.remove(self.alllogfile)
         for handler in self.logger.handlers[:]:
             self.logger.removeHandler(handler)
+            handler.close()
 
     def test_logging(self):
         initialize_logger('', logging.ERROR)
