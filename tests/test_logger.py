@@ -11,6 +11,7 @@ class TestLogging(unittest.TestCase):
         self.logger = logging.getLogger()
         for handler in self.logger.handlers[:]:
             self.logger.removeHandler(handler)
+            handler.close()
         self.errorlogfile = "error.log"
         self.alllogfile = "all.log"
         self.assertFalse(os.path.isfile(self.errorlogfile))
@@ -25,28 +26,30 @@ class TestLogging(unittest.TestCase):
             os.remove(self.alllogfile)
         for handler in self.logger.handlers[:]:
             self.logger.removeHandler(handler)
+            handler.close()
 
     def test_logging(self):
         initialize_logger('', logging.ERROR)
         
         logging.debug('Not shown')
         logging.info('Shown')
-        logging.warn('Shown')
+        logging.warning('Shown')
 
         self.assertTrue(os.path.isfile(self.errorlogfile))
         self.assertFalse(os.path.isfile(self.alllogfile))
-        self.assertEqual(len(open(self.errorlogfile).readlines()), 1)
+        with open(self.errorlogfile) as fpointer:
+            self.assertEqual(len(fpointer.readlines()), 1)
         
         with open(self.errorlogfile) as fpointer:
             line = fpointer.readline().strip()
-
+        
         self.assertTrue(line.endswith('WARNING - Shown'))
         
     def test_logging_all(self):
         initialize_logger_full('', logging.INFO)
         logging.debug('Not shown')
         logging.info('Shown')
-        logging.warn('Shown')
+        logging.warning('Shown')
         
         self.assertTrue(os.path.isfile(self.errorlogfile))
         self.assertTrue(os.path.isfile(self.alllogfile))
@@ -54,12 +57,12 @@ class TestLogging(unittest.TestCase):
 
     def test_logging_double(self):
         initialize_logger('', logging.DEBUG)
-        logging.warn('Shown')
+        logging.warning('Shown')
         initialize_logger_full('', logging.DEBUG)
         
         logging.debug('Not shown')
         logging.info('Shown')
-        logging.warn('Shown')
+        logging.warning('Shown')
 
         self.assertTrue(os.path.isfile(self.errorlogfile))
         self.assertTrue(os.path.isfile(self.alllogfile))
@@ -68,7 +71,7 @@ class TestLogging(unittest.TestCase):
         
         with open(self.errorlogfile) as fpointer:
             line = fpointer.readline().strip()
-
+        
         self.assertTrue(line.endswith('WARNING - Shown'))        
         
 if __name__ == '__main__':
