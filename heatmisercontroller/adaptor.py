@@ -78,7 +78,6 @@ class HeatmiserAdaptor():
 
 ### low level serial commands
 
-    @retryer(max_retries=3)
     def connect(self):
         """If not open, open serial port and log settings"""
         if not self.serport.isOpen():
