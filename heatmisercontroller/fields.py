@@ -153,8 +153,8 @@ class HeatmiserField(HeatmiserFieldUnknown):
         """update stored data and readtime if data valid. Compute and store value from data."""
         value = self._calculate_value(data)
         if self.expectedvalue is not None and value != self.expectedvalue:
-            raise HeatmiserResponseError('Value %d is unexpected for %s, expected %d',
-                                            value, self.name, self.expectedvalue)
+            raise HeatmiserResponseError('Value %d is unexpected for %s, expected %d'%(
+                                            value, self.name, self.expectedvalue))
         self._validate_range(value)
         self.data = data
         self.value = value
@@ -177,14 +177,14 @@ class HeatmiserField(HeatmiserFieldUnknown):
 
         if len(expectedrange) == 2:
             if values < expectedrange[0] or values > expectedrange[1]:
-                raise errortype("Value %.1f  outside expected range (%.1f, %.1f) for %s",
-                                    values, expectedrange[0], expectedrange[1], self.name)
+                raise errortype("Value %.1f  outside expected range (%.1f, %.1f) for %s"%(
+                                    values, expectedrange[0], expectedrange[1], self.name))
         elif len(expectedrange) > 2:
             if values not in expectedrange:
-                raise errortype("Value %.1f  outside expected range %s for %s",
-                                    values, ','.join(map(str, expectedrange)), self.name)
+                raise errortype("Value %.1f  outside expected range %s for %s"%(
+                                    values, ','.join(map(str, expectedrange)), self.name))
         else:
-            raise errortype("Expected range not defined for %s", self.name)
+            raise errortype("Expected range not defined for %s"%(self.name))
 
     def _calculate_value(self, data):
         """Calculate value from payload bytes"""
