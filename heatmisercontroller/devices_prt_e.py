@@ -4,11 +4,13 @@ PRT-E Thermostat classes on the Heatmiser network
 
 Ian Horsley 2018
 """
+from __future__ import absolute_import
 import logging
 import time
 
 from .genericdevice import HeatmiserDevice, DEVICETYPES
-from .fields import HeatmiserFieldSingle, HeatmiserFieldSingleReadOnly, HeatmiserFieldDouble, HeatmiserFieldDoubleReadOnly, HeatmiserFieldDoubleReadOnlyTenths
+from .fields import HeatmiserFieldSingle, HeatmiserFieldSingleReadOnly
+from .fields import HeatmiserFieldDouble, HeatmiserFieldDoubleReadOnly, HeatmiserFieldDoubleReadOnlyTenths
 from .fields_special import HeatmiserFieldTime, HeatmiserFieldHeat
 from .fields import VALUES_ON_OFF, VALUES_OFF_ON, VALUES_OFF
 from .hm_constants import MAX_AGE_LONG, MAX_AGE_MEDIUM, MAX_AGE_SHORT, MAX_AGE_USHORT
@@ -20,7 +22,7 @@ class ThermoStatWeek(HeatmiserDevice):
     """Device class for thermostats operating weekly programmode
     Heatmiser prt_e_model."""
     is_hot_water = False #returns True if stat is a model with hotwater control, False otherwise
-    
+
     def __init__(self, adaptor, devicesettings, generalsettings=None):
         self.heat_schedule = None #placeholder for heating schedule object
         self.thermostat = None #placeholder for thermostat object
@@ -83,12 +85,17 @@ class ThermoStatWeek(HeatmiserDevice):
         self.setroomtemp.add_notifable_changed(self.thermostat.switch_swap)
         ###don't need the following if not modelling override holds or program events internally
         ###program change event
-        self.tempholdmins.add_notifable_is(self.tempholdmins.readvalues['OFF'], self.thermostat.switch_swap) #check triggered by value force change and data change
+        #check triggered by value force change and data change
+        self.tempholdmins.add_notifable_is(self.tempholdmins.readvalues['OFF'],
+                                            self.thermostat.switch_swap)
         self.tempholdmins.add_notifable_is_not(self.thermostat.switch_swap)
         #between frost and setpoint
-        self.runmode.add_notifable_is(self.runmode.readvalues['HEAT'], self.thermostat.switch_swap)
-        self.runmode.add_notifable_is(self.runmode.readvalues['FROST'], self.thermostat.switch_swap)
-        self.holidayhours.add_notifable_is(self.holidayhours.readvalues['OFF'], self.thermostat.switch_swap)
+        self.runmode.add_notifable_is(self.runmode.readvalues['HEAT'],
+                                        self.thermostat.switch_swap)
+        self.runmode.add_notifable_is(self.runmode.readvalues['FROST'],
+                                        self.thermostat.switch_swap)
+        self.holidayhours.add_notifable_is(self.holidayhours.readvalues['OFF'],
+                                        self.thermostat.switch_swap)
         self.holidayhours.add_notifable_is_not(self.thermostat.switch_swap)
 
     def _set_expected_field_values(self):
@@ -109,7 +116,7 @@ class ThermoStatWeek(HeatmiserDevice):
             self.currenttime.comparecontrollertime()
         except HeatmiserControllerTimeError as errstr:
             if self.set_autocorrectime is True:
-                logging.warn("C%i %s"%(self.set_address, errstr))
+                logging.warning("C%i %s", self.set_address, errstr)
                 self.set_time()
             else:
                 raise
@@ -140,8 +147,10 @@ class ThermoStatWeek(HeatmiserDevice):
 
     def read_temp_state(self):
         """Returns the current temperature control state from off to following program"""
-        self.read_fields(['mon_heat', 'tues_heat', 'wed_heat', 'thurs_heat', 'fri_heat', 'wday_heat', 'wend_heat'], -1)
-        self.read_fields(['onoff', 'frostprotdisable', 'holidayhours', 'runmode', 'tempholdmins', 'setroomtemp'])
+        self.read_fields(['mon_heat', 'tues_heat', 'wed_heat', 'thurs_heat',
+                            'fri_heat', 'wday_heat', 'wend_heat'], -1)
+        self.read_fields(['onoff', 'frostprotdisable', 'holidayhours',
+                            'runmode', 'tempholdmins', 'setroomtemp'])
 
         return self.thermostat.state
 
@@ -152,7 +161,7 @@ class ThermoStatWeek(HeatmiserDevice):
 
         if self.sensorsavaliable.is_value('INT_ONLY') or self.sensorsavaliable.is_value('INT_FLOOR'):
             return 1
-        elif self.sensorsavaliable.is_value('EXT_ONLY') or self.sensorsavaliable.is_value('EXT_FLOOR'):
+        if self.sensorsavaliable.is_value('EXT_ONLY') or self.sensorsavaliable.is_value('EXT_FLOOR'):
             return 2
         raise ValueError("sensorsavaliable field invalid")
 
@@ -163,11 +172,11 @@ class ThermoStatWeek(HeatmiserDevice):
             if self.errorcode == 224:
                 raise HeatmiserControllerSensorError("airtemp sensor error")
             return self.airtemp.value
-        else:
-            self.read_fields(['remoteairtemp', 'errorcode'], self.set_max_age_temp)
-            if self.errorcode == 226:
-                raise HeatmiserControllerSensorError("remote airtemp sensor error")
-            return self.remoteairtemp.value
+
+        self.read_fields(['remoteairtemp', 'errorcode'], self.set_max_age_temp)
+        if self.errorcode == 226:
+            raise HeatmiserControllerSensorError("remote airtemp sensor error")
+        return self.remoteairtemp.value
 
     def read_time(self, maxage=0):
         """Readtime, getting from device if required"""
@@ -192,16 +201,18 @@ class ThermoStatWeek(HeatmiserDevice):
         """sets the temperature demand overriding the program."""
         #Believe it returns at next prog change.
         if self.read_field('tempholdmins') == 0: #check hold temp not applied
-            return self.set_field('setroomtemp', temp)
+            self.set_field('setroomtemp', temp)
         else:
-            logging.warn("%i address, temp hold applied so won't set temp"%(self.set_address))
+            logging.warning("%i address, temp hold applied so won't set temp",
+                                self.set_address)
 
     def release_temp(self):
-        """release setTemp back to the program, but only if temp isn't held for a time (holdTemp)."""
+        """release setTemp back to the program, only if temp isn't held for a time (holdTemp)."""
         if self.read_field('tempholdmins') == 0: #check hold temp not applied
-            return self.set_field('tempholdmins', 0)
+            self.set_field('tempholdmins', 0)
         else:
-            logging.warn("%i address, temp hold applied so won't remove set temp"%(self.set_address))
+            logging.warning("%i address, temp hold applied so won't remove set temp",
+                                self.set_address)
 
     def hold_temp(self, minutes, temp):
         """sets the temperature demand overrding the program for a set time."""
@@ -244,7 +255,8 @@ class ThermoStatDay(ThermoStatWeek):
     def _connect_observers(self):
         """connect obersers to fields"""
         super(ThermoStatDay, self)._connect_observers()
-        fieldnames = ['mon_heat', 'tues_heat', 'wed_heat', 'thurs_heat', 'fri_heat', 'sat_heat', 'sun_heat']
+        fieldnames = ['mon_heat', 'tues_heat', 'wed_heat',
+                        'thurs_heat', 'fri_heat', 'sat_heat', 'sun_heat']
         for fieldname in fieldnames:
             getattr(self, fieldname).add_notifable_changed(self.heat_schedule.set_raw_field)
 
