@@ -137,7 +137,6 @@ class HeatmiserDevice():
         
         fieldids = [self._fieldnametonum[fieldname] for fieldname in fieldnames if hasattr(self, fieldname) and (maxage == 0 or not getattr(self, fieldname).check_data_fresh(maxage))]
         fieldids = list(set(fieldids)) #remove duplicates, ordering doesn't matter
-
         if len(fieldids) > 0:
             self._get_fields(fieldids)
 
