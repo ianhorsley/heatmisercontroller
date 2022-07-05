@@ -8,6 +8,7 @@ Ian Horsley 2018
 from .genericdevice import DEVICETYPES
 from .devices_prt_e import ThermoStatWeek, ThermoStatDay
 from .fields import HeatmiserFieldSingleReadOnly
+from .fields import VALUES_ON_OFF
 from .fields_special import HeatmiserFieldWater, HeatmiserFieldHotWaterDemand, HeatmiserFieldHotWaterVersion
 from .hm_constants import MAX_AGE_LONG, MAX_AGE_MEDIUM, MAX_AGE_USHORT
 from .schedule_functions import SchedulerDayWater, SchedulerWeekWater, SCH_ENT_TEMP
@@ -75,10 +76,10 @@ class ThermoStatHotWaterWeek(ThermoStatWeek):
         self.read_fields(['mon_water', 'tues_water', 'wed_water', 'thurs_water', 'fri_water', 'wday_water', 'wend_water'], -1)
         self.read_fields(['onoff', 'holidayhours', 'hotwaterdemand'])
         
-        if self.onoff == WRITE_ONOFF_OFF:
-            return self.TEMP_STATE_OFF
+        if self.onoff == VALUES_ON_OFF['OFF']:
+            return self.thermostat.TEMP_STATE_OFF
         elif self.holidayhours != 0:
-            return self.TEMP_STATE_HOLIDAY
+            return self.thermostat.TEMP_STATE_HOLIDAY
         else:
             self.read_field('currenttime', MAX_AGE_MEDIUM)
             
@@ -86,8 +87,8 @@ class ThermoStatHotWaterWeek(ThermoStatWeek):
             scheduletarget = self.water_schedule.get_current_schedule_item(locatimenow)
 
             if scheduletarget[SCH_ENT_TEMP] != self.hotwaterdemand:
-                return self.TEMP_STATE_OVERRIDDEN
-        return self.TEMP_STATE_PROGRAM
+                return self.thermostat.TEMP_STATE_OVERRIDDEN
+        return self.thermostat.TEMP_STATE_PROGRAM
 
     def set_water_schedule(self, day, schedule):
         """Set water schedule for a single day"""
