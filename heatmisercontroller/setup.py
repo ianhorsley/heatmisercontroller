@@ -1,5 +1,6 @@
 """User interface to setup the contoller."""
 
+from __future__ import absolute_import
 import logging
 import os
 from configobj import ConfigObj
@@ -46,15 +47,14 @@ class HeatmiserControllerSetup(object):
         To be implemented in child class.
 
         """
-        pass
 
     def check_settings(self):
         """Check settings
-        
+
         Update attribute settings and return True if modified.
-        
+
         To be implemented in child class.
-        
+
         """
 
 class HeatmiserControllerFileSetup(HeatmiserControllerSetup):
@@ -67,41 +67,44 @@ class HeatmiserControllerFileSetup(HeatmiserControllerSetup):
 
         self._module_path = os.path.abspath(os.path.dirname(__file__))
         specpath = os.path.join(self._module_path, "hmcontroller.spec")
-        
+
         # List of expected sections
         self._sections = ['controller', 'serial', 'devices', 'setup']
-            
+
         # Initialize attribute settings as a ConfigObj instance
         self._logger.debug("Loading %s and checking against %s"%(filename, specpath))
         try:
             self.settings = ConfigObj(filename, file_error=True, configspec=specpath)
             self._validator = Validator()
         except IOError as err:
-            raise HeatmiserControllerSetupInitError(err)
+            raise HeatmiserControllerSetupInitError(err) from err
         except SyntaxError as err:
             raise HeatmiserControllerSetupInitError(
-                'Error parsing config file \"%s\": ' % filename + str(err))
+                'Error parsing config file \"%s\": ' % filename + str(err)) from err
         except KeyError as err:
             raise HeatmiserControllerSetupInitError(
-                'Configuration file error - section missing: ' + str(err))
-        
+                'Configuration file error - section missing: ' + str(err)) from err
+
         #check settings and add any default values
         self._check_settings()
-        
+
         # Initialize update timestamps
         self._settings_update_timestamp = 0
-        
+
         # Load use configured variables
-        for name, value in self.settings['setup'].iteritems():
+        for name, value in iter(self.settings['setup'].items()):
             setattr(self, '_c_'+name, value)
 
         # create a timeout message if time out is set (>0)
-        self.retry_msg = " Retry in " + str(self._c_retry_time_interval) + " seconds" if self._c_retry_time_interval <= 0 else ""
+        self.retry_msg = " Retry in " + str(self._c_retry_time_interval) 
+                            + " seconds" if self._c_retry_time_interval <= 0 else ""
 
     # def reload_settings(self):
         # """Reload and check settings
 
-        # Update attribute settings and return True if modified. Return False if failed to load new settings. Return None if nothing new or not checked
+        # Update attribute settings and return True if modified. 
+        # Return False if failed to load new settings.
+        # Return None if nothing new or not checked
 
         # """
         
@@ -141,7 +144,7 @@ class HeatmiserControllerFileSetup(HeatmiserControllerSetup):
                 # self.settings = settings
                 # return False
             # return True
-            
+
     def _check_settings(self):
         """Function validates configuration against specification."""
         try:
