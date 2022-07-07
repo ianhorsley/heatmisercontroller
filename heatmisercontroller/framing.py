@@ -120,7 +120,7 @@ def verify_response(protocol, source, destination, expected_function, expected_l
         # check function
         _check_response_frame_function(expected_function, data)
     except HeatmiserResponseError as err:
-        logging.warning("C%s Invalid Response: %s: %s" %(source, str(err), data))
+        logging.getLogger(__name__).warning("C%s Invalid Response: %s: %s" %(source, str(err), data))
         raise
 
     ## missing check that it is valid for this type of controller. Use DCBUnique function not false.

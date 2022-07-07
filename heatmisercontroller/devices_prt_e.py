@@ -150,7 +150,7 @@ class ThermoStatWeek(HeatmiserDevice):
             self.currenttime.comparecontrollertime()
         except HeatmiserControllerTimeError as errstr:
             if self.set_autocorrectime is True:
-                logging.warning("C%i %s", self.set_address, errstr)
+                self._logger.warning("C%i %s", self.set_address, errstr)
                 self.set_time()
             else:
                 raise
@@ -237,7 +237,7 @@ class ThermoStatWeek(HeatmiserDevice):
         if self.read_field('tempholdmins') == 0: #check hold temp not applied
             self.set_field('setroomtemp', temp)
         else:
-            logging.warning("%i address, temp hold applied so won't set temp",
+            self._logger.warning("%i address, temp hold applied so won't set temp",
                                 self.set_address)
 
     def release_temp(self):
@@ -245,7 +245,7 @@ class ThermoStatWeek(HeatmiserDevice):
         if self.read_field('tempholdmins') == 0: #check hold temp not applied
             self.set_field('tempholdmins', 0)
         else:
-            logging.warning("%i address, temp hold applied so won't remove set temp",
+            self._logger.warning("%i address, temp hold applied so won't remove set temp",
                                 self.set_address)
 
     def hold_temp(self, minutes, temp):

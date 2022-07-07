@@ -64,7 +64,7 @@ class HeatmiserFieldTime(HeatmiserFieldMulti):
         wrappeddifferenceup = directdifference - self.DAYSECS * 7 #compute the absolute difference on rollover
         wrappeddifferencedown = directdifference + self.DAYSECS * 7 #compute the absolute difference on rollover
         self.timeerr = min([directdifference, wrappeddifferenceup, wrappeddifferencedown], key=abs)
-        logging.debug("Local time %i, remote time %i, error %i"%(localweeksecs, remoteweeksecs, self.timeerr))
+        self._logger.debug("Local time %i, remote time %i, error %i"%(localweeksecs, remoteweeksecs, self.timeerr))
 
         if abs(self.timeerr) > self.DAYSECS:
             raise HeatmiserControllerTimeError("Incorrect day : local is %s, sensor is %s" % (localtimearray[CURRENT_TIME_DAY], self.value[CURRENT_TIME_DAY]))
