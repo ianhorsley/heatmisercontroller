@@ -13,7 +13,6 @@ from .fields import HeatmiserFieldUnknown, HeatmiserFieldSingleReadOnly
 from .decorators import ListWrapperClass, run_function_on_all
 from .hm_constants import DEFAULT_PROTOCOL, DEFAULT_PROG_MODE, BROADCAST_ADDR
 from .hm_constants import MAX_AGE_LONG
-from .logging_setup import csvlist
 
 class ThermoStatUnknown(HeatmiserDevice):
     """Device class for unknown thermostats operating unknown programmode"""
@@ -59,11 +58,11 @@ class HeatmiserBroadcastDevice(ThermoStatHotWaterDay):
     #run read functions on all stats
     @run_function_on_all(_controllerlist)
     def read_field(self, fieldname, maxage=None):
-        logging.info("All reading %s from %i controllers"%(fieldname, len(self._controllerlist.list)))
+        self._logger.info("All reading %s from %i controllers", fieldname, len(self._controllerlist.list))
             
     @run_function_on_all(_controllerlist)
     def read_fields(self, fieldnames, maxage=None):
-        logging.info("All reading %s from %i controllers"%(csvlist(fieldnames), len(self._controllerlist.list)))
+        self._logger.info("All reading %s from %i controllers", fieldnames, len(self._controllerlist.list))
         
     @run_function_on_all(_controllerlist)
     def read_air_temp(self):

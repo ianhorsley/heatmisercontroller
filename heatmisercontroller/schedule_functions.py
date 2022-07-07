@@ -1,5 +1,5 @@
 """Classes for holding and processing Heatmier heating and hot water schedule fields"""
-import logging
+
 
 from .hm_constants import CURRENT_TIME_DAY, CURRENT_TIME_HOUR, CURRENT_TIME_MIN
 
@@ -76,7 +76,6 @@ class Scheduler(object):
             else:
                 textstr = self.entry_text(self.entries[entry])
             print(name.ljust(10) + textstr)
-            logging.info(textstr)
 
     @staticmethod
     def _chunks(fulllist, chunklength):

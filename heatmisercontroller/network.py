@@ -21,7 +21,8 @@ class HeatmiserNetwork():
     ### stat list setup
 
     def __init__(self, configfile=None):
-
+        self._logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
+        self._logger.debug('creating an instance of %s', self.__class__.__name__)
         # Select default configuration file if none provided
         if configfile is None:
             self._module_path = os.path.abspath(os.path.dirname(__file__))
@@ -32,7 +33,7 @@ class HeatmiserNetwork():
             self._setup = hms.HeatmiserControllerFileSetup(configfile)
             settings = self._setup.settings
         except hms.HeatmiserControllerSetupInitError as err:
-            logging.error(err)
+            self._logger.error(err)
             raise
 
         # Initialize and connect to heatmiser network, probably through serial port
@@ -60,7 +61,7 @@ class HeatmiserNetwork():
         self.controllers = list(range(self._statnum))
         for name, controllersettings in iter(statlist.items()):
             if hasattr(self, name):
-                logging.warning("error duplicate stat name")
+                self._logger.warning("error duplicate stat name")
             else:
                 new_device = self.add_device(name, controllersettings, generalsettings)
                 self.controllers[controllersettings['display_order'] - 1] = new_device
@@ -87,11 +88,11 @@ class HeatmiserNetwork():
                 # use fields from device rather to set the expected mode and type
                 test_device.read_fields(['model', 'programmode'], 0)
             except HeatmiserResponseError as err:
-                logging.info("C%i device not found, library error %s", address, err)
+                self._logger.info("C%i device not found, library error %s", address, err)
             else:
                 model = test_device.model.read_value_text()
                 prog_mode = test_device.programmode.read_value_text()
-                logging.info("C%i device %s found, with program %s", address, model, prog_mode)
+                self._logger.info("C%i device %s found, with program %s", address, model, prog_mode)
                 controllersettings = {
                     'address': address,
                     'expected_model': model,

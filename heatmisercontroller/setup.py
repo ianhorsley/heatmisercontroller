@@ -60,7 +60,8 @@ class HeatmiserControllerSetup(object):
 class HeatmiserControllerFileSetup(HeatmiserControllerSetup):
     """Handles importing confiugration from file"""
     def __init__(self, filename):
-        
+        self._logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
+        self._logger.debug('creating an instance of %s', self.__class__.__name__)
         # Initialization
         super(HeatmiserControllerFileSetup, self).__init__()
 
@@ -71,7 +72,7 @@ class HeatmiserControllerFileSetup(HeatmiserControllerSetup):
         self._sections = ['controller', 'serial', 'devices', 'setup']
             
         # Initialize attribute settings as a ConfigObj instance
-        logging.debug("Loading %s and checking against %s"%(filename, specpath))
+        self._logger.debug("Loading %s and checking against %s"%(filename, specpath))
         try:
             self.settings = ConfigObj(filename, file_error=True, configspec=specpath)
             self._validator = Validator()
@@ -154,5 +155,5 @@ class HeatmiserControllerFileSetup(HeatmiserControllerSetup):
                 if not name in self.settings:
                     raise KeyError("Section %s not defined"%name)
         except (ValueError, KeyError) as err:
-            logging.warning("Configuration parse failed : " + str(err))
+            self._logger.warning("Configuration parse failed : " + str(err))
             raise

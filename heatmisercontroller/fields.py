@@ -21,6 +21,8 @@ class HeatmiserFieldUnknown(Notifier):
 
     def __init__(self, name, address, max_age, length):
         super(HeatmiserFieldUnknown, self).__init__()
+        self._logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
+        self._logger.debug('creating an instance of %s', self.__class__.__name__)
         self.name = name
         self.address = address
         self.dcbaddress = address
@@ -87,7 +89,7 @@ class HeatmiserFieldUnknown(Notifier):
         """check whether data has been set"""
         data_not_valid = self.lastreadtime is None
         if data_not_valid:
-            logging.debug("Data item %s not available", self.name)
+            self._logger.debug("Data item %s not available", self.name)
         return not data_not_valid
 
     def check_data_fresh(self, maxagein=None):
@@ -108,7 +110,7 @@ class HeatmiserFieldUnknown(Notifier):
             maxage = maxagein
         #now check time
         if time.time() - self.lastreadtime > maxage:
-            logging.debug("Data item %s too old", self.name)
+            self._logger.debug("Data item %s too old", self.name)
             return False
         return True
 

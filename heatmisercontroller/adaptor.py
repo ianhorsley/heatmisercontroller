@@ -9,7 +9,6 @@ from .hm_constants import FUNC_READ, BROADCAST_ADDR, FRAME_WRITE_RESP_LENGTH, FR
 from .hm_constants import RW_LENGTH_ALL, CRC_LENGTH
 from . import framing
 from .exceptions import HeatmiserResponseError, HeatmiserResponseErrorCRC
-from .logging_setup import csvlist
 
 def retryer(max_retries=3):
     """Decorates reading from and writing to devices, rerunning the methods on failure"""
@@ -20,7 +19,7 @@ def retryer(max_retries=3):
             lasterror = None
             for i in range(max_retries):
                 if i is not 0:
-                    logging.warning("Gen retrying due to %s",str(lasterror))
+                    logging.getLogger(__name__).warning("Gen retrying due to %s",str(lasterror))
                 try:
                     result = func(*args, **kwargs)
                 except HeatmiserResponseError as err:
@@ -35,7 +34,8 @@ def retryer(max_retries=3):
 class HeatmiserAdaptor():
     """Handles configuration serial port and provides low level read and write functions"""
     def __init__(self, setup):
-
+        self._logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
+        self._logger.debug('creating an instance of %s', self.__class__.__name__)
         # Initialize setup and get settings
         self._setup = setup
         settings = self._setup.settings
@@ -83,22 +83,22 @@ class HeatmiserAdaptor():
         if not self.serport.isOpen():
             self._open_port()
 
-            logging.info("Gen %s port opened",self.serport.portstr)
-            logging.debug("Gen %s baud, %s bit, %s parity, with %s stopbits, timeout %s seconds",
+            self._logger.info("Gen %s port opened",self.serport.portstr)
+            self._logger.debug("Gen %s baud, %s bit, %s parity, with %s stopbits, timeout %s seconds",
                 self.serport.baudrate,
                 self.serport.bytesize,
                 self.serport.parity,
                 self.serport.stopbits,
                 self.serport.timeout)
         else:
-            logging.warning("Gen serial port was already open")
+            self._logger.warning("Gen serial port was already open")
     
     def _open_port(self):
         """open serial port and logging errors"""
         try:
             self.serport.open()
         except serial.SerialException as err:
-            logging.error("Could not open serial port %s: %s",self.serport.portstr, err)
+            self._logger.error("Could not open serial port %s: %s",self.serport.portstr, err)
             raise
     
     def _disconnect(self):
@@ -106,9 +106,9 @@ class HeatmiserAdaptor():
         #shouldn't need to called directly because handled by destructor
         if self.serport.isOpen():
             self.serport.close() # close port
-            logging.info("Gen serial port closed")
+            self._logger.info("Gen serial port closed")
         else:
-            logging.warning("Gen serial port was already closed")
+            self._logger.warning("Gen serial port was already closed")
     
     def _send_message(self, message):
         """Send message to serial port and log errors"""
@@ -118,23 +118,23 @@ class HeatmiserAdaptor():
         #check time since last received to make sure bus has settled.
         waittime = self.serport.COM_BUS_RESET_TIME - (time.time() - self.lastreceivetime)
         if waittime > 0:
-            logging.debug("Gen waiting before sending %.2f",waittime)
+            self._logger.debug("Gen waiting before sending %.2f",waittime)
             time.sleep(waittime)
         
         try:
             self.serport.write(bytes(message))
         except serial.SerialTimeoutException as err:
             self.serport.close() #need to close so that isOpen works correctly.
-            logging.warning("Write timeout error: %s, sending %s", err, csvlist(message))
+            self._logger.warning("Write timeout error: %s, sending %s", err, message)
             raise
         except serial.SerialException as err:
             self.serport.close() #need to close so that isOpen works correctly.
-            logging.warning("Write error: %s, sending %s", err, csvlist(message))
+            self._logger.warning("Write error: %s, sending %s", err, message)
             raise
 
         #timezone is wrong
         self.lastsendtime = time.strftime("%d %b %Y %H:%M:%S +0000", time.localtime(time.time()))
-        logging.debug("Gen sent %s", csvlist(message))
+        self._logger.debug("Gen sent %s", message)
 
     def _clear_input_buffer(self):
         """Clears input buffer
@@ -145,10 +145,10 @@ class HeatmiserAdaptor():
         try:
             if self.serport.isOpen():
                 self.serport.reset_input_buffer() #reset input buffer and dump any contents
-            logging.warning("Input buffer cleared")
+            self._logger.warning("Input buffer cleared")
         except serial.SerialException:
             self.serport.close()
-            logging.warning("Failed to clear input buffer")
+            self._logger.warning("Failed to clear input buffer")
             raise
     
     def _read_bytes(self, length):
@@ -158,7 +158,7 @@ class HeatmiserAdaptor():
         except serial.SerialException as err:
             #There is no new data from serial port (or port missing)
             #Doesn't include no response from stat
-            logging.warning("Gen serial port error: %s", str(err))
+            self._logger.warning("Gen serial port error: %s", str(err))
             self.serport.close()
             raise
         finally:
@@ -171,7 +171,7 @@ class HeatmiserAdaptor():
         Uses two time outs, one on the first byte and another for full data"""
         if not self.serport.isOpen():
             self.connect()
-        logging.debug("Gen listening for %d", length)
+        self._logger.debug("Gen listening for %d", length)
         
         # Listen for the first byte
         timereadstart = time.time()
@@ -181,7 +181,7 @@ class HeatmiserAdaptor():
         firstbyteread = self._read_bytes(1)
 
         timereadfirstbyte = time.time()-timereadstart
-        logging.debug("Gen waited %.2fs for first byte", timereadfirstbyte)
+        self._logger.debug("Gen waited %.2fs for first byte", timereadfirstbyte)
         if len(firstbyteread) == 0:
             raise HeatmiserResponseError("No Response")
         
@@ -205,14 +205,14 @@ class HeatmiserAdaptor():
         try:
             self._send_message(msg)
         except Exception:
-            logging.warning("C%i writing to address, no message sent", network_address)
+            self._logger.warning("C%i writing to address, no message sent", network_address)
             raise
 
-        logging.debug("C%i written to address %i length %i payload %s",
+        self._logger.debug("C%i written to address %i length %i payload %s",
                         network_address,
                         unique_address,
                         length,
-                        csvlist(payload))
+                        payload)
         if network_address == BROADCAST_ADDR: # if broadcasting force it to wait longer until next send
             self.lastreceivetime = (time.time()
                                     + self.serport.COM_SEND_MIN_TIME
@@ -238,7 +238,7 @@ class HeatmiserAdaptor():
                                             self.my_master_addr,
                                             DCB_START,
                                             RW_LENGTH_ALL)
-            logging.debug("C %i read request to address %i length %i",
+            self._logger.debug("C %i read request to address %i length %i",
                             network_address,
                             DCB_START,
                             RW_LENGTH_ALL)
@@ -248,14 +248,14 @@ class HeatmiserAdaptor():
                                             self.my_master_addr,
                                             unique_start_address,
                                             expected_length)
-            logging.debug("C %i read request to address %i length %i",
+            self._logger.debug("C %i read request to address %i length %i",
                             network_address,
                             unique_start_address,
                             expected_length)
         try: #sending request
             self._send_message(msg)
         except:
-            logging.warning("C%i address, read message not sent", network_address)
+            self._logger.warning("C%i address, read message not sent", network_address)
             raise
 
         time1 = time.time()
@@ -263,19 +263,19 @@ class HeatmiserAdaptor():
         try: #listening for response
             response = self._receive_message(MIN_FRAME_READ_RESP_LENGTH + expected_length)
         except Exception as err:
-            logging.warning("C%i read failed from address %i length %i due to %s",
+            self._logger.warning("C%i read failed from address %i length %i due to %s",
                                 network_address,
                                 unique_start_address,
                                 expected_length,
                                 str(err))
             raise
 
-        logging.debug("C%i read in %.2f s from address %i length %i response %s",
+        self._logger.debug("C%i read in %.2f s from address %i length %i response %s",
                         network_address,
                         time.time()-time1,
                         unique_start_address,
                         expected_length,
-                        csvlist(response))
+                        response)
 
         try: #processing response
             framing.verify_response(protocol,

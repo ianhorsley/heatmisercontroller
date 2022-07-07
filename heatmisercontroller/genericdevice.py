@@ -14,13 +14,14 @@ from .hm_constants import DEFAULT_PROTOCOL, SLAVE_ADDR_MIN, SLAVE_ADDR_MAX
 from .hm_constants import MAX_AGE_LONG
 from .hm_constants import FIELD_NAME_LENGTH
 from .exceptions import HeatmiserResponseError
-from .logging_setup import csvlist
 
 class HeatmiserDevice():
     """General device class"""
 
     ## Initialisation functions and low level functions
     def __init__(self, adaptor, devicesettings, generalsettings=None):
+        self._logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
+        self._logger.debug('creating an instance of %s', self.__class__.__name__)
         self._adaptor = adaptor
 
         # initalise variables
@@ -114,10 +115,10 @@ class HeatmiserDevice():
         try:
             self.rawdata = self._adaptor.read_all_from_device(self.set_address, self.set_protocol, self.dcb_length)
         except serial.SerialException as err:
-            logging.warning("C%i Read all failed, Serial Port error %s",self.set_address, str(err))
+            self._logger.warning("C%i Read all failed, Serial Port error %s",self.set_address, str(err))
             raise
 
-        logging.info("C%i Read all",self.set_address)
+        self._logger.info("C%i Read all",self.set_address)
 
         self.lastreadtime = time.time()
         self._procpayload(self.rawdata)
@@ -170,16 +171,16 @@ class HeatmiserDevice():
         if estimatedreadtime < self.fullreadtime - 0.02: #if to close to full read time, then read all
             try:
                 for firstfield, lastfield, blocklength in blockstoread:
-                    logging.debug("C%i Reading ui %i to %i len %i, proc %s to %s", self.set_address, firstfield.address, lastfield.address, blocklength, firstfield.name, lastfield.name)
+                    self._logger.debug("C%i Reading ui %i to %i len %i, proc %s to %s", self.set_address, firstfield.address, lastfield.address, blocklength, firstfield.name, lastfield.name)
                     rawdata = self._adaptor.read_from_device(self.set_address, self.set_protocol, firstfield.address, blocklength)
                     self.lastreadtime = time.time()
                     self._procpartpayload(rawdata, firstfield.name, lastfield.name)
             except serial.SerialException as err:
-                logging.warning("C%i Read failed of fields %s, Serial Port error %s",self.set_address, fieldstring, str(err))
+                self._logger.warning("C%i Read failed of fields %s, Serial Port error %s",self.set_address, fieldstring, str(err))
                 raise
-            logging.info("C%i Read fields %s, in %i blocks", self.set_address, fieldstring, len(blockstoread))
+            self._logger.info("C%i Read fields %s, in %i blocks", self.set_address, fieldstring, len(blockstoread))
         else:
-            logging.debug("C%i Read fields %s by read_all, %0.3f %0.3f", self.set_address, fieldstring, estimatedreadtime, self.fullreadtime)
+            self._logger.debug("C%i Read fields %s by read_all, %0.3f %0.3f", self.set_address, fieldstring, estimatedreadtime, self.fullreadtime)
             self.read_all()
               
         #data can only be requested from the controller in contiguous blocks
@@ -237,14 +238,14 @@ class HeatmiserDevice():
 
     def _procfield(self, data, fieldinfo):
         """Process data for a single field storing in relevant."""
-        #logging.debug("Processing %s data %s"%(fieldinfo.name, csvlist(data)))
+        #self._logger.debug("Processing %s data %s"%(fieldinfo.name, data))
         fieldinfo.update_data(data, self.lastreadtime)
 
     def _procpartpayload(self, rawdata, firstfieldname, lastfieldname):
         """Wraps procpayload by converting fieldnames to fieldids"""
         #rawdata must be a list
         #converts field names to field numbers to allow process of shortened raw data
-        logging.debug("C%i Processing Payload from field %s to %s",
+        self._logger.debug("C%i Processing Payload from field %s to %s",
                         self.set_address,
                         firstfieldname,
                         lastfieldname)
@@ -254,7 +255,7 @@ class HeatmiserDevice():
         
     def _procpayload(self, rawdata, firstfieldid=0, lastfieldid=False):
         """Split payload with field information and processes each field"""
-        logging.debug("C%i Processing Payload from field %i to %i",
+        self._logger.debug("C%i Processing Payload from field %i to %i",
                         self.set_address,
                         firstfieldid,
                         lastfieldid)
@@ -270,7 +271,7 @@ class HeatmiserDevice():
             try:
                 self._procfield(rawdata[dcbadd:dcbadd+length], field)
             except HeatmiserResponseError as err:
-                logging.warning("C%i Field %s process failed due to %s",
+                self._logger.warning("C%i Field %s process failed due to %s",
                                     self.set_address,
                                     field.name,
                                     str(err))
@@ -300,16 +301,16 @@ class HeatmiserDevice():
                                             field.fieldlength,
                                             payloadbytes)
         except serial.SerialException as err:
-            logging.warning("C%i failed to set field %s to %s, due to %s",
+            self._logger.warning("C%i failed to set field %s to %s, due to %s",
                                 self.set_address,
                                 fieldname.ljust(FIELD_NAME_LENGTH),
-                                csvlist(printvalues),
+                                printvalues,
                                 str(err))
             raise
-        logging.info("C%i set field %s to %s",
+        self._logger.info("C%i set field %s to %s",
                         self.set_address,
                         fieldname.ljust(FIELD_NAME_LENGTH),
-                        csvlist(printvalues))
+                        printvalues)
         
         self.lastwritetime = time.time()
         field.update_value(numericvalues, self.lastwritetime)
@@ -324,7 +325,7 @@ class HeatmiserDevice():
         outputdata = self._get_payload_blocks_from_list(fields, values)
         try:
             for fields, lengthbytes, payloadbytes, writtenvalues in outputdata:
-                logging.debug("C%i Setting ui %i len %i, proc %s to %s",
+                self._logger.debug("C%i Setting ui %i len %i, proc %s to %s",
                                 self.set_address,
                                 fields[0].address,
                                 lengthbytes,
@@ -338,12 +339,12 @@ class HeatmiserDevice():
                 self.lastwritetime = time.time()
                 self._update_fields_values(writtenvalues, fields)
         except serial.SerialException as err:
-            logging.warning("C%i settings failed of fields %s, Serial Port error %s",
+            self._logger.warning("C%i settings failed of fields %s, Serial Port error %s",
                             self.set_address,
                             self._csvlist_field_names_from(fields),
                             str(err))
             raise
-        logging.info("C%i set fields %s in %i blocks",
+        self._logger.info("C%i set fields %s in %i blocks",
                         self.set_address,
                         self._csvlist_field_names_from(fields),
                         len(outputdata))
