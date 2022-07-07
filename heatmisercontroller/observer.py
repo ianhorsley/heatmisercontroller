@@ -1,6 +1,6 @@
 """Observer framework to trigger methods"""
 
-class Observable(object):
+class Observable():
     """Observerable object that manages observer methods"""
     def __init__(self):
         self.obs = []
@@ -19,7 +19,7 @@ class Observable(object):
         '''If 'changed' indicates that this object
         has changed, notify all its observers, then
         call clearChanged(). Each observer is called directly'''
-       
+
         if not self.changed: return
         # additions of observers:
         self.clear_changed()
@@ -28,17 +28,22 @@ class Observable(object):
             observer(arg)
 
     def delete_observers(self):
+        """remove all observer methods"""
         self.obs = []
     def set_changed(self):
+        """set internal changed flag"""
         self.changed = 1
     def clear_changed(self):
+        """clear internal changed flag"""
         self.changed = 0
     def has_changed(self):
+        """report whether changed"""
         return self.changed
     def count_observers(self):
+        """report number of observer methods"""
         return len(self.obs)
 
-class Notifier(object):
+class Notifier():
     """Object that notfies observers when value changes.
     Either triggers on is/is not or on any change."""
     def __init__(self):
@@ -48,18 +53,18 @@ class Notifier(object):
         self.nots_changed = self.GeneralNotifier(self)
         self.previousvalue = None
         self.notify_value_change = lambda _: True # no action, unless observers added
-    
+
     def notify_value_change_is(self, value):
         """Nofifies observers if value is, otherwise notifies other observers."""
         if value in self.nots_is:
             self.nots_is[self.value].notify(self)
         else:
             self.nots_is_not.notify(self)
-            
+
     def notify_value_change_changed(self, _):
         """Notifies obersers on any change."""
         self.nots_changed.notify(self)
-        
+
     class GeneralNotifier(Observable):
         """Notifier which only triggers on change of outer value"""
         def __init__(self, outer):

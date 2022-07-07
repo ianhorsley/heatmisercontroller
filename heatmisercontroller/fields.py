@@ -102,9 +102,9 @@ class HeatmiserFieldUnknown(Notifier):
         return False if old, True if recent"""
         if not self.check_data_valid():
             return False
-        elif maxagein == -1: #only check present
+        if maxagein == -1: #only check present
             return True
-        elif maxagein is None: #if none use field defaults
+        if maxagein is None: #if none use field defaults
             maxage = self.max_age
         else:
             maxage = maxagein

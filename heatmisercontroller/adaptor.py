@@ -1,5 +1,5 @@
 """Heatmiser Adaptor handles serial connection and basic framing for the Heatmiser Protocol"""
-
+from __future__ import absolute_import
 import time
 import logging
 import serial
@@ -51,11 +51,11 @@ class HeatmiserAdaptor():
         self._update_settings(settings)
 
         # so that system will get on with sending straight away
-        self.lastreceivetime = self.creationtime - self.serport.COM_BUS_RESET_TIME 
+        self.lastreceivetime = self.creationtime - self.serport.COM_BUS_RESET_TIME
 
         if self.auto_connect:
             self.connect()
-        
+
     def __del__(self):
         self._disconnect()
 
@@ -92,7 +92,7 @@ class HeatmiserAdaptor():
                 self.serport.timeout)
         else:
             self._logger.warning("Gen serial port was already open")
-    
+
     def _open_port(self):
         """open serial port and logging errors"""
         try:
@@ -100,7 +100,7 @@ class HeatmiserAdaptor():
         except serial.SerialException as err:
             self._logger.error("Could not open serial port %s: %s",self.serport.portstr, err)
             raise
-    
+
     def _disconnect(self):
         """check if serial port is open and if so close"""
         #shouldn't need to called directly because handled by destructor
@@ -109,7 +109,7 @@ class HeatmiserAdaptor():
             self._logger.info("Gen serial port closed")
         else:
             self._logger.warning("Gen serial port was already closed")
-    
+
     def _send_message(self, message):
         """Send message to serial port and log errors"""
         if not self.serport.isOpen():
@@ -120,7 +120,7 @@ class HeatmiserAdaptor():
         if waittime > 0:
             self._logger.debug("Gen waiting before sending %.2f",waittime)
             time.sleep(waittime)
-        
+
         try:
             self.serport.write(bytes(message))
         except serial.SerialTimeoutException as err:
@@ -138,9 +138,9 @@ class HeatmiserAdaptor():
 
     def _clear_input_buffer(self):
         """Clears input buffer
-        
+
         Used after CRC check wrong; in case more data was sent than expected."""
-    
+
         time.sleep(self.serport.COM_TIMEOUT) #wait for read timeout to ensure slave finished sending
         try:
             if self.serport.isOpen():
@@ -150,7 +150,7 @@ class HeatmiserAdaptor():
             self.serport.close()
             self._logger.warning("Failed to clear input buffer")
             raise
-    
+
     def _read_bytes(self, length):
         """read from serial port and log errors"""
         try:
@@ -164,7 +164,7 @@ class HeatmiserAdaptor():
         finally:
             self.serport.timeout = self.serport.COM_TIMEOUT #make sure timeout is reverted
             self.lastreceivetime = time.time() #record last read time. Used to manage bus settling.
-    
+
     def _receive_message(self, length=MAX_FRAME_RESP_LENGTH):
         """Receive message from serial port and log errors
         
@@ -172,19 +172,19 @@ class HeatmiserAdaptor():
         if not self.serport.isOpen():
             self.connect()
         self._logger.debug("Gen listening for %d", length)
-        
+
         # Listen for the first byte
         timereadstart = time.time()
         #set wait for start of response
         self.serport.timeout = self.serport.COM_START_TIMEOUT
-        
+
         firstbyteread = self._read_bytes(1)
 
         timereadfirstbyte = time.time()-timereadstart
         self._logger.debug("Gen waited %.2fs for first byte", timereadfirstbyte)
         if len(firstbyteread) == 0:
             raise HeatmiserResponseError("No Response")
-        
+
         # Listen for the rest of the response
         self.serport.timeout = max(self.serport.COM_MIN_TIMEOUT, self.serport.COM_TIMEOUT - timereadfirstbyte) #wait for full time out for rest of response, but not less than COM_MIN_TIMEOUT)
         byteread = self._read_bytes(length - 1)
@@ -195,7 +195,7 @@ class HeatmiserAdaptor():
         return data
 
 ### protocol functions
-    
+
     @retryer(max_retries=3)
     def write_to_device(self, network_address, protocol, unique_address, length, payload):
         """Forms write frame and sends to serial link checking the acknowledgement"""

@@ -5,7 +5,7 @@ UnknownThermoStat
 
 Ian Horsley 2018
 """
-import logging
+from __future__ import absolute_import
 
 from .genericdevice import HeatmiserDevice
 from .devices_prt_hw import ThermoStatHotWaterDay

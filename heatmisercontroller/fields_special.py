@@ -1,5 +1,5 @@
 """special field definitions for Heatmiser protocol"""
-import logging
+from __future__ import absolute_import
 import time
 
 from .fields import HeatmiserFieldSingle, HeatmiserFieldSingleReadOnly, HeatmiserFieldMulti

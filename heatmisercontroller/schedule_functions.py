@@ -1,6 +1,6 @@
 """Classes for holding and processing Heatmier heating and hot water schedule fields"""
 
-
+from __future__ import absolute_import
 from .hm_constants import CURRENT_TIME_DAY, CURRENT_TIME_HOUR, CURRENT_TIME_MIN
 
 #mapping for chunks of heating schedule for a day
@@ -45,7 +45,7 @@ class Scheduler(object):
     def set_raw_field(self, field):
         """Set single field to schedule from field pointer"""
         self.set_raw(field.name, field.value)
-        
+
     def get_entry_names(self, entryname):
         """Get list of field names. If single returns full field name from short.
         Expects short name input or 'all'."""
@@ -57,7 +57,7 @@ class Scheduler(object):
             if not entryname in self.entrynames:
                 raise ValueError('Schedule entry not setable or does not exist %s'%entryname)
             return [entryname]
-        
+
     def pad_schedule(self, schedule):
         """Pads a partial schedule up to correct length"""
         if not len(schedule)%self.valuesperentry == 0:
@@ -125,9 +125,9 @@ class Scheduler(object):
         for i in self._reversechunks(schedule, self.valuesperentry):
             if dayminutes < i[MAP_HOUR] * HOUR_MINUTES + i[MAP_MIN] and i[MAP_HOUR] != HOUR_UNUSED:
                 scheduletarget = i
-        
+
         return scheduletarget
-    
+
     def _get_current_item_from_an_entry(self, schedule, timearray):
         """Gets the current item from a days schedule"""
         scheduletarget = None
@@ -136,9 +136,9 @@ class Scheduler(object):
         for i in self._chunks(schedule, self.valuesperentry):
             if dayminutes >= i[MAP_HOUR] * HOUR_MINUTES + i[MAP_MIN] and i[MAP_HOUR] != HOUR_UNUSED:
                 scheduletarget = i
-        
+
         return scheduletarget
-        
+
     def _get_previous_schedule_entry(self, timearray):
         """Get previous days schedule"""
         return self._get_schedule_entry(self._get_previous_day(timearray))
@@ -152,21 +152,20 @@ class Scheduler(object):
         """Get day number for previous day"""
         #shift from 1-7 to 0-6, subtract 1, modulo, shift back to 1-7
         return ((timearray[CURRENT_TIME_DAY] - 1 - 1) % 7) + 1
-        
+
     @staticmethod
     def _get_next_day(timearray):
         """Get next days schedule"""
         #shift from 1-7 to 0-6, add 1, modulo, shift back to 1-7
         return ((timearray[CURRENT_TIME_DAY] - 1 + 1) % 7) + 1
-        
+
     def _get_first_item_from_an_entry(self, schedule):
         """Gets the first item from a days schedule"""
         #gets first schedule entry if valid (not 24)
         firstentry = self._chunks(schedule, self.valuesperentry).next()
         if firstentry[MAP_HOUR] != HOUR_UNUSED:
             return firstentry
-        else:
-            return None
+        return None
 
     def _get_last_item_from_an_entry(self, schedule):
         """Gets the last item from a days schedule"""
@@ -182,58 +181,57 @@ class SchedulerDay(Scheduler):
     """Inherited class with day variables and methods"""
     entrynames = ['mon', 'tues', 'wed', 'thurs', 'fri', 'sat', 'sun']
     printnames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-    
+
     def _get_schedule_entry(self, day):
         """Determines the schedule for a day"""
         return self.entries[self.entrynames[day - 1]]
-    
+
     def get_entry_names(self, entryname):
         """Get list of field names. If single returns full field name from short.
         Expects short name input or 'all' or 'wday' or 'wend'."""
         if entryname == 'wday':
             return self.entrynames[0:5]
-        elif entryname == 'wend':
+        if entryname == 'wend':
             return self.entrynames[5:6]
-        else:
-            return super(SchedulerDay, self).get_entry_names(entryname)
+        return super().get_entry_names(entryname)
 
 class SchedulerWeek(Scheduler):
     """Inherited class with week variables and methods"""
     entrynames = ['wday', 'wend']
     printnames = ['Weekdays', 'Weekends']
-    
+
     def _get_schedule_entry(self, day):
         """Determines the schedule for a day based on whether weekday or weekend"""
-        if day == 6 or day == 7:
+        if day in (6, 7):
             return self.entries[self.entrynames[1]]
-        elif day >= 1 and day <= 5:
+        if day >= 1 and day <= 5:
             return self.entries[self.entrynames[0]]
         else:
             raise ValueError("Day not recognised")
-            
+
 class SchedulerHeat(Scheduler):
     """Inherited class with heating variables and methods"""
     title = 'Heating'
     valuesperentry = 3
     entriesperday = 4
     fieldbase = '_heat'
-    
+
     def entry_text(self, data):
         """Assembles string describing a heat schdule entry"""
         tempstr = ''
         for valueset in self._chunks(data, self.valuesperentry):
             if valueset[MAP_HOUR] != HOUR_UNUSED:
                 tempstr += "%02d:%02d at %02iC " % (valueset[MAP_HOUR], valueset[MAP_MIN], valueset[MAP_TEMP])
-                
+
         return tempstr
-    
+
 class SchedulerWater(Scheduler):
     """Inherited class with hot water variables and methods"""
     title = 'Hot Water'
     valuesperentry = 2
     entriesperday = 8
     fieldbase = '_water'
-    
+
     entry_formats = {
         0: lambda dataset: "On at %02d:%02d " %(dataset[0], dataset[1]), #used for on entries
         1: lambda dataset: "Off at %02d:%02d, " %(dataset[0], dataset[1]) #used for off entries
@@ -242,7 +240,7 @@ class SchedulerWater(Scheduler):
         0: lambda count: "Time %i " %(count), #Group number for time entries
         1: lambda _: ""
     }
-    
+
     def entry_text(self, data):
         """Assembles string describing a water schdule entry"""
         tempstr = ''
@@ -251,18 +249,17 @@ class SchedulerWater(Scheduler):
             tempstr += self.group_formats[entry % 2](count)
             if dataset[0] != HOUR_UNUSED:
                 tempstr += self.entry_formats[entry % 2](dataset)
-                
+
         return tempstr
-    
+
 class SchedulerDayHeat(SchedulerDay, SchedulerHeat):
     """Class for day based heating schedule"""
-    pass
+
 class SchedulerWeekHeat(SchedulerWeek, SchedulerHeat):
     """Class for week based heating schedule"""
-    pass
+
 class SchedulerDayWater(SchedulerDay, SchedulerWater):
     """Class for day based hot water schedule"""
-    pass
+
 class SchedulerWeekWater(SchedulerWeek, SchedulerWater):
     """Class for wee based hot water schedule"""
-    pass

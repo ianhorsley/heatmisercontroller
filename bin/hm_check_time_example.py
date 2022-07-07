@@ -2,7 +2,7 @@
 """Gets data from Heatmiser stats repeatedly and displays
 Ian Horsley 2018
 """
-
+from __future__ import absolute_import
 import time
 import logging
 

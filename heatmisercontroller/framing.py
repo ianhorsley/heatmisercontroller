@@ -1,4 +1,5 @@
 """Functions for creating and checking Heatmiser protocol frames"""
+from __future__ import absolute_import
 import logging
 
 from .hm_constants import BYTEMASK, MIN_FRAME_SEND_LENGTH, MIN_FRAME_RESP_LENGTH, MIN_FRAME_READ_RESP_LENGTH, FRAME_WRITE_RESP_LENGTH, MAX_PAYLOAD_SEND_LENGTH, RW_LENGTH_ALL, DONT_CARE_LENGTH
@@ -31,11 +32,12 @@ def form_frame(destination, protocol, source, function, start, length, payload):
         if length > MAX_PAYLOAD_SEND_LENGTH:
             raise ValueError("Payload to long %s" % length)
         frame_length = MIN_FRAME_SEND_LENGTH + payload_length
-    msg = [destination, frame_length, source, function, start_low, start_high, length_low, length_high]
+    msg = [destination, frame_length, source, function,
+                start_low, start_high, length_low, length_high]
     if function == FUNC_WRITE:
         msg = msg + payload
 
-    crc = crc16()
+    crc = Crc16()
     msg = msg + crc.run(msg)
     return msg
 
@@ -49,7 +51,7 @@ def _check_frame_crc(data):
     checksum = data[len(data)-2:]
     rxmsg = data[:len(data)-2]
 
-    crc = crc16() # Initialises the CRC
+    crc = Crc16() # Initialises the CRC
     expectedchecksum = crc.run(rxmsg)
     if expectedchecksum != checksum:
         raise HeatmiserResponseErrorCRC("CRC is incorrect")
@@ -120,7 +122,7 @@ def verify_response(protocol, source, destination, expected_function, expected_l
         # check function
         _check_response_frame_function(expected_function, data)
     except HeatmiserResponseError as err:
-        logging.getLogger(__name__).warning("C%s Invalid Response: %s: %s" %(source, str(err), data))
+        logging.getLogger(__name__).warning("C%s Invalid Response: %s: %s", source, err, data)
         raise
 
     ## missing check that it is valid for this type of controller. Use DCBUnique function not false.
@@ -129,7 +131,7 @@ def verify_response(protocol, source, destination, expected_function, expected_l
 # Believe this is known as CCITT (0xFFFF)
 # This is the CRC function converted directly from the Heatmiser C code
 # provided in their API
-class crc16:
+class Crc16:
     """Computes CRC for Heatmiser Message"""
     LookupHigh = [
     0x00, 0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70,
@@ -145,10 +147,10 @@ class crc16:
 
     def _update_4_bits(self, val):
         # Step one, extract the Most significant 4 bits of the CRC register
-        t = self.high>>4
+        sigbit = self.high>>4
 
         # XOR in the Message Data into the extracted bits
-        t = t^val
+        sigbit = sigbit^val
 
         # Shift the CRC Register left 4 bits
         self.high = (self.high << 4)|(self.low>>4)
@@ -157,9 +159,9 @@ class crc16:
         self.low = self.low & BYTEMASK # force char
 
         # Do the table lookups and XOR the result into the CRC tables
-        self.high = self.high ^ self.LookupHigh[t]
+        self.high = self.high ^ self.LookupHigh[sigbit]
         self.high = self.high & BYTEMASK # force char
-        self.low = self.low ^ self.LookupLow[t]
+        self.low = self.low ^ self.LookupLow[sigbit]
         self.low = self.low & BYTEMASK # force char
 
     def _crc16_update(self, val):
@@ -168,6 +170,6 @@ class crc16:
 
     def run(self, message):
         """Calculates a CRC"""
-        for c in message:
-            self._crc16_update(c)
+        for character in message:
+            self._crc16_update(character)
         return [self.low, self.high]

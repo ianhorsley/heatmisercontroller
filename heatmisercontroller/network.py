@@ -49,7 +49,7 @@ class HeatmiserNetwork():
             self.find_devices()
 
         # Create a broadcast device
-        setattr(self, "All", 
+        setattr(self, "All",
                     HeatmiserBroadcastDevice(self.adaptor, "Broadcast to All", self.controllers))
         self._current = self.All
 

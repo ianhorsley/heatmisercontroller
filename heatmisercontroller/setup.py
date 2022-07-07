@@ -35,7 +35,7 @@ from .exceptions import HeatmiserControllerSetupInitError
 # This almost empty class is meant to be inherited by subclasses specific to
 # each setup."""
 
-class HeatmiserControllerSetup(object):
+class HeatmiserControllerSetup():
     """Inherited base class"""
     def __init__(self):
         # Initialize settings
@@ -96,8 +96,8 @@ class HeatmiserControllerFileSetup(HeatmiserControllerSetup):
             setattr(self, '_c_'+name, value)
 
         # create a timeout message if time out is set (>0)
-        self.retry_msg = " Retry in " + str(self._c_retry_time_interval) 
-                            + " seconds" if self._c_retry_time_interval <= 0 else ""
+        self.retry_msg = (" Retry in " + str(self._c_retry_time_interval) 
+                            + " seconds" if self._c_retry_time_interval <= 0 else "")
 
     # def reload_settings(self):
         # """Reload and check settings

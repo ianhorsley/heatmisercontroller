@@ -7,7 +7,7 @@ from heatmisercontroller.adaptor import HeatmiserAdaptor
 from heatmisercontroller.exceptions import HeatmiserResponseError
 from .mock_serial import SerialTestClass, SetupTestClass
 from heatmisercontroller.hm_constants import HMV3_ID
-from heatmisercontroller.framing import crc16
+from heatmisercontroller.framing import Crc16
 
 
 class TestSerialConnect(unittest.TestCase):
@@ -107,7 +107,7 @@ class TestReadWrite(unittest.TestCase):
         self.func = HeatmiserAdaptor(self.setup)
         self.func.serport = self.serialport.serialPort
         #self.goodresponse = [129, 7, 0, 5, 1, 116, 39]
-        self.crc = crc16()
+        self.crc = Crc16()
         #print crc.run(self.goodresponse)
 
     def tearDown(self):

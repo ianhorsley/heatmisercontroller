@@ -2,7 +2,7 @@
 
 Ian Horsley 2018
 """
-
+from __future__ import absolute_import
 from transitions import Machine
 
 from .hm_constants import MAX_AGE_MEDIUM

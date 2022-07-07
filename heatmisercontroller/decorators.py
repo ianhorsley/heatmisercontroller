@@ -1,10 +1,11 @@
 """Decorators meethods to support broadcast controller running functions on multiple devices"""
+from __future__ import absolute_import
 import logging
 import serial
 
 from .exceptions import HeatmiserResponseError, HeatmiserControllerTimeError
 
-class ListWrapperClass(object):
+class ListWrapperClass():
     """Class to provide mutable list as decorator argument"""
     def __init__(self):
         self._storedlist = None
@@ -41,12 +42,12 @@ def run_function_on_all(liststore):
                 except (HeatmiserResponseError, serial.SerialException,
                             HeatmiserControllerTimeError) as err:
                     logging.getLogger(__name__).warning("C%i %s failed due to %s",
-                                                   obj.set_address, func.__name__, str(lasterror))
+                                                   obj.set_address, func.__name__, lasterror)
                     lasterror = err
                     continue
 
             if all(result is None for result in results):
-                raise HeatmiserResponseError("All failed, last error was %s", str(lasterror))
+                raise HeatmiserResponseError("All failed, last error was %s", lasterror)
 
             return results
 

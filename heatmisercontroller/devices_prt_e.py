@@ -5,12 +5,12 @@ PRT-E Thermostat classes on the Heatmiser network
 Ian Horsley 2018
 """
 from __future__ import absolute_import
-import logging
 import time
 
 from .genericdevice import HeatmiserDevice, DEVICETYPES
 from .fields import HeatmiserFieldSingle, HeatmiserFieldSingleReadOnly
-from .fields import HeatmiserFieldDouble, HeatmiserFieldDoubleReadOnly, HeatmiserFieldDoubleReadOnlyTenths
+from .fields import HeatmiserFieldDouble, HeatmiserFieldDoubleReadOnly
+from .fields import HeatmiserFieldDoubleReadOnlyTenths
 from .fields_special import HeatmiserFieldTime, HeatmiserFieldHeat
 from .fields import VALUES_ON_OFF, VALUES_OFF_ON, VALUES_OFF
 from .hm_constants import MAX_AGE_LONG, MAX_AGE_MEDIUM, MAX_AGE_SHORT, MAX_AGE_USHORT
@@ -26,12 +26,12 @@ class ThermoStatWeek(HeatmiserDevice):
     def __init__(self, adaptor, devicesettings, generalsettings=None):
         self.heat_schedule = None #placeholder for heating schedule object
         self.thermostat = None #placeholder for thermostat object
-        super(ThermoStatWeek, self).__init__(adaptor, devicesettings, generalsettings)
+        super().__init__(adaptor, devicesettings, generalsettings)
         #thermostat specific
 
     def _buildfields(self):
         """add to list of fields"""
-        super(ThermoStatWeek, self)._buildfields()
+        super()._buildfields()
         # list of fields can be sorted by key
         # dcb addresses could be computed from the completed field list and added to field.
         # all should have the first 4 fields, so put these in generic
@@ -104,7 +104,7 @@ class ThermoStatWeek(HeatmiserDevice):
 
     def _connect_observers(self):
         """connect obersers to fields"""
-        super(ThermoStatWeek, self)._connect_observers()
+        super()._connect_observers()
         self.wday_heat.add_notifable_changed(self.heat_schedule.set_raw_field)
         self.wend_heat.add_notifable_changed(self.heat_schedule.set_raw_field)
 
@@ -134,12 +134,12 @@ class ThermoStatWeek(HeatmiserDevice):
 
     def _set_expected_field_values(self):
         """set the expected values for fields that should be fixed"""
-        super(ThermoStatWeek, self)._set_expected_field_values()
+        super()._set_expected_field_values()
         self.programmode.expectedvalue = self.programmode.readvalues[self.set_expected_prog_mode]
 
     def _procfield(self, data, fieldinfo):
         """Process data for a single field storing in relevant."""
-        super(ThermoStatWeek, self)._procfield(data, fieldinfo)
+        super()._procfield(data, fieldinfo)
 
         if fieldinfo.name == 'currenttime':
             self._checkcontrollertime()
@@ -273,7 +273,7 @@ class ThermoStatDay(ThermoStatWeek):
 
     def _buildfields(self):
         """add to list of fields"""
-        super(ThermoStatDay, self)._buildfields()
+        super()._buildfields()
         self.fields.extend([
             HeatmiserFieldHeat('mon_heat', 103, [[0, 24], [0, 59], [5, 35]], MAX_AGE_MEDIUM),
             HeatmiserFieldHeat('tues_heat', 115, [[0, 24], [0, 59], [5, 35]], MAX_AGE_MEDIUM),
@@ -288,7 +288,7 @@ class ThermoStatDay(ThermoStatWeek):
 
     def _connect_observers(self):
         """connect obersers to fields"""
-        super(ThermoStatDay, self)._connect_observers()
+        super()._connect_observers()
         fieldnames = ['mon_heat', 'tues_heat', 'wed_heat',
                         'thurs_heat', 'fri_heat', 'sat_heat', 'sun_heat']
         for fieldname in fieldnames:

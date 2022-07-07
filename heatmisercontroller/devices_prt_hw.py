@@ -20,11 +20,11 @@ class ThermoStatHotWaterWeek(ThermoStatWeek):
 
     def __init__(self, adaptor, devicesettings, generalsettings=None):
         self.water_schedule = None #placeholder for hot water schedule
-        super(ThermoStatHotWaterWeek, self).__init__(adaptor, devicesettings, generalsettings)
+        super().__init__(adaptor, devicesettings, generalsettings)
 
     def _buildfields(self):
         """add to list of fields"""
-        super(ThermoStatHotWaterWeek, self)._buildfields()
+        super()._buildfields()
 
         #thermostat specific version field
         for key, field in enumerate(self.fields):
@@ -44,7 +44,7 @@ class ThermoStatHotWaterWeek(ThermoStatWeek):
 
     def _configure_fields(self):
         """add dummy field for floor limit"""
-        super(ThermoStatHotWaterWeek, self)._configure_fields()
+        super()._configure_fields()
 
         field = HeatmiserFieldSingleReadOnly('floorlimiting', None, [0, 1], None)
         #should specify mapping for on and off.
@@ -56,16 +56,16 @@ class ThermoStatHotWaterWeek(ThermoStatWeek):
 
     def _connect_observers(self):
         """connect obersers to fields"""
-        super(ThermoStatHotWaterWeek, self)._connect_observers()
+        super()._connect_observers()
         self.wday_water.add_notifable_changed(self.water_schedule.set_raw_field)
         self.wend_water.add_notifable_changed(self.water_schedule.set_raw_field)
 
     def _procfield(self, data, fieldinfo):
         """Process data for a single field storing in relevant."""
-        super(ThermoStatHotWaterWeek, self)._procfield(data, fieldinfo)
+        super()._procfield(data, fieldinfo)
 
         if fieldinfo.name == 'version':
-            super(ThermoStatHotWaterWeek, self)._procfield([self.version.floorlimiting], self.floorlimiting)
+            super()._procfield([self.version.floorlimiting], self.floorlimiting)
 
     def display_water_schedule(self):
         """Prints water schedule to stdout"""
@@ -104,7 +104,7 @@ class ThermoStatHotWaterDay(ThermoStatDay, ThermoStatHotWaterWeek):
 
     def _buildfields(self):
         """add to list of fields"""
-        super(ThermoStatHotWaterDay, self)._buildfields()
+        super()._buildfields()
         self.fields.extend([
             #7day progamming
             HeatmiserFieldWater('mon_water', 187, [[0, 24], [0, 59]], MAX_AGE_MEDIUM),
@@ -119,7 +119,7 @@ class ThermoStatHotWaterDay(ThermoStatDay, ThermoStatHotWaterWeek):
 
     def _connect_observers(self):
         """connect obersers to fields"""
-        super(ThermoStatHotWaterDay, self)._connect_observers()
+        super()._connect_observers()
         fieldnames = ['mon_water', 'tues_water', 'wed_water', 'thurs_water', 'fri_water',
                         'sat_water', 'sun_water']
         for fieldname in fieldnames:

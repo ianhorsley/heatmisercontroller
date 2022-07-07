@@ -4,6 +4,7 @@ Modules handle all the DCB and self.fields for each device on the Heatmiser netw
 
 Ian Horsley 2018
 """
+from __future__ import absolute_import
 import logging
 import time
 import copy
@@ -33,7 +34,8 @@ class HeatmiserDevice():
         self.set_protocol = DEFAULT_PROTOCOL #
         self.set_expected_prog_mode = None
         self.set_long_name = 'Unknown'
-        self._load_settings(devicesettings, generalsettings) #take all settings and make them attributes
+        #take all settings and make them attributes
+        self._load_settings(devicesettings, generalsettings)
 
         # initialise external parameters
         self._buildfields() # add fields to self.fields and insome cases add schdulers (extended regularly)
@@ -58,9 +60,12 @@ class HeatmiserDevice():
         """build list of fields"""
         self.fields = [
             HeatmiserFieldDoubleReadOnly('DCBlen', 0, [], MAX_AGE_LONG),
-            HeatmiserFieldSingleReadOnly('vendor', 2, [0, 1], MAX_AGE_LONG, {'heatmiser': 0, 'OEM': 1}),
+            HeatmiserFieldSingleReadOnly('vendor', 2, [0, 1], MAX_AGE_LONG,
+                                            {'heatmiser': 0, 'OEM': 1}),
             HeatmiserFieldSingleReadOnly('version', 3, [], MAX_AGE_LONG),
-            HeatmiserFieldSingleReadOnly('model', 4, [0, 5], MAX_AGE_LONG, {'prt_e_model': 3, 'prt_hw_model': 4, False: 0}),  # DT/DT-E/PRT/PRT-E 00/01/02/03
+            HeatmiserFieldSingleReadOnly('model', 4, [0, 5], MAX_AGE_LONG,
+                                            {'prt_e_model': 3, 'prt_hw_model': 4, False: 0}),
+            # DT/DT-E/PRT/PRT-E 00/01/02/03
             HeatmiserFieldSingleReadOnly('address', 11, [SLAVE_ADDR_MIN, SLAVE_ADDR_MAX], MAX_AGE_LONG),
         ]
     
@@ -102,7 +107,6 @@ class HeatmiserDevice():
     
     def _connect_observers(self):
         """called to connect obersers to fields"""
-        pass
     
     ## Basic reading and getting functions
     
@@ -146,7 +150,7 @@ class HeatmiserDevice():
     def get_field_range(self, firstfieldname, lastfieldname=None):
         """gets fieldrange from device
         safe for blocks crossing gaps in dcb"""
-        if lastfieldname == None:
+        if lastfieldname is None:
             lastfieldname = firstfieldname
 
         firstfieldid = self._fieldnametonum[firstfieldname]
@@ -171,8 +175,11 @@ class HeatmiserDevice():
         if estimatedreadtime < self.fullreadtime - 0.02: #if to close to full read time, then read all
             try:
                 for firstfield, lastfield, blocklength in blockstoread:
-                    self._logger.debug("C%i Reading ui %i to %i len %i, proc %s to %s", self.set_address, firstfield.address, lastfield.address, blocklength, firstfield.name, lastfield.name)
-                    rawdata = self._adaptor.read_from_device(self.set_address, self.set_protocol, firstfield.address, blocklength)
+                    self._logger.debug("C%i Reading ui %i to %i len %i, proc %s to %s", 
+                            self.set_address, firstfield.address, lastfield.address,
+                            blocklength, firstfield.name, lastfield.name)
+                    rawdata = self._adaptor.read_from_device(self.set_address, self.set_protocol,
+                            firstfield.address, blocklength)
                     self.lastreadtime = time.time()
                     self._procpartpayload(rawdata, firstfield.name, lastfield.name)
             except serial.SerialException as err:
