@@ -47,7 +47,8 @@ class TestReadingData(unittest.TestCase):
         #network, address, protocol, short_name, long_name, model, mode
         #self.func = ThermoStat(None, 1, HMV3_ID, 'test', 'test controller', 'prt_hw_model', PROG_MODE_DAY)
         self.settings = {'address':1, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_hw_model', 'expected_prog_mode':PROG_MODE_DAY, 'autocorrectime': False}
-        self.settings2 = {'address':1, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_e_model', 'expected_prog_mode':PROG_MODE_DAY}
+        self.settings2 = {'address':1, 'protocol':HMV3_ID, 'long_name':'test controller', 'expected_model':'prt_e_model', 'expected_prog_mode':PROG_MODE_DAY,
+                            'max_age_temp': 10, 'autocorrectime': False}
         self.func = ThermoStatHotWaterDay(None, self.settings)
 
     def test_procfield(self):
@@ -155,30 +156,63 @@ class TestReadingData(unittest.TestCase):
         setup = SetupTestClass()
         adaptor = MockHeatmiserAdaptor(setup)
         self.func = ThermoStatDay(adaptor, self.settings2)
+        #airtemp
         responses = [[0, 170]]
         adaptor.setresponse(responses)
         self.assertEqual([17], self.func.read_fields(['airtemp'], 1))
+        #two fields
         responses = [[0, 0, 0, 0, 0, 0, 0, 170]]
         adaptor.setresponse(responses)
         self.assertEqual([0, 17], self.func.read_fields(['tempholdmins', 'airtemp'], 0))
+        #again
         responses = [[3], [0, 100]]
         adaptor.setresponse(responses)
         self.assertEqual([3, 10], self.func.read_fields(['model', 'airtemp'], 0))
-        responses = [[3], [0, 100, 0, 1]]
+        #again, one not valid
+        responses = [[1]]
         adaptor.setresponse(responses)
-        print(self.func.read_fields(['model', 'airtemp', 'heatingdemand'], 0))
-        responses = [[3], [0, 100, 0, 1]]
+        self.assertEqual([None], self.func.read_fields(['hotwaterdemand'], 0))
+    
+    def test_read_more_fields(self):
+        setup = SetupTestClass()
+        adaptor = MockHeatmiserAdaptor(setup)
+        self.func = ThermoStatHotWaterDay(adaptor, self.settings)
+        #three fields
+        responses = [[4], [0, 100, 0, 1]]
         adaptor.setresponse(responses)
-        print(self.func.read_fields(['model', 'airtemp', 'hotwaterdemand'], 0))
-        responses = [[3, 0, 1, 0, 0, 0, 0, 4, 0, 0, 0, 0, 1, 7, 5, 20, 0, 0, 0], [0, 100, 0, 1]]
+        self.assertEqual([4, 10, 1], self.func.read_fields(['model', 'airtemp', 'heatingdemand'], 0))
+        #again, with one not valid
+        #0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+        responses = [[4], [0, 100, 0, 0, 1]]
         adaptor.setresponse(responses)
-        print(self.func.read_fields(['model', 'airtemp', 'hotwaterdemand', 'keylock'], 0))
-        responses = [[0, 3, 0, 1, 0, 0, 0, 0, 4, 0, 0, 0, 0, 1, 7, 5, 20, 0, 0, 0, 0, 0, 0, 0]]
+        self.assertEqual([4, 10, 1], self.func.read_fields(['model', 'airtemp', 'hotwaterdemand'], 0))
+        #reset adaptor
+        self.func = ThermoStatDay(adaptor, self.settings2)
+        #longer
+        responses = [[3, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 7, 5, 20, 0, 0, 1], [0, 100]]
+        adaptor.setresponse(responses)
+        self.assertEqual([3, 10, None, 1], self.func.read_fields(['model', 'airtemp', 'hotwaterdemand', 'keylock'], 0))
+        responses = [[0, 3, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 7, 5, 20, 0, 0, 0, 0, 0, 0, 0]]
         adaptor.setresponse(responses)
         print(self.func.read_fields(['holidayhours', 'version'], 0))
-        responses = [[0, 3, 0, 1, 0, 0, 0, 0, 4, 0, 0, 0], [0, 3, 0, 1, 0, 0, 0, 0, 4, 0, 0, 0]]
+        responses = [[0, 3, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0], [0, 3, 0, 1, 0, 0, 0, 0, 4, 0, 0, 0]]
         adaptor.setresponse(responses)
         print(self.func.read_fields(['mon_heat', 'sun_heat'], 0))
+
+    def test_read_specific_functions(self):
+        setup = SetupTestClass()
+        adaptor = MockHeatmiserAdaptor(setup)
+        self.func = ThermoStatDay(adaptor, self.settings2)
+        #air sensor type
+        adaptor.setresponse([[1]])
+        self.assertEqual(2, self.func.read_air_sensor_type())
+        adaptor.setresponse([[0, 100, 0, 0, 0, 0, 0]])
+        self.assertEqual(10,self.func.read_air_temp())
+        #time
+        lta = self.func.currenttime.localtimearray()
+        adaptor.setresponse([lta])
+        self.assertEqual(lta,self.func.read_time())
+
 
 class TestHWfloorlimit(unittest.TestCase):
     """Unittests for other functions"""

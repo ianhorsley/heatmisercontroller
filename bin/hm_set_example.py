@@ -2,13 +2,12 @@
 """Example of setting configurations on Heatmiser stats
 Ian Horsley 2018
 """
-
+from __future__ import absolute_import
 import logging
 
-from heatmisercontroller.logging_setup import initialize_logger_full
 from heatmisercontroller.network import HeatmiserNetwork
 
-initialize_logger_full('logs', logging.INFO)
+logging.basicConfig(level=logging.INFO)
 
 HMN = HeatmiserNetwork()
 

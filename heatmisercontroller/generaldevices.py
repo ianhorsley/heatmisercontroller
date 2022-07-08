@@ -5,7 +5,7 @@ UnknownThermoStat
 
 Ian Horsley 2018
 """
-import logging
+from __future__ import absolute_import
 
 from .genericdevice import HeatmiserDevice
 from .devices_prt_hw import ThermoStatHotWaterDay
@@ -13,19 +13,18 @@ from .fields import HeatmiserFieldUnknown, HeatmiserFieldSingleReadOnly
 from .decorators import ListWrapperClass, run_function_on_all
 from .hm_constants import DEFAULT_PROTOCOL, DEFAULT_PROG_MODE, BROADCAST_ADDR
 from .hm_constants import MAX_AGE_LONG
-from .logging_setup import csvlist
 
 class ThermoStatUnknown(HeatmiserDevice):
     """Device class for unknown thermostats operating unknown programmode"""
 
     def _configure_fields(self):
         """build dict to map field name to index, map fields tables to properties and set dcb addresses."""
-        super(ThermoStatUnknown, self)._configure_fields()
+        super()._configure_fields()
         self.dcb_length = 65536 #override dcb_length to prevent readall, given unknown full length # initialised in base class.
     
     def _buildfields(self):
         """add to list of fields"""
-        super(ThermoStatUnknown, self)._buildfields()
+        super()._buildfields()
         self.fields.extend([
             HeatmiserFieldUnknown('unknown', 5, MAX_AGE_LONG, 6),  # gap allows single read
             HeatmiserFieldUnknown('unknown', 12, MAX_AGE_LONG, 4),  # gap allows single read
@@ -54,16 +53,16 @@ class HeatmiserBroadcastDevice(ThermoStatHotWaterDay):
             'expected_model':False,
             'expected_prog_mode':DEFAULT_PROG_MODE
             }
-        super(HeatmiserBroadcastDevice, self).__init__(network, settings)
+        super().__init__(network, settings)
     
     #run read functions on all stats
     @run_function_on_all(_controllerlist)
     def read_field(self, fieldname, maxage=None):
-        logging.info("All reading %s from %i controllers"%(fieldname, len(self._controllerlist.list)))
+        self._logger.info("All reading %s from %i controllers", fieldname, len(self._controllerlist.list))
             
     @run_function_on_all(_controllerlist)
     def read_fields(self, fieldnames, maxage=None):
-        logging.info("All reading %s from %i controllers"%(csvlist(fieldnames), len(self._controllerlist.list)))
+        self._logger.info("All reading %s from %i controllers", fieldnames, len(self._controllerlist.list))
         
     @run_function_on_all(_controllerlist)
     def read_air_temp(self):

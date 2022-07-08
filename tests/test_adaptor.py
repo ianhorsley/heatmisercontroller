@@ -1,13 +1,38 @@
 """Unittests for heatmisercontroller.adaptor module"""
 import unittest
 import logging
+from serial import SerialException
 
 from heatmisercontroller.adaptor import HeatmiserAdaptor
 from heatmisercontroller.exceptions import HeatmiserResponseError
 from .mock_serial import SerialTestClass, SetupTestClass
 from heatmisercontroller.hm_constants import HMV3_ID
-from heatmisercontroller.framing import crc16
+from heatmisercontroller.framing import Crc16
 
+
+class TestSerialConnect(unittest.TestCase):
+    """Low level serial connect"""
+    def setUp(self):
+        logging.basicConfig(level=logging.ERROR)
+        self.setup = SetupTestClass()
+        self.func = HeatmiserAdaptor(self.setup)
+        self.func.serport.port = '/dev/ttynone'
+        self.goodmessage = [5, 10, 129, 0, 34, 0, 8, 0, 193, 72]
+
+    def tearDown(self):
+        del self.func
+    
+    def test_connect_error(self):
+        with self.assertRaises(SerialException) as ctx:
+            self.func.connect()
+        self.assertEqual("[Errno 2] could not open port /dev/ttynone: [Errno 2] No such file or directory: '/dev/ttynone'", str(ctx.exception))
+        
+    def test_write_error(self):
+        with self.assertRaises(SerialException) as ctx:
+            self.func.write_to_device(5, HMV3_ID, 12, 1, [1])
+        self.assertEqual("[Errno 2] could not open port /dev/ttynone: [Errno 2] No such file or directory: '/dev/ttynone'", str(ctx.exception))        
+    ### Also need value errors on the serial configuration.
+    
 class TestSerial(unittest.TestCase):
     """Low level serial send and recieve message tests"""
     def setUp(self):
@@ -82,7 +107,7 @@ class TestReadWrite(unittest.TestCase):
         self.func = HeatmiserAdaptor(self.setup)
         self.func.serport = self.serialport.serialPort
         #self.goodresponse = [129, 7, 0, 5, 1, 116, 39]
-        self.crc = crc16()
+        self.crc = Crc16()
         #print crc.run(self.goodresponse)
 
     def tearDown(self):

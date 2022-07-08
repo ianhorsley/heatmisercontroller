@@ -3,27 +3,32 @@
 Ian Horsley 2018
 """
 
+from __future__ import absolute_import
 import time
 import logging
 
-from heatmisercontroller.logging_setup import initialize_logger_full
 from heatmisercontroller.network import HeatmiserNetwork
 from heatmisercontroller.exceptions import HeatmiserResponseError
 
 #start logging
-initialize_logger_full('logs', logging.WARN)
+logging.basicConfig(level=logging.WARN)
 
 HMN = HeatmiserNetwork()
 
 # CYCLE THROUGH ALL CONTROLLERS
 for current_controller in HMN.controllers:
-    print("\r\nGetting all data control %2d in %s *****************************" %(current_controller.set_address, current_controller.set_long_name))
+    print("\r\nGetting all data control %2d in %s *****************************" %(
+                current_controller.set_address, current_controller.set_long_name))
 
     try:
         current_controller.read_all()
-        disptext = "C%d Air Temp is %.1f from type %.f and Target set to %d    Boiler Demand %d" % (current_controller.address, current_controller.read_air_temp(), current_controller.read_air_sensor_type(), current_controller.setroomtemp, current_controller.heatingdemand)
+        disptext = "C%d Air Temp is %.1f from type %.f and Target set to %d   Boiler Demand %d" % (
+                        current_controller.address, current_controller.read_air_temp(),
+                        current_controller.read_air_sensor_type(), current_controller.setroomtemp,
+                        current_controller.heatingdemand)
     except HeatmiserResponseError as err:
-        print("C%d in %s Failed to Read due to %s" %(current_controller.set_address, current_controller.name.ljust(4), str(err)))
+        print("C%d in %s Failed to Read due to %s" %(current_controller.set_address,
+                    current_controller.name.ljust(4), str(err)))
     else:
         if current_controller.is_hot_water:
             print("%s Hot Water Demand %d" %(disptext, current_controller.hotwaterdemand))
@@ -49,9 +54,14 @@ while True:
             current_controller.read_fields(SCHEDULEFIELDS)
             current_controller.read_fields(FIELDNAMES, 0) #force get on these fields
             targettext = current_controller.print_target()
-            disptext = "C%d in %s Air Temp is %.1f from type %.f, %s, Heat %d" %(current_controller.address, current_controller.name.ljust(4), current_controller.read_air_temp(), current_controller.read_air_sensor_type(), targettext, current_controller.heatingdemand)
+            disptext = "C%d in %s Air Temp is %.1f from type %.f, %s, Heat %d" %(
+                        current_controller.address, current_controller.name.ljust(4),
+                        current_controller.read_air_temp(),
+                        current_controller.read_air_sensor_type(), targettext,
+                        current_controller.heatingdemand)
         except HeatmiserResponseError as err:
-            print("C%d in %s Failed to Read due to %s" %(current_controller.set_address, current_controller.name.ljust(4), str(err)))
+            print("C%d in %s Failed to Read due to %s" %(current_controller.set_address,
+                        current_controller.name.ljust(4), str(err)))
         else:
             if current_controller.is_hot_water:
                 print("%s Water %d" % (disptext, current_controller.hotwaterdemand))

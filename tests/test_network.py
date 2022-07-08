@@ -1,4 +1,5 @@
 """Unittests for heatmisercontroller.network module"""
+from __future__ import absolute_import
 import unittest
 import logging
 import os
