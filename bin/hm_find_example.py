@@ -6,12 +6,11 @@ from __future__ import absolute_import
 import os
 import logging
 
-from heatmisercontroller.logging_setup import initialize_logger_full
 from heatmisercontroller.network import HeatmiserNetwork
 from heatmisercontroller.exceptions import HeatmiserResponseError
 
 #start logging
-initialize_logger_full('logs', logging.INFO)
+logging.basicConfig(level=logging.INFO)
 
 MODULE_PATH = os.path.abspath(os.path.dirname(__file__))
 CONFIGFILE = os.path.join(MODULE_PATH, "nocontrollers.conf")
