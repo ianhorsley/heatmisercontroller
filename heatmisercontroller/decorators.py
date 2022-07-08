@@ -47,7 +47,7 @@ def run_function_on_all(liststore):
                     continue
 
             if all(result is None for result in results):
-                raise HeatmiserResponseError("All failed, last error was %s", lasterror)
+                raise HeatmiserResponseError("All failed, last error was %s"%lasterror)
 
             return results
 

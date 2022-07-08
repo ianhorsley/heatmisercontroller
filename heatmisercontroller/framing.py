@@ -94,7 +94,7 @@ def _check_response_frame_function(expected_function, data):
     """Takes frame and read or write bit is set correctly"""
     func_code = data[FR_FUNC_CODE]
 
-    if func_code != FUNC_WRITE and func_code != FUNC_READ:
+    if func_code not in (FUNC_WRITE, FUNC_READ):
         raise HeatmiserResponseError("Unknown function    code: %i" %(func_code))
     if func_code != expected_function:
         raise HeatmiserResponseError("Function    code was not as expected: %i" %(func_code))

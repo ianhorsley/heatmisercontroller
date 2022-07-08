@@ -19,7 +19,7 @@ class HeatmiserFieldHotWaterVersion(HeatmiserFieldSingleReadOnly):
 class HeatmiserFieldHotWaterDemand(HeatmiserFieldSingle):
     """Class to impliment read and write differences for hotwater demand field."""
     def __init__(self, name, address, validrange, max_age):
-        super(HeatmiserFieldHotWaterDemand, self).__init__(name, address, validrange, max_age, VALUES_ON_OFF)
+        super().__init__(name, address, validrange, max_age, VALUES_ON_OFF)
         self.writevalues = {'PROG': 0, 'OVER_ON': 1, 'OVER_OFF': 2}
 
     def update_value(self, value, writetime):
@@ -29,9 +29,9 @@ class HeatmiserFieldHotWaterDemand(HeatmiserFieldSingle):
         if value == self.writevalues['PROG']: #returned to program so outcome is unknown
             self._reset()
         elif value == self.writevalues['OVER_OFF']: #if overridden off store the off read value
-            super(HeatmiserFieldHotWaterDemand, self).update_value(self.readvalues['OFF'], writetime)
+            super().update_value(self.readvalues['OFF'], writetime)
         else:
-            super(HeatmiserFieldHotWaterDemand, self).update_value(value, writetime)
+            super().update_value(value, writetime)
 
 class HeatmiserFieldTime(HeatmiserFieldMulti):
     """Class for time field"""
@@ -40,7 +40,7 @@ class HeatmiserFieldTime(HeatmiserFieldMulti):
     def __init__(self, name, address, max_age):
         self.timeerr = None
         validrange = [[1, 7], [0, 23], [0, 59], [0, 59]] #fixed because functions depend on this range.
-        super(HeatmiserFieldTime, self).__init__(name, address, validrange, max_age)
+        super().__init__(name, address, validrange, max_age)
 
     def get_value(self):
         """Return estimated remote time."""

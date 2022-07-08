@@ -63,7 +63,7 @@ class HeatmiserControllerFileSetup(HeatmiserControllerSetup):
         self._logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
         self._logger.debug('creating an instance of %s', self.__class__.__name__)
         # Initialization
-        super(HeatmiserControllerFileSetup, self).__init__()
+        super().__init__()
 
         self._module_path = os.path.abspath(os.path.dirname(__file__))
         specpath = os.path.join(self._module_path, "hmcontroller.spec")

@@ -18,7 +18,7 @@ def retryer(max_retries=3):
             """Part of decorator"""
             lasterror = None
             for i in range(max_retries):
-                if i is not 0:
+                if i != 0:
                     logging.getLogger(__name__).warning("Gen retrying due to %s",str(lasterror))
                 try:
                     result = func(*args, **kwargs)

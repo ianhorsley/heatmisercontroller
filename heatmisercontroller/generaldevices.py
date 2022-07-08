@@ -19,12 +19,12 @@ class ThermoStatUnknown(HeatmiserDevice):
 
     def _configure_fields(self):
         """build dict to map field name to index, map fields tables to properties and set dcb addresses."""
-        super(ThermoStatUnknown, self)._configure_fields()
+        super()._configure_fields()
         self.dcb_length = 65536 #override dcb_length to prevent readall, given unknown full length # initialised in base class.
     
     def _buildfields(self):
         """add to list of fields"""
-        super(ThermoStatUnknown, self)._buildfields()
+        super()._buildfields()
         self.fields.extend([
             HeatmiserFieldUnknown('unknown', 5, MAX_AGE_LONG, 6),  # gap allows single read
             HeatmiserFieldUnknown('unknown', 12, MAX_AGE_LONG, 4),  # gap allows single read
@@ -53,7 +53,7 @@ class HeatmiserBroadcastDevice(ThermoStatHotWaterDay):
             'expected_model':False,
             'expected_prog_mode':DEFAULT_PROG_MODE
             }
-        super(HeatmiserBroadcastDevice, self).__init__(network, settings)
+        super().__init__(network, settings)
     
     #run read functions on all stats
     @run_function_on_all(_controllerlist)

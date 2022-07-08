@@ -39,8 +39,12 @@ class TestSchedulerWeekWater(unittest.TestCase):
         self.func = SchedulerWeekWater()
 
     def test_entry_text(self):
-        self.assertEqual(self.func.entry_text([12, 12, 14, 30, 15, 00, 15, 30, 17, 00, 24, 00, 24, 00, 24, 00]),"Time 1 On at 12:12 Off at 14:30, Time 2 On at 15:00 Off at 15:30, Time 3 On at 17:00 Time 4 ")
-        self.assertEqual(self.func.entry_text([24, 00, 14, 30, 15, 00, 15, 30, 17, 00, 24, 00, 24, 00, 24, 00]),"Time 1 Off at 14:30, Time 2 On at 15:00 Off at 15:30, Time 3 On at 17:00 Time 4 ")
+        self.assertEqual(
+            self.func.entry_text([12, 12, 14, 30, 15, 00, 15, 30, 17, 00, 24, 00, 24, 00, 24, 00]),
+            "Time 1 On at 12:12 Off at 14:30, Time 2 On at 15:00 Off at 15:30, Time 3 On at 17:00 Time 4 ")
+        self.assertEqual(
+            self.func.entry_text([24, 00, 14, 30, 15, 00, 15, 30, 17, 00, 24, 00, 24, 00, 24, 00]),
+            "Time 1 Off at 14:30, Time 2 On at 15:00 Off at 15:30, Time 3 On at 17:00 Time 4 ")
 
     def test_entry(self):
         entry = [12, 12, 14, 30, 15, 00, 15, 30, 17, 00, 24, 00, 24, 00, 24, 00]

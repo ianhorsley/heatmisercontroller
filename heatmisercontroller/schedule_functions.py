@@ -17,7 +17,7 @@ SCH_ENT_TEMP = 3
 #useful constants
 HOUR_MINUTES = 60
 
-class Scheduler(object):
+class Scheduler():
     """General Schedule base class, providing a set of inherited methods"""
     #entry is a day or week/end, item is a part within the entry
     fieldbase = None
@@ -51,12 +51,11 @@ class Scheduler(object):
         Expects short name input or 'all'."""
         if entryname == 'all':
             return self.entrynames
-        else:
-            if self.fieldbase is not None:
-                entryname = entryname + self.fieldbase
-            if not entryname in self.entrynames:
-                raise ValueError('Schedule entry not setable or does not exist %s'%entryname)
-            return [entryname]
+        if self.fieldbase is not None:
+            entryname = entryname + self.fieldbase
+        if not entryname in self.entrynames:
+            raise ValueError('Schedule entry not setable or does not exist %s'%entryname)
+        return [entryname]
 
     def pad_schedule(self, schedule):
         """Pads a partial schedule up to correct length"""
@@ -64,7 +63,7 @@ class Scheduler(object):
             raise IndexError("Schedule length not multiple of %d"%self.valuesperentry)
         pad_item = [HOUR_UNUSED, 0, 12][0:self.valuesperentry]
 
-        return schedule + pad_item * int((self.valuesperentry * self.entriesperday - len(schedule))/self.valuesperentry)
+        return schedule + pad_item * int((self.valuesperentry * self.entriesperday - len(schedule)) / self.valuesperentry)
 
     def display(self):
         """Prints schedule to stdout"""
@@ -101,8 +100,7 @@ class Scheduler(object):
             yestschedule = self._get_previous_schedule_entry(timearray)
             scheduletarget = self._get_last_item_from_an_entry(yestschedule)
             return [self._get_previous_day(timearray)] + scheduletarget
-        else:
-            return [timearray[CURRENT_TIME_DAY]] + scheduletarget
+        return [timearray[CURRENT_TIME_DAY]] + scheduletarget
     
     def get_next_schedule_item(self, timearray):
         """Gets the next item from schedule"""
@@ -204,10 +202,9 @@ class SchedulerWeek(Scheduler):
         """Determines the schedule for a day based on whether weekday or weekend"""
         if day in (6, 7):
             return self.entries[self.entrynames[1]]
-        if day >= 1 and day <= 5:
+        if 1 <= day <= 5:
             return self.entries[self.entrynames[0]]
-        else:
-            raise ValueError("Day not recognised")
+        raise ValueError("Day not recognised")
 
 class SchedulerHeat(Scheduler):
     """Inherited class with heating variables and methods"""
@@ -245,7 +242,7 @@ class SchedulerWater(Scheduler):
         """Assembles string describing a water schdule entry"""
         tempstr = ''
         for entry, dataset in enumerate(self._chunks(data, 2)):
-            count = int(entry/2) + 1 #group number from entries
+            count = entry // 2 + 1 #group number from entries
             tempstr += self.group_formats[entry % 2](count)
             if dataset[0] != HOUR_UNUSED:
                 tempstr += self.entry_formats[entry % 2](dataset)

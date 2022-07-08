@@ -20,7 +20,8 @@ class Observable():
         has changed, notify all its observers, then
         call clearChanged(). Each observer is called directly'''
 
-        if not self.changed: return
+        if not self.changed:
+            return
         # additions of observers:
         self.clear_changed()
         for observer in self.obs:

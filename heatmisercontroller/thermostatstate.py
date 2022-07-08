@@ -8,7 +8,7 @@ from transitions import Machine
 from .hm_constants import MAX_AGE_MEDIUM
 from .schedule_functions import SCH_ENT_TEMP
 
-class Thermostat(object):
+class Thermostat():
     """Thermostat statemachine"""
     states = [{'name': 'off', 'on_enter': 'thres_off'},
             {'name': 'offfrost', 'on_enter': 'thres_frost'},

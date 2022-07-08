@@ -20,7 +20,7 @@ class HeatmiserFieldUnknown(Notifier):
     divisor = 1
 
     def __init__(self, name, address, max_age, length):
-        super(HeatmiserFieldUnknown, self).__init__()
+        super().__init__()
         self._logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
         self._logger.debug('creating an instance of %s', self.__class__.__name__)
         self.name = name
@@ -122,7 +122,7 @@ class HeatmiserField(HeatmiserFieldUnknown):
 
     def __init__(self, name, address, validrange, max_age, readvalues=None):
         ###valid range list can be [], [min, max], [list of valid values]
-        super(HeatmiserField, self).__init__(name, address, max_age, self.fieldlength)
+        super().__init__(name, address, max_age, self.fieldlength)
         self.validrange = validrange
         self.value = None
         self.expectedvalue = None
@@ -255,7 +255,7 @@ class HeatmiserFieldMulti(HeatmiserField):
         """validate the value is within range or in list. cyles through list of ranges"""
         for i, item in enumerate(values):
             expectedrange = self.validrange[i % len(self.validrange)]
-            super(HeatmiserFieldMulti, self)._validate_range(item, errortype, expectedrange)
+            super()._validate_range(item, errortype, expectedrange)
 
     def _calculate_value(self, data):
         """Calculate value from payload bytes"""
