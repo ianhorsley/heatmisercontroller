@@ -33,7 +33,7 @@ class HeatmiserFieldUnknown(Notifier):
         self.lastreadtime = None #used to record when the field was last read
 
     def __int__(self):
-        return self.value
+        return int(self.value)
 
     def __eq__(self, other):
         return self.value == other
