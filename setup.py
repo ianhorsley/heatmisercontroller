@@ -1,4 +1,5 @@
 """Build setup for package"""
+from __future__ import absolute_import
 from setuptools import setup
 
 def readme():
@@ -7,11 +8,12 @@ def readme():
         return fhandle.read()
 
 setup(name='heatmisercontroller',
-      version='0.45',
-      description='Python implementation of Heatmiser protocol for serial connected thermostats ',
+      version='0.52',
+      description='Python implementation of Heatmiser protocol '\
+                    'for serial connected thermostats',
       long_description=readme(),
       classifiers=[
-        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3.7',
       ],
       url='https://github.com/ianhorsley/heatmisercontroller',
       author='Ian Horsley',
@@ -20,7 +22,6 @@ setup(name='heatmisercontroller',
       packages=['heatmisercontroller'],
       install_requires=[
         'datetime',
-        'logging',
         'pyserial',
         'configobj',
         'transitions'

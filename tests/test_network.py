@@ -1,4 +1,5 @@
 """Unittests for heatmisercontroller.network module"""
+from __future__ import absolute_import
 import unittest
 import logging
 import os
@@ -6,7 +7,7 @@ import os
 from heatmisercontroller.network import HeatmiserNetwork
 from heatmisercontroller.exceptions import HeatmiserControllerSetupInitError
 from heatmisercontroller.genericdevice import HeatmiserDevice
-from mock_serial import SetupTestClass, MockHeatmiserAdaptor
+from .mock_serial import SetupTestClass, MockHeatmiserAdaptor
 
 class TestNetwork(unittest.TestCase):
     """Unit tests for network class."""

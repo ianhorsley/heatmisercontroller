@@ -1,12 +1,16 @@
 """generic field definitions for Heatmiser protocol"""
+from __future__ import absolute_import
+from __future__ import division
 import logging
 import time
 
-from hm_constants import BYTEMASK
+from .hm_constants import BYTEMASK
 from .exceptions import HeatmiserResponseError
 from .observer import Notifier
 
-VALUES_ON_OFF = {'ON': 1, 'OFF': 0} #assusme that default comes first, need to swtich to ordered dictionary to make it possible to get default value
+#assusme that default comes first
+#need to swtich to ordered dictionary to make it possible to get default value
+VALUES_ON_OFF = {'ON': 1, 'OFF': 0}
 VALUES_OFF_ON = {'OFF': 0, 'ON': 1}
 VALUES_OFF = {'OFF': 0}
 
@@ -16,13 +20,17 @@ class HeatmiserFieldUnknown(Notifier):
     divisor = 1
 
     def __init__(self, name, address, max_age, length):
-        super(HeatmiserFieldUnknown, self).__init__()
+        super().__init__()
+        self._logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
+        self._logger.debug('creating an instance of %s', self.__class__.__name__)
         self.name = name
         self.address = address
         self.dcbaddress = address
         self.max_age = max_age
         self.fieldlength = length
-        self._reset()
+        self.data = None
+        self.value = None
+        self.lastreadtime = None #used to record when the field was last read
 
     def __int__(self):
         return self.value
@@ -33,14 +41,23 @@ class HeatmiserFieldUnknown(Notifier):
     def __repr__(self):
         return str(self.value)
 
-    def __cmp__(self, value):
-        return cmp(self.value, value)
+    def __lt__(self, value):
+        return self.value < value
+
+    def __le__(self, value):
+        return self.value <= value
+
+    def __gt__(self, value):
+        return self.value > value
+
+    def __ge__(self, value):
+        return self.value >= value
 
     def _reset(self):
         """Reset data and values to unknown."""
         self.data = None
         self.value = None
-        self.lastreadtime = None #used to record when the field was last read
+        self.lastreadtime = None
 
     def last_dcb_byte_address(self):
         """returns the address of the last dcb byte"""
@@ -58,7 +75,7 @@ class HeatmiserFieldUnknown(Notifier):
     def get_value(self):
         """Return value."""
         return self.value
-        
+
     def is_writable(self):
         """Checks if field is writable"""
         if not self.writeable:
@@ -72,7 +89,7 @@ class HeatmiserFieldUnknown(Notifier):
         """check whether data has been set"""
         data_not_valid = self.lastreadtime is None
         if data_not_valid:
-            logging.debug("Data item %s not available"%(self.name))
+            self._logger.debug("Data item %s not available", self.name)
         return not data_not_valid
 
     def check_data_fresh(self, maxagein=None):
@@ -85,15 +102,15 @@ class HeatmiserFieldUnknown(Notifier):
         return False if old, True if recent"""
         if not self.check_data_valid():
             return False
-        elif maxagein == -1: #only check present
+        if maxagein == -1: #only check present
             return True
-        elif maxagein is None: #if none use field defaults
+        if maxagein is None: #if none use field defaults
             maxage = self.max_age
         else:
             maxage = maxagein
         #now check time
         if time.time() - self.lastreadtime > maxage:
-            logging.debug("Data item %s too old"%(self.name))
+            self._logger.debug("Data item %s too old", self.name)
             return False
         return True
 
@@ -105,7 +122,7 @@ class HeatmiserField(HeatmiserFieldUnknown):
 
     def __init__(self, name, address, validrange, max_age, readvalues=None):
         ###valid range list can be [], [min, max], [list of valid values]
-        super(HeatmiserField, self).__init__(name, address, max_age, self.fieldlength)
+        super().__init__(name, address, max_age, self.fieldlength)
         self.validrange = validrange
         self.value = None
         self.expectedvalue = None
@@ -126,21 +143,20 @@ class HeatmiserField(HeatmiserFieldUnknown):
         """returns value converting to label if known"""
         if self.readvalues is None:
             return self.value
-        else:
-            return self.readvalues.keys()[self.readvalues.values().index(self.value)]
+        return list(self.readvalues.keys())[list(self.readvalues.values()).index(self.value)]
 
     def write_value_from_text(self, value):
         """maps text to value, otherwise returns input"""
         if self.writevalues is None:
             return value
-        else:
-            return self.writevalues.get(value, value)
+        return self.writevalues.get(value, value)
 
     def update_data(self, data, readtime):
         """update stored data and readtime if data valid. Compute and store value from data."""
         value = self._calculate_value(data)
         if self.expectedvalue is not None and value != self.expectedvalue:
-            raise HeatmiserResponseError('Value %i is unexpected for %s, expected %i'%(value, self.name, self.expectedvalue))
+            raise HeatmiserResponseError('Value %d is unexpected for %s, expected %d'%(
+                                            value, self.name, self.expectedvalue))
         self._validate_range(value)
         self.data = data
         self.value = value
@@ -163,10 +179,12 @@ class HeatmiserField(HeatmiserFieldUnknown):
 
         if len(expectedrange) == 2:
             if values < expectedrange[0] or values > expectedrange[1]:
-                raise errortype("Value %.1f  outside expected range (%.1f, %.1f) for %s"%(values, expectedrange[0], expectedrange[1], self.name))
+                raise errortype("Value %.1f  outside expected range (%.1f, %.1f) for %s"%(
+                                    values, expectedrange[0], expectedrange[1], self.name))
         elif len(expectedrange) > 2:
             if values not in expectedrange:
-                raise errortype("Value %.1f  outside expected range %s for %s"%(values, ','.join(map(str, expectedrange)), self.name))
+                raise errortype("Value %.1f  outside expected range %s for %s"%(
+                                    values, ','.join(map(str, expectedrange)), self.name))
         else:
             raise errortype("Expected range not defined for %s"%(self.name))
 
@@ -180,7 +198,7 @@ class HeatmiserField(HeatmiserFieldUnknown):
 
     def check_values(self, values):
         """check a single or double byte field value matches field spec"""
-        if not isinstance(values, (int, long)):
+        if not isinstance(values, int):
             #one or two byte field, not single length values
             raise TypeError("set_field: invalid requested value")
 
@@ -237,7 +255,7 @@ class HeatmiserFieldMulti(HeatmiserField):
         """validate the value is within range or in list. cyles through list of ranges"""
         for i, item in enumerate(values):
             expectedrange = self.validrange[i % len(self.validrange)]
-            super(HeatmiserFieldMulti, self)._validate_range(item, errortype, expectedrange)
+            super()._validate_range(item, errortype, expectedrange)
 
     def _calculate_value(self, data):
         """Calculate value from payload bytes"""
